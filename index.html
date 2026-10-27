@@ -296,9 +296,9 @@ x.restore()}
 function dc(x,c){if(c.k=='b'){x.drawImage(c.bc,0,0);const f=c==C()&&sel[0]&&sel[0].t=='bs'&&sel[0].cvs?sel[0]:0;if(f)stampSel(x,f);}else c.sh.forEach(s=>s.hid||dsh(x,s))}
 // ===== 描画 =====
 // 表示専用の透明チェッカー: マスは作品座標で8×8、マスの角をキャンバス中心(幅/2,高さ/2)に合わせる。ズーム・移動に連動し、画像データには含めない(エクスポートはdcのみ使用)
-function drawChecker(c,d,X0,Y0,X1,Y1){g.setTransform(1,0,0,1,0,0);g.fillStyle='#fff';g.fillRect(X0,Y0,X1-X0,Y1-Y0);if(BG.on){g.fillStyle=BG.col;g.fillRect(X0,Y0,X1-X0,Y1-Y0);return}const R8=8*RS(c),cw=R8*z*d;
-if(cw<3){g.fillStyle='#f1f1f1';g.fillRect(X0,Y0,X1-X0,Y1-Y0);return}
-g.fillStyle='#e3e3e3';const W=cv.width,H=cv.height,hx=c.w/2,hy=c.h/2,Xc=X0+hx*z*d,Yc=Y0+hy*z*d,
+function drawChecker(c,d,X0,Y0,X1,Y1){g.setTransform(1,0,0,1,0,0);const K1=BG.on?BG.col:'#fff',K2=BG.on?bgShade(BG.col):'#e3e3e3';g.fillStyle=K1;g.fillRect(X0,Y0,X1-X0,Y1-Y0);const R8=8*RS(c),cw=R8*z*d;
+if(cw<3){g.fillStyle=BG.on?bgShade(BG.col,.5):'#f1f1f1';g.fillRect(X0,Y0,X1-X0,Y1-Y0);return}
+g.fillStyle=K2;const W=cv.width,H=cv.height,hx=c.w/2,hy=c.h/2,Xc=X0+hx*z*d,Yc=Y0+hy*z*d,
 i0=Math.max(Math.floor(-hx/R8),Math.floor(-Xc/cw)),i1=Math.min(Math.ceil(hx/R8)-1,Math.floor((W-Xc)/cw)),j0=Math.max(Math.floor(-hy/R8),Math.floor(-Yc/cw)),j1=Math.min(Math.ceil(hy/R8)-1,Math.floor((H-Yc)/cw));
 for(let j=j0;j<=j1;j++){const ya=Math.max(Y0,Math.round(Yc+j*cw)),yb=Math.min(Y1,Math.round(Yc+(j+1)*cw));if(yb<=ya)continue;for(let i=i0+((i0+j)&1);i<=i1;i+=2){const xa=Math.max(X0,Math.round(Xc+i*cw)),xb=Math.min(X1,Math.round(Xc+(i+1)*cw));if(xb>xa)g.fillRect(xa,ya,xb-xa,yb-ya)}}}
 let raf=0;function draw(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;paint()})}
@@ -467,7 +467,7 @@ s.w=nw;s.h=nh;if(s.t=='txt')s.fs=nh/1.2;const ax=sx*nw/2,ay=sy*nh/2;s.x=A[0]+ax*
 else if(d.m=='band')band=[d.p0[0],d.p0[1],p[0],p[1]];
 draw()}
 function up(e){const c=C(),d=drag;drag=null;if(!d||d.h)return;
-if(c.k=='b')return fin();
+if(c.k=='b'){if(d.m=='bnew')tightSel(c);return fin()}
 if(d.P){const s=tmp;tmp=null;if(tool=='eras')eraseAt(d.P,+$('#sw').value/2);else if(tool=='brush'){const n=brushShape(d.P,+$('#sw').value/2);if(n){hist();c.sh.push(n);sel=[n]}}else if(s){hist();c.sh.push(s);sel=[s]}}
 else if(d.m=='mk'){const s=tmp;tmp=null;if(Math.hypot(d.p[0]-d.p0[0],d.p[1]-d.p0[1])*z>4){if(tool=='cut')cutAt(d.p0,d.p);else if(s){hist();c.sh.push(s);sel=[s]}}}
 else if(d.m=='band'&&band){const x0=Math.min(band[0],band[2]),x1=Math.max(band[0],band[2]),y0=Math.min(band[1],band[3]),y1=Math.max(band[1],band[3]);
@@ -697,7 +697,7 @@ const tl=(v,b)=>()=>{const t=isV()?v:b;if(!t)return;if(!isV())bcommit();tool=t;s
 let vclip=null;const AR={t:0};
 function vcopy(){if(sel.length)vclip=JSON.stringify(sel,rep)}
 function vpaste(){if(!vclip)return;const c=C(),G={};hist();const n=JSON.parse(vclip).map(q=>{q.x+=12;q.y+=12;if(q.g)q.g=G[q.g]||(G[q.g]=++gid+Date.now());if(q.src)ld(q);return q});c.sh.push(...n);sel=n;tool='sel';tools();fin()}
-function selAll(){const c=C();if(isV()){sel=c.sh.filter(s=>!s.hid&&!s.lk);if(tool!='sel'&&tool!='rsh'){tool='sel';tools()}}else{bcommit();tool='bsel';sel=[{t:'bs',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:[0,0,c.w,c.h],cvs:null}];tools()}sync();draw()}
+function selAll(){const c=C();if(isV()){sel=c.sh.filter(s=>!s.hid&&!s.lk);if(tool!='sel'&&tool!='rsh'){tool='sel';tools()}}else{bcommit();tool='bsel';sel=[{t:'bs',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:[0,0,c.w,c.h],cvs:null}];tightSel(c);tools()}sync();draw()}
 const del_=()=>(isV()?$('#dl'):$('#bdel')).click();
 const SC=[['v',0,0,'選択ツール',tl('sel','bsel')],['a',0,0,'リシェイプ(ベクターのみ)',tl('rsh',0)],['p',0,0,'ペン(ビットマップではブラシ)',tl('pen','brush')],['b',0,0,'ブラシ',tl('brush','brush')],['e',0,0,'消しゴム',tl('eras','eras')],['t',0,0,'文字(ベクターのみ)',tl('txt',0)],
 ['z',1,0,'元に戻す',undo],['z',1,1,'やり直し',redo],['y',1,0,'やり直し',redo],['Delete',0,0,'削除',del_],['Backspace',0,0,'',del_],
@@ -904,7 +904,7 @@ $('#pvw').onclick=openPrev;
 const L={addv:'ベクター',addb:'ビット',dupc:'複製',delc:'削除',ren:'名前',impb:'画像'};
 const lh=$('#lhead');['addv','addb','dupc','delc','ren','impb'].forEach(i=>{const e=$('#'+i);e.dataset.l=L[i];lh.append(e);const n=e.nextElementSibling;if(n&&n.tagName=='INPUT')lh.append(n)});
 const lab={sv:'保存',ld:'読込',png:'PNG',svgb:'SVG',bk:'復元',undo:'戻す',redo:'進む',tp:'パネル',pvw:'確認',hlp:'ヘルプ',flt:'補正',v2b:'ビット化',svi:'SVG読込',s3o:'S3書出',s3i:'S3読込'};Object.keys(lab).forEach(i=>$('#'+i).dataset.l=lab[i]);
-$('#more').innerHTML='<h4>図形演算(複数選択)</h4><div class="grp" id="m1"></div><h4>整列</h4><div class="grp" id="m2"></div><h4>画像・変換</h4><div class="grp" id="m3"></div><h4>表示・補助(書き出しには影響しません)</h4><div class="grp" id="m4"><label>透明部分の表示<select id="bgm"><option value="0">チェッカー</option><option value="1">単色</option></select></label><label>表示色<input type="color" id="bgc" value="#d9d9d9" style="min-width:48px;height:44px"></label><label><input type="checkbox" id="csn" checked>中心スナップ(Altで一時無効)</label></div>';
+$('#more').innerHTML='<h4>図形演算(複数選択)</h4><div class="grp" id="m1"></div><h4>整列</h4><div class="grp" id="m2"></div><h4>画像・変換</h4><div class="grp" id="m3"></div><h4>表示・補助(書き出しには影響しません)</h4><div class="grp" id="m4"><label>透明部分の表示<select id="bgm"><option value="0">標準(白と灰)</option><option value="1">選択した色の市松</option></select></label><label>表示色<input type="color" id="bgc" value="#d9d9d9" style="min-width:48px;height:44px"></label><label><input type="checkbox" id="csn" checked>中心スナップ(Altで一時無効)</label></div>';
 ['bmg','bmk','bsb','bft'].forEach(i=>$('#m1').append($('#'+i)));$('#m2').append($('#al'));['flt','v2b','svi','s3o','s3i'].forEach(i=>$('#m3').append($('#'+i)));$('#m3').append($('#s3f'));
 if($('#svf'))$('#m3').append($('#svf'));
 const sp=document.querySelectorAll('#g_ops .sep');if(sp.length>1)sp[sp.length-1].remove();
@@ -921,6 +921,11 @@ const tp=$('#tp');tp.addEventListener('click',()=>tp.classList.toggle('on',!$('#
 const BG={on:0,col:'#d9d9d9'};try{const q=JSON.parse(localStorage.getItem('ced_bg')||'{}');if(q.col)BG.col=q.col;BG.on=q.on?1:0}catch(e){}
 $('#bgm').value=BG.on;$('#bgc').value=BG.col;
 const bgSet=()=>{BG.on=+$('#bgm').value;BG.col=$('#bgc').value;try{localStorage.setItem('ced_bg',JSON.stringify(BG))}catch(e){}draw()};$('#bgm').onchange=bgSet;$('#bgc').oninput=()=>{$('#bgm').value=1;bgSet()};
+
+function bgShade(h,k=1){const n=parseInt(h.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,l=.299*r+.587*g+.114*b,t=l>128?0:255,m=.14*k,f=v=>Math.round(v+(t-v)*m);return'#'+[f(r),f(g),f(b)].map(v=>v.toString(16).padStart(2,'0')).join('')}
+function tightSel(c){const b=sel[0];if(!b||b.t!='bs'||b.cvs)return;const[X,Y,w,h]=b.src;if(w<1||h<1){sel=[];return}const d=c.bc.getContext('2d').getImageData(X,Y,w,h).data;let x0=w,y0=h,x1=-1,y1=-1;
+for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+if(x1<0){sel=[];return}const W=x1-x0+1,H=y1-y0+1;sel=[{t:'bs',x:X+x0+W/2,y:Y+y0+H/2,r:0,w:W,h:H,src:[X+x0,Y+y0,W,H],cvs:null}]}
 function cropSel(){const c=C();try{
 if(c.k=='b'){const b=sel[0];if(!b||b.t!='bs')return;if(Math.abs(b.r)>1e-6)return alert('回転した選択範囲では切り詰められません。回転を戻してから実行してください。');
 const X=Math.round(b.x-b.w/2),Y=Math.round(b.y-b.h/2),W=Math.round(b.w),H=Math.round(b.h);if(W<1||H<1)return;
