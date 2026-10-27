@@ -243,7 +243,10 @@ const data=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.re
 catch(e){webLoaded.delete(f.fam);alert('Webフォント「'+f.n+'」を取得できませんでした(オンライン接続が必要です)。代替フォントで表示します')}}
 const curFont=()=>{const f=FL[+$('#fn').value]||FL[0];ensureWeb(f);return f.css};
 // ===== モデル =====
-function mk(k,n){const c={n,k,w:480,h:360,cx:240,cy:180,sh:[],u:[],r:[]};if(k=='b'){c.bc=document.createElement('canvas');c.bc.width=480;c.bc.height=360}return c}
+// ビットマップの座標系: c.w/c.h/c.cx/c.cy はすべて「実ピクセル」単位。論理(Scratch)サイズ = 実ピクセル ÷ c.res。
+// 新規ビットマップは res=2(実960×720=論理480×360)。ベクターは常に res=1。
+const BR=2,RS=c=>c&&+c.res>0?+c.res:1;
+function mk(k,n){const R=k=='b'?BR:1,c={n,k,w:480*R,h:360*R,cx:240*R,cy:180*R,res:R,sh:[],u:[],r:[]};if(k=='b'){c.bc=document.createElement('canvas');c.bc.width=c.w;c.bc.height=c.h}return c}
 function ld(s){s.im=new Image;s.im.onload=draw;s.im.src=s.src}
 function dOf(s){const w=s.w,h=s.h;
 if(s.t=='pd')return s.d;
@@ -293,10 +296,10 @@ x.restore()}
 function dc(x,c){if(c.k=='b'){x.drawImage(c.bc,0,0);const f=c==C()&&sel[0]&&sel[0].t=='bs'&&sel[0].cvs?sel[0]:0;if(f)stampSel(x,f);}else c.sh.forEach(s=>s.hid||dsh(x,s))}
 // ===== 描画 =====
 // 表示専用の透明チェッカー: マスは作品座標で8×8、マスの角をキャンバス中心(幅/2,高さ/2)に合わせる。ズーム・移動に連動し、画像データには含めない(エクスポートはdcのみ使用)
-function drawChecker(c,d,X0,Y0,X1,Y1){g.setTransform(1,0,0,1,0,0);g.fillStyle='#fff';g.fillRect(X0,Y0,X1-X0,Y1-Y0);const cw=8*z*d;
+function drawChecker(c,d,X0,Y0,X1,Y1){g.setTransform(1,0,0,1,0,0);g.fillStyle='#fff';g.fillRect(X0,Y0,X1-X0,Y1-Y0);const R8=8*RS(c),cw=R8*z*d;
 if(cw<3){g.fillStyle='#f1f1f1';g.fillRect(X0,Y0,X1-X0,Y1-Y0);return}
 g.fillStyle='#e3e3e3';const W=cv.width,H=cv.height,hx=c.w/2,hy=c.h/2,Xc=X0+hx*z*d,Yc=Y0+hy*z*d,
-i0=Math.max(Math.floor(-hx/8),Math.floor(-Xc/cw)),i1=Math.min(Math.ceil(hx/8)-1,Math.floor((W-Xc)/cw)),j0=Math.max(Math.floor(-hy/8),Math.floor(-Yc/cw)),j1=Math.min(Math.ceil(hy/8)-1,Math.floor((H-Yc)/cw));
+i0=Math.max(Math.floor(-hx/R8),Math.floor(-Xc/cw)),i1=Math.min(Math.ceil(hx/R8)-1,Math.floor((W-Xc)/cw)),j0=Math.max(Math.floor(-hy/R8),Math.floor(-Yc/cw)),j1=Math.min(Math.ceil(hy/R8)-1,Math.floor((H-Yc)/cw));
 for(let j=j0;j<=j1;j++){const ya=Math.max(Y0,Math.round(Yc+j*cw)),yb=Math.min(Y1,Math.round(Yc+(j+1)*cw));if(yb<=ya)continue;for(let i=i0+((i0+j)&1);i<=i1;i+=2){const xa=Math.max(X0,Math.round(Xc+i*cw)),xb=Math.min(X1,Math.round(Xc+(i+1)*cw));if(xb>xa)g.fillRect(xa,ya,xb-xa,yb-ya)}}}
 let raf=0;function draw(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;paint()})}
 function paint(){const c=C();if(!c)return;numSync();const d=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
@@ -322,8 +325,8 @@ if(band){const p=S(band[0],band[1]),q=S(band[2],band[3]);g.setLineDash([5,4]);g.
 function fit(){const c=C(),W=cv.clientWidth,H=cv.clientHeight;z=Math.min(W/c.w,H/c.h)*.92;ox=(W-c.w*z)/2;oy=(H-c.h*z)/2;draw()}
 function zoomAt(x,y,n){n=Math.min(32,Math.max(.1,n));ox=x-(x-ox)*n/z;oy=y-(y-oy)*n/z;z=n;draw()}
 // ===== 履歴 =====
-function st(c){return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,w:c.w,h:c.h,cx:c.cx,cy:c.cy}}
-function rs(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;if(c.k=='b'){c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}
+function st(c){return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c)}}
+function rs(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;c.res=+t.res>0?+t.res:1;if(c.k=='b'){c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}
 function hist(){const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[]}
 function undo(){bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
 function redo(){bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
@@ -475,9 +478,9 @@ const PENL=[['round','丸ペン'],['square','四角ペン(ドット)'],['marker'
 function samp(P,st){const o=[P[0]];let run=0,nxt=st;for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i],L=Math.hypot(b[0]-a[0],b[1]-a[1]);while(nxt<=run+L){const t=(nxt-run)/L;o.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]);nxt+=st}run+=L}return o}
 const PEN={round:(x,P,sz,c)=>{x.fillStyle=x.strokeStyle=c;x.lineWidth=sz;x.lineCap=x.lineJoin='round';x.beginPath();x.arc(P[0][0],P[0][1],sz/2,0,7);x.fill();x.beginPath();x.moveTo(P[0][0],P[0][1]);P.forEach(p=>x.lineTo(p[0],p[1]));x.stroke()},
 square:(x,P,sz,c)=>{x.fillStyle=c;samp(P,.5).forEach(p=>x.fillRect(p[0]-sz/2,p[1]-sz/2,sz,sz))},
-calli:(x,P,sz,c)=>{x.strokeStyle=c;x.lineWidth=1.5;x.lineCap='round';const n=sz/2*.7071;samp(P,.5).forEach(p=>{x.beginPath();x.moveTo(p[0]-n,p[1]+n);x.lineTo(p[0]+n,p[1]-n);x.stroke()})},
-spray:(x,P,sz,c,sd)=>{x.fillStyle=c;let r=sd|0;const rnd=()=>{r=(r+0x6D2B79F5)|0;let t=Math.imul(r^r>>>15,1|r);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};samp(P,Math.max(1,sz/6)).forEach(p=>{for(let k=0;k<Math.ceil(sz/2);k++){const a=rnd()*6.2832,d=sz/2*Math.sqrt(rnd());x.fillRect(Math.round(p[0]+Math.cos(a)*d),Math.round(p[1]+Math.sin(a)*d),1,1)}})},
-dot:(x,P,sz,c)=>{x.fillStyle=c;samp(P,Math.max(2,sz*1.8)).forEach(p=>{x.beginPath();x.arc(p[0],p[1],sz/2,0,7);x.fill()})}};PEN.marker=PEN.round;
+calli:(x,P,sz,c,sd,R=1)=>{x.strokeStyle=c;x.lineWidth=1.5*R;x.lineCap='round';const n=sz/2*.7071;samp(P,.5).forEach(p=>{x.beginPath();x.moveTo(p[0]-n,p[1]+n);x.lineTo(p[0]+n,p[1]-n);x.stroke()})},
+spray:(x,P,sz,c,sd,R=1)=>{x.fillStyle=c;let r=sd|0;const rnd=()=>{r=(r+0x6D2B79F5)|0;let t=Math.imul(r^r>>>15,1|r);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};samp(P,Math.max(R,sz/6)).forEach(p=>{for(let k=0;k<Math.ceil(sz/2/R);k++){const a=rnd()*6.2832,d=sz/2*Math.sqrt(rnd());x.fillRect(Math.round(p[0]+Math.cos(a)*d),Math.round(p[1]+Math.sin(a)*d),R,R)}})},
+dot:(x,P,sz,c,sd,R=1)=>{x.fillStyle=c;samp(P,Math.max(2*R,sz*1.8)).forEach(p=>{x.beginPath();x.arc(p[0],p[1],sz/2,0,7);x.fill()})}};PEN.marker=PEN.round;
 function bRender(c,d,bb,paint,o){const x0=Math.max(0,Math.floor(bb[0])),y0=Math.max(0,Math.floor(bb[1])),x1=Math.min(c.w,Math.ceil(bb[2])),y1=Math.min(c.h,Math.ceil(bb[3])),w=x1-x0,h=y1-y0,x=c.bc.getContext('2d');
 if(d.db){const[a,b,e,f]=d.db;x.putImageData(d.snap,0,0,a,b,e-a,f-b)}
 if(w<=0||h<=0)return;const L=document.createElement('canvas');L.width=w;L.height=h;const lx=L.getContext('2d');lx.translate(-x0,-y0);paint(lx);
@@ -485,9 +488,9 @@ if(!$('#aa').checked){lx.setTransform(1,0,0,1,0,0);const im=lx.getImageData(0,0,
 x.save();x.globalAlpha=o.alpha;x.globalCompositeOperation=o.erase?'destination-out':'source-over';x.drawImage(L,x0,y0);x.restore();
 d.db=d.db?[Math.min(d.db[0],x0),Math.min(d.db[1],y0),Math.max(d.db[2],x1),Math.max(d.db[3],y1)]:[x0,y0,x1,y1]}
 const rgbOf=c=>`rgb(${c.r},${c.g},${c.b})`;
-function bPen(c,d){const sz=+$('#sw').value,k=tool=='eras'?(penK=='square'?'square':'round'):penK,cc=getC('sc'),xs=d.P.map(p=>p[0]),ys=d.P.map(p=>p[1]),m=sz/2+2;
-bRender(c,d,[Math.min(...xs)-m,Math.min(...ys)-m,Math.max(...xs)+m,Math.max(...ys)+m],x=>PEN[k](x,d.P,sz,rgbOf(cc),d.seed),{alpha:tool=='eras'?1:cc.a*(k=='marker'?.45:1),erase:tool=='eras'})}
-function bShape(c,d,p){const lw=+$('#sw').value,cc=getC('sc'),a=d.p0,m=lw/2+2;
+function bPen(c,d){const R=RS(c),sz=+$('#sw').value*R,k=tool=='eras'?(penK=='square'?'square':'round'):penK,cc=getC('sc'),xs=d.P.map(p=>p[0]),ys=d.P.map(p=>p[1]),m=sz/2+2*R;
+bRender(c,d,[Math.min(...xs)-m,Math.min(...ys)-m,Math.max(...xs)+m,Math.max(...ys)+m],x=>PEN[k](x,d.P,sz,rgbOf(cc),d.seed,R),{alpha:tool=='eras'?1:cc.a*(k=='marker'?.45:1),erase:tool=='eras'})}
+function bShape(c,d,p){const R=RS(c),lw=+$('#sw').value*R,cc=getC('sc'),a=d.p0,m=lw/2+2*R;
 bRender(c,d,[Math.min(a[0],p[0])-m,Math.min(a[1],p[1])-m,Math.max(a[0],p[0])+m,Math.max(a[1],p[1])+m],x=>{x.fillStyle=x.strokeStyle=rgbOf(cc);x.lineWidth=lw;x.lineCap=x.lineJoin='round';x.beginPath();
 if(tool=='bline'){x.moveTo(a[0],a[1]);x.lineTo(p[0],p[1])}else if(tool=='brect')x.rect(a[0],a[1],p[0]-a[0],p[1]-a[1]);else x.ellipse((a[0]+p[0])/2,(a[1]+p[1])/2,Math.abs(p[0]-a[0])/2,Math.abs(p[1]-a[1])/2,0,0,7);
 $('#bf').checked&&tool!='bline'?x.fill():x.stroke()},{alpha:cc.a})}
@@ -526,9 +529,9 @@ $('#fn').onchange=()=>{const l=sel.filter(s=>s.t=='txt');if(!l.length)return;his
 $('#addf').onclick=()=>$('#ff').click();
 $('#ff').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const n=prompt('フォント名',f.name.replace(/\.[^.]+$/,''));if(!n)return;const fb=prompt('バックアップフォント(読み込み失敗時に使用)','sans-serif')||'sans-serif';const o={n,data:r.result,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};r.readAsDataURL(f);e.target.value=''};
 $('#sysf').onclick=async()=>{const n=prompt('システムにあるフォント名');if(!n)return;const fb=prompt('バックアップフォント','sans-serif')||'sans-serif',o={n,data:null,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};
-function list(){$('#list').innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i>${i+1}</i><canvas width=72 height=54></canvas><span>${esc(c.n)}</span>`;d.onclick=()=>go(i);$('#list').append(d)});thumbs()}
+function list(){$('#list').innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i>${i+1}</i><canvas width=72 height=54></canvas><span>${esc(c.n)}</span>`;if(c.k=='b')d.title=`${c.w}×${c.h}px / 解像度${RS(c)} → 論理${+(c.w/RS(c)).toFixed(2)}×${+(c.h/RS(c)).toFixed(2)}`;d.onclick=()=>go(i);$('#list').append(d)});thumbs()}
 function thumbs(){document.querySelectorAll('#list canvas').forEach((t,i)=>{const c=cs[i],x=t.getContext('2d');x.clearRect(0,0,72,54);const k=Math.min(72/c.w,54/c.h);x.save();x.translate((72-c.w*k)/2,(54-c.h*k)/2);x.scale(k,k);dc(x,c);x.restore()})}
-function go(i){if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();list();sync();const c=C();if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
+function go(i){if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();list();sync();const c=C();{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
 function grow(c,W,H){if(c.k=='v'||W<=c.w&&H<=c.h)return;W=Math.max(W,c.w);H=Math.max(H,c.h);if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);c.bc.width=W;c.bc.height=H;c.bc.getContext('2d').drawImage(o,0,0)}c.w=W;c.h=H}
 $('#addv').onclick=()=>add('v');$('#addb').onclick=()=>add('b');
@@ -536,7 +539,7 @@ $('#dupc').onclick=()=>{bcommit();const c=C(),n=mk(c.k,c.n+'2');rs(n,st(c));cs.s
 $('#delc').onclick=()=>{if(cs.length<2)return alert('最後のコスチュームは削除できません');if(!confirm('このコスチュームを削除しますか?'))return;cs.splice(ci,1);go(Math.min(ci,cs.length-1))};
 $('#ren').onclick=()=>{const n=prompt('名前',C().n);if(n){C().n=n;list()}};
 $('#undo').onclick=undo;$('#redo').onclick=redo;
-$('#zi').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,z*1.1);$('#zo').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,z/1.1);$('#zf').onclick=fit;$('#z1').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,1);
+$('#zi').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,z*1.1);$('#zo').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,z/1.1);$('#zf').onclick=fit;$('#z1').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,1/RS(C()));
 $('#mu').onclick=()=>{multi=!multi;sync()};
 const ord=f=>{const c=C();if(!sel.length)return;hist();const a=c.sh.filter(s=>!sel.includes(s)),b=c.sh.filter(s=>sel.includes(s));c.sh=f?a.concat(b):b.concat(a);fin()};
 $('#fr').onclick=()=>ord(1);$('#bkb').onclick=()=>ord(0);
@@ -555,9 +558,9 @@ $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.type=='image/
 if(c.k=='b')c.bc.getContext('2d').drawImage(im,Math.round((c.w-im.naturalWidth)/2),Math.round((c.h-im.naturalHeight)/2));
 else{const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:im.naturalWidth,h:im.naturalHeight,src:r.result};ld(s);c.sh.push(s);sel=[s]}fin()};im.src=r.result};r.readAsDataURL(f);e.target.value=''};
 // ===== 保存・出力 =====
-function ser(){return JSON.stringify({v:3,ci,fonts,pal,cur:curState(),cs:cs.map(c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:c.res,sh:c.sh,bm:c.k=='b'?flatURL(c):0}))},rep)}
+function ser(){return JSON.stringify({v:3,ci,fonts,pal,cur:curState(),cs:cs.map(c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?flatURL(c):0}))},rep)}
 function load(t){const o=JSON.parse(t);FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
-cs=o.cs.map(q=>{const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh,res:q.res});c.sh.forEach(s=>s.src&&ld(s));
+cs=o.cs.map(q=>{const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh,res:+q.res>0?+q.res:1});c.sh.forEach(s=>s.src&&ld(s));
 if(q.k=='b'){c.bc.width=q.w;c.bc.height=q.h;if(q.bm){const im=new Image;im.onload=()=>{c.bc.getContext('2d').drawImage(im,0,0);thumbs();draw()};im.src=q.bm}}return c});go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync()}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
 $('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.json');
@@ -651,7 +654,7 @@ addEventListener('resize',cpPos);
 function buildPK(){const e=$('#g_pk');e.innerHTML='';PENL.forEach(([k,n])=>{const b=document.createElement('button');setB(b,'pen'+k,n);b.className=k==penK?'on':'';b.onclick=()=>{penK=k;buildPK()};e.append(b)})}
 Object.assign(IC,{arrL:'<path d="M19 12H5M11 6l-6 6 6 6"/>',arrR:'<path d="M5 12h14M13 6l6 6-6 6"/>',arrU:'<path d="M12 19V5M6 11l6-6 6 6"/>',arrD:'<path d="M12 5v14M6 13l6 6 6-6"/>'});
 $('#aa').addEventListener('change',()=>{draw();thumbs()});
-function nudge(dx,dy){const b=bsl();if(!b||bsPx(b)==0)return;pre();b.x=Math.round(b.x-b.w/2)+b.w/2+dx;b.y=Math.round(b.y-b.h/2)+b.h/2+dy;draw();thumbs()}
+function nudge(dx,dy){const b=bsl();if(!b||bsPx(b)==0)return;{const R=RS(C());dx*=R;dy*=R}pre();b.x=Math.round(b.x-b.w/2)+b.w/2+dx;b.y=Math.round(b.y-b.h/2)+b.h/2+dy;draw();thumbs()}
 [['nl',-1,0],['nu',0,-1],['nd',0,1],['nr',1,0]].forEach(([id,dx,dy])=>{const e=$('#'+id);let tm=0,iv=0;const stop=()=>{clearTimeout(tm);clearInterval(iv)};
 e.addEventListener('pointerdown',ev=>{ev.preventDefault();stop();nudge(dx,dy);tm=setTimeout(()=>{iv=setInterval(()=>nudge(dx,dy),50)},350)});['pointerup','pointerleave','pointercancel'].forEach(t=>e.addEventListener(t,stop))});
 addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||!C()||C().k!='b'||!bsl())return;const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!m)return;e.preventDefault();const k=e.shiftKey?10:1;nudge(m[0]*k,m[1]*k)});
@@ -721,10 +724,10 @@ if(P.gy){y=.299*r+.587*g+.114*b;r=g=b=y}
 if(P.sp){const R=.393*r+.769*g+.189*b,G=.349*r+.686*g+.168*b;b=.272*r+.534*g+.131*b;r=R;g=G}
 if(P.br||P.ct){r=(r+br-128)*cf+128;g=(g+br-128)*cf+128;b=(b+br-128)*cf+128}
 if(P.iv){r=255-r;g=255-g;b=255-b}d[i]=r;d[i+1]=g;d[i+2]=b}
-if(P.bl>0)blurData(d,w,h,Math.round(P.bl));
-if(P.sh>0){const c2=new Uint8ClampedArray(d),k=P.sh/50;blurData(c2,w,h,1);for(let i=0;i<L;i+=4){if(!d[i+3])continue;for(let j=0;j<3;j++)d[i+j]=d[i+j]+k*(d[i+j]-c2[i+j])}}return o}
+if(P.bl>0)blurData(d,w,h,Math.max(1,Math.round(P.bl*(P.R||1))));
+if(P.sh>0){const c2=new Uint8ClampedArray(d),k=P.sh/50;blurData(c2,w,h,P.R||1);for(let i=0;i<L;i+=4){if(!d[i+3])continue;for(let j=0;j<3;j++)d[i+j]=d[i+j]+k*(d[i+j]-c2[i+j])}}return o}
 function openFlt(){const c=C();if(c.k!='b')return alert('画像フィルターはビットマップのコスチューム専用です。ベクター図形には適用できません。');bcommit();if(c.w*c.h>12e6)return alert('画像が大きすぎます(1200万画素まで)');
-const x=c.bc.getContext('2d'),org=x.getImageData(0,0,c.w,c.h),P={},D=document.createElement('div');let tm_=0;D.className='dlg';
+const x=c.bc.getContext('2d'),org=x.getImageData(0,0,c.w,c.h),P={R:RS(c)},D=document.createElement('div');let tm_=0;D.className='dlg';
 D.innerHTML='<div role="dialog" aria-label="画像フィルター"><b>画像フィルター</b>'+FP.map(f=>`<label>${f[1]}<input type="range" data-p="${f[0]}" min="${f[2]}" max="${f[3]}" value="${f[4]}"><output></output></label>`).join('')+FC.map(f=>`<label>${f[1]}<input type="checkbox" data-p="${f[0]}"></label>`).join('')+'<small>プレビューは常に元画像から計算します。「適用」まで確定せず、キャンセルで元に戻ります。透明部分は維持されます。</small><span class="grp"><button data-r>リセット</button><button data-x>キャンセル</button><button data-ok class="on">適用</button></span></div>';
 const get=()=>{D.querySelectorAll('[data-p]').forEach(e=>P[e.dataset.p]=e.type=='checkbox'?e.checked:+e.value);D.querySelectorAll('output').forEach(o=>o.textContent=o.previousSibling.value)},
 run=()=>{get();clearTimeout(tm_);tm_=setTimeout(()=>{x.putImageData(filt(org,P),0,0);draw()},60)};
@@ -735,7 +738,7 @@ $('#flt').onclick=openFlt;
 // --- F. ベクター→ビットマップ(等倍。サイズ・中心点・透明度を維持。Undoで形式ごと復元)
 $('#v2b').onclick=()=>{const c=C();if(c.k!='v')return alert('このコスチュームはすでにビットマップです。\nビットマップ→ベクターのトレース変換は未実装です。');
 if(!confirm('ベクターをビットマップに変換します。\n・変換後は図形単位の編集(移動・変形・点の編集・レイヤー)ができなくなります\n・解像度は現在のコスチュームサイズ(等倍)で、サイズと中心点は維持されます\n・「元に戻す」で変換前に戻せます'))return;
-hist();const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);c.bc=o;c.k='b';c.sh=[];sel=[];tmp=null;fin()};
+hist();const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);c.bc=o;c.k='b';c.res=1;c.sh=[];sel=[];tmp=null;fin()};
 // --- A. SVGをベクター図形へ変換(画像として置くだけの既存「画像を読み込む」とは別機能)
 function svgImport(t){const c=C();if(c.k!='v')return alert('ベクターのコスチュームを選択してください');
 const doc=new DOMParser().parseFromString(t,'image/svg+xml'),R=doc.documentElement,W=new Set(),out=[];if(R.nodeName!='svg'||doc.querySelector('parsererror'))return alert('SVGとして解析できませんでした');
@@ -794,22 +797,22 @@ if(m==0)R[key]=raw;else if(m==8){if(typeof DecompressionStream=='undefined')thro
 
 // 書き出し: 全コスチュームをScratch形式(sprite.json + svg/png)でZIP化
 async function s3out(){try{const name=prompt('スプライト名(Scratchで表示される名前)','スプライト1');if(name==null)return;if(C().k=='b')bcommit();const files=[],costumes=[],seen=new Set();
-for(const c of cs){let d,ext,res=1;if(c.k=='v'){d=te(svg(c)+`<!--rotationCenter:${c.cx}:${c.cy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);const b=await new Promise(r=>o.toBlob(r,'image/png'));if(!b)throw Error('PNG変換に失敗しました');d=new Uint8Array(await b.arrayBuffer());ext='png';res=c.res||1}
+for(const c of cs){let d,ext,res=1;if(c.k=='v'){d=te(svg(c)+`<!--rotationCenter:${c.cx}:${c.cy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);const b=await new Promise(r=>o.toBlob(r,'image/png'));if(!b)throw Error('PNG変換に失敗しました');d=new Uint8Array(await b.arrayBuffer());ext='png';res=RS(c);if(o.width!=c.w||o.height!=c.h)throw Error(c.n+': 画像サイズの不整合')}
 const id=md5(d),fn=id+'.'+ext;costumes.push({name:c.n,bitmapResolution:res,dataFormat:ext,assetId:id,md5ext:fn,rotationCenterX:c.cx,rotationCenterY:c.cy});if(!seen.has(fn)){seen.add(fn);files.push([fn,d])}}
 const j={isStage:false,name,variables:{},lists:{},broadcasts:{},blocks:{},comments:{},currentCostume:ci,costumes,sounds:[],volume:100,layerOrder:1,visible:true,x:0,y:0,size:100,direction:90,draggable:false,rotationStyle:'all around'};
 dl(zipMake([['sprite.json',te(JSON.stringify(j))],...files]),name+'.sprite3')}catch(x){alert('.sprite3の書き出しに失敗しました: '+x.message)}}
 // 読み込み: すべて解析できてから現在のスプライトへ追加(失敗時は現在のデータを変更しない)
-async function s3in(file){const keep=ci,n0=cs.length,W=[];svgImport.q=1;svgImport.w=W;try{const Z=await unzip(await file.arrayBuffer());if(!Z['sprite.json'])throw Error('sprite.jsonがありません(.sprite3ではない可能性)');const j=JSON.parse(td(Z['sprite.json']));if(!Array.isArray(j.costumes)||!j.costumes.length)throw Error('コスチュームがありません');if(j.sounds&&j.sounds.length)W.push('サウンド/ブロックは読み込まれません(コスチュームのみ)');
+async function s3in(file){const keep=ci,n0=cs.length,W=[],I=[];svgImport.q=1;svgImport.w=W;try{const Z=await unzip(await file.arrayBuffer());if(!Z['sprite.json'])throw Error('sprite.jsonがありません(.sprite3ではない可能性)');const j=JSON.parse(td(Z['sprite.json']));if(!Array.isArray(j.costumes)||!j.costumes.length)throw Error('コスチュームがありません');if(j.sounds&&j.sounds.length)W.push('サウンド/ブロックは読み込まれません(コスチュームのみ)');
 for(const q of j.costumes){const d=Z[q.md5ext||q.assetId+'.'+q.dataFormat];if(!d){W.push(q.name+': 画像ファイルが見つかりません');continue}const rx=+q.rotationCenterX||0,ry=+q.rotationCenterY||0;
 if(q.dataFormat=='svg'){const t=td(d),R=new DOMParser().parseFromString(t,'image/svg+xml').documentElement;if(R.nodeName!='svg'){W.push(q.name+': SVGを解析できません');continue}
 const vb=(R.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number),ok=vb.length==4&&vb.every(isFinite)&&vb[2]>0&&vb[3]>0,vw=ok?vb[2]:parseFloat(R.getAttribute('width'))||480,vh=ok?vb[3]:parseFloat(R.getAttribute('height'))||360,k=Math.min(1,4096/Math.max(vw,vh)),c=mk('v',q.name);
 c.w=Math.max(1,Math.round(vw*k));c.h=Math.max(1,Math.round(vh*k));c.cx=rx*k;c.cy=ry*k;cs.push(c);ci=cs.length-1;sel=[];svgImport(t);c.u=[];c.r=[];
 if(!c.sh.length&&R.querySelector('path,rect,circle,ellipse,line,polygon,polyline,image,text')){const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(t)))};ld(s);c.sh.push(s);W.push(q.name+': 図形に変換できず画像として配置(個別編集不可)')}{const dx=240-c.cx,dy=180-c.cy;c.sh.forEach(s=>{s.x+=dx;s.y+=dy});c.w=480;c.h=360;c.cx=240;c.cy=180}}
 else if(q.dataFormat=='png'||q.dataFormat=='jpg'||q.dataFormat=='jpeg'){const im=await new Promise((ok,ng)=>{const i=new Image;i.onload=()=>ok(i);i.onerror=()=>ng(Error(q.name+': 画像を読み込めません'));i.src=URL.createObjectURL(new Blob([d],{type:'image/'+(q.dataFormat=='png'?'png':'jpeg')}))}),c=mk('b',q.name);
-c.res=+q.bitmapResolution||1;{const iw=im.naturalWidth,ih=im.naturalHeight,hx=Math.max(240*c.res,rx,iw-rx),hy=Math.max(180*c.res,ry,ih-ry);c.w=c.bc.width=Math.round(hx*2);c.h=c.bc.height=Math.round(hy*2);c.bc.getContext('2d').drawImage(im,Math.round(hx-rx),Math.round(hy-ry));c.cx=hx;c.cy=hy}cs.push(c);URL.revokeObjectURL(im.src)}
+const R=+q.bitmapResolution>0?+q.bitmapResolution:1;c.res=R;{const iw=im.naturalWidth,ih=im.naturalHeight,cX=isFinite(parseFloat(q.rotationCenterX))?+q.rotationCenterX:iw/2,cY=isFinite(parseFloat(q.rotationCenterY))?+q.rotationCenterY:ih/2,hx=Math.max(240*R,cX,iw-cX),hy=Math.max(180*R,cY,ih-cY),offX=Math.round(hx-cX),offY=Math.round(hy-cY);c.w=c.bc.width=Math.max(Math.ceil(hx*2),offX+iw);c.h=c.bc.height=Math.max(Math.ceil(hy*2),offY+ih);c.bc.getContext('2d').drawImage(im,offX,offY);c.cx=cX+offX;c.cy=cY+offY;I.push(`${q.name}: ${iw}×${ih}px / 解像度${R} → 論理${+(iw/R).toFixed(2)}×${+(ih/R).toFixed(2)}`)}cs.push(c);URL.revokeObjectURL(im.src)}
 else W.push(q.name+': 未対応の形式('+q.dataFormat+')')}
 if(cs.length==n0)throw Error('読み込めるコスチュームがありませんでした');ci=keep;go(n0);list();sync();
-alert(`.sprite3から${cs.length-n0}個のコスチュームを追加しました。\nSVGは図形ごとに編集できます(未対応要素は除く)。PNGはビットマップです。`+(W.length?'\n\n注意:\n・'+[...new Set(W)].join('\n・'):''))}
+alert(`.sprite3から${cs.length-n0}個のコスチュームを追加しました。\nSVGは図形ごとに編集できます(未対応要素は除く)。PNGはビットマップです。`+(I.length?'\n\n画像サイズ(実ピクセル → 論理サイズ):\n・'+I.join('\n・'):'')+(W.length?'\n\n注意:\n・'+[...new Set(W)].join('\n・'):''))}
 catch(x){cs.length=n0;ci=keep;sel=[];alert('.sprite3の読み込みに失敗しました。現在のデータは変更されていません。\n'+x.message)}finally{svgImport.q=0;go(Math.min(ci,cs.length-1));list()}}
 $('#s3o').onclick=s3out;$('#s3i').onclick=()=>$('#s3f').click();$('#s3f').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)s3in(f)};
 
@@ -867,12 +870,12 @@ catch(e){ph=0;lab();$$('pst').textContent='変換に失敗しました: '+e.mess
 $$('pre').onclick=run;$$('pgo').onclick=()=>{if(ph==1)cancel=true;else if(ph==2){sel=added;tool=tool;fin();end()}else if(!$$('pv').checked){end();$('#imp').onchange({target:{files:[f],value:''},__s:1})}else run()}}
 
 // ===== プレビュー(全体 / アニメーション)。編集データ・編集画面のズームには一切触れない =====
-function cbounds(cl){let a=0,b=0,e=1,f=1;cl.forEach((c,i)=>{let x0=0,y0=0,x1=c.w,y1=c.h;if(c.k=='v'){const L=c.sh.filter(s=>!s.hid);if(L.length){const u=ubox(L);x0=Math.min(x0,u[0]);y0=Math.min(y0,u[1]);x1=Math.max(x1,u[2]);y1=Math.max(y1,u[3])}}
+function cbounds(cl){let a=0,b=0,e=1,f=1;cl.forEach((c,i)=>{let x0=0,y0=0,x1=c.w/RS(c),y1=c.h/RS(c);if(c.k=='v'){const L=c.sh.filter(s=>!s.hid);if(L.length){const u=ubox(L);x0=Math.min(x0,u[0]);y0=Math.min(y0,u[1]);x1=Math.max(x1,u[2]);y1=Math.max(y1,u[3])}}
 if(!i){a=x0;b=y0;e=x1;f=y1}else{a=Math.min(a,x0);b=Math.min(b,y0);e=Math.max(e,x1);f=Math.max(f,y1)}});return[a,b,e,f]}
 function paintPrev(cvs,c,B,zm,px,py){const d=devicePixelRatio||1,W=cvs.clientWidth,H=cvs.clientHeight;if(cvs.width!=Math.round(W*d)||cvs.height!=Math.round(H*d)){cvs.width=Math.round(W*d);cvs.height=Math.round(H*d)}
 const x=cvs.getContext('2d'),bw=B[2]-B[0],bh=B[3]-B[1],k=Math.min(W/bw,H/bh)*.94*zm;x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,W,H);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#e3e8ef';const q=12;for(let i=0;i*q<W;i++)for(let j=0;j*q<H;j++)if((i+j)&1)x.fillRect(i*q,j*q,q,q);
-x.save();x.translate(W/2+px,H/2+py);x.scale(k,k);x.translate(-(B[0]+bw/2),-(B[1]+bh/2));x.imageSmoothingEnabled=k<2;dc(x,c);x.restore();
-x.strokeStyle='#855cd688';x.setLineDash([4,3]);x.strokeRect(W/2+px+(0-(B[0]+bw/2))*k,H/2+py+(0-(B[1]+bh/2))*k,c.w*k,c.h*k)}
+x.save();x.translate(W/2+px,H/2+py);x.scale(k,k);x.translate(-(B[0]+bw/2),-(B[1]+bh/2));{const R=RS(c);x.imageSmoothingEnabled=k/R<2;x.scale(1/R,1/R)}dc(x,c);x.restore();
+x.strokeStyle='#855cd688';x.setLineDash([4,3]);x.strokeRect(W/2+px+(0-(B[0]+bw/2))*k,H/2+py+(0-(B[1]+bh/2))*k,c.w/RS(c)*k,c.h/RS(c)*k)}
 function openPrev(){if(cs[ci].k=='b')bcommit();const D=document.createElement('div');D.className='dlg';let mode=0,zm=1,px=0,py=0,fr=0,tm_=0,play=0,dir=1;
 const opt=cs.map((c,i)=>`<option value="${i}">${i+1}: ${esc(c.n)}</option>`).join('');
 D.innerHTML=`<div role="dialog" aria-label="プレビュー" style="width:min(760px,calc(100vw - 12px))"><span class="grp"><button id="pm0" class="on">全体表示</button><button id="pm1">アニメーション</button><span class="fill"></span><button data-x>閉じる</button></span>
@@ -883,7 +886,7 @@ D.innerHTML=`<div role="dialog" aria-label="プレビュー" style="width:min(76
 <label>ループ再生<input type="checkbox" id="plp" checked></label><span class="grp"><button id="ppl" class="on">▶ 再生</button><button id="ppa">⏸ 一時停止</button><button id="pst">■ 停止</button></span></div><small id="pin"></small></div>`;
 document.body.append(D);const $$=i=>D.querySelector('#'+i),cvs=$$('pc'),rng=()=>{let a=+$$('pas').value,b=+$$('pae').value;dir=a<=b?1:-1;const L=[];for(let i=a;i!=b+dir;i+=dir)L.push(i);return L};
 $$('pas').value=ci;$$('pae').value=Math.min(cs.length-1,ci+Math.max(0,Math.min(cs.length-1,4)));
-const info=()=>{if(!mode){$$('pin').textContent=`${ci+1}/${cs.length}: ${cs[ci].n}(編集中の内容を表示。点線は480×360の枠)`;return}const L=rng();$$('pin').textContent=`${fr+1}/${L.length}枚目 — コスチューム${L[fr]+1}「${cs[L[fr]].n}」 / ${(+$$('pms').value/1000).toFixed(2)}秒/枚${dir<0?' / 逆順再生':''}${play?' / 再生中':''}`},
+const info=()=>{if(!mode){$$('pin').textContent=`${ci+1}/${cs.length}: ${cs[ci].n}(編集中の内容を表示。点線は${+(cs[ci].w/RS(cs[ci])).toFixed(1)}×${+(cs[ci].h/RS(cs[ci])).toFixed(1)}の枠)`;return}const L=rng();$$('pin').textContent=`${fr+1}/${L.length}枚目 — コスチューム${L[fr]+1}「${cs[L[fr]].n}」 / ${(+$$('pms').value/1000).toFixed(2)}秒/枚${dir<0?' / 逆順再生':''}${play?' / 再生中':''}`},
 show=()=>{if(!mode){paintPrev(cvs,cs[ci],cbounds([cs[ci]]),zm,px,py);$$('pzv').textContent=Math.round(zm*100)+'%'}else{const L=rng();fr=Math.min(fr,L.length-1);paintPrev(cvs,cs[L[fr]],cbounds(L.map(i=>cs[i])),1,0,0)}info()},
 stop=()=>{clearTimeout(tm_);play=0},tick_=()=>{if(!play)return;const L=rng();if(fr+1<L.length)fr++;else if($$('plp').checked)fr=0;else{play=0;show();return}show();tm_=setTimeout(tick_,Math.max(20,+$$('pms').value||200))},
 setM=m=>{mode=m;stop();$$('pm0').classList.toggle('on',!m);$$('pm1').classList.toggle('on',!!m);$$('pa').hidden=!m;$$('pz').hidden=!!m;show()};
