@@ -338,11 +338,13 @@ const u=Math.min(sw-1,Math.floor((lx+hw)/b.w*sw)),v=Math.min(sh-1,Math.floor((ly
 const di=((py-Y0)*dw+(px-X0))*4,a=sa/255,da=dd[di+3]/255,oa=a+da*(1-a);if(oa>0){for(let k=0;k<3;k++)dd[di+k]=Math.round((sd[si+k]*a+dd[di+k]*da*(1-a))/oa);dd[di+3]=Math.round(oa*255)}}
 x.putImageData(dst,X0,Y0)}
 function stampSel(x,b){const aa=$('#aa').checked;if(!aa&&x.getTransform().isIdentity)return nnStamp(x,b);
-x.save();x.imageSmoothingEnabled=aa;if(aa)x.imageSmoothingQuality='high';x.translate(b.x,b.y);x.rotate(aa&&!b.r?1e-4:b.r);x.scale(b.fx||1,b.fy||1);x.drawImage(b.cvs,-b.w/2,-b.h/2,b.w,b.h);x.restore()}
+x.save();x.imageSmoothingEnabled=aa;if(aa)x.imageSmoothingQuality='high';x.translate(b.x,b.y);x.rotate(b.r||(aa&&!(b.w==b.cvs.width&&b.h==b.cvs.height)?1e-6:0));x.scale(b.fx||1,b.fy||1);x.drawImage(b.cvs,-b.w/2,-b.h/2,b.w,b.h);x.restore()}
 function pre(){const b=sel[0];if(b&&b.t=='bs'){if(!b.cvs){hist();lift()}}else hist()}
 // 範囲選択の対象はアルファ>0のピクセルのみ(完全透明ピクセルは選択対象外。矩形の表示は従来どおり)
 function opaqueN(cv){const w=cv.width,h=cv.height;if(!w||!h)return 0;const d=cv.getContext('2d').getImageData(0,0,w,h).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i])n++;return n}
 function bsPx(b){if(b.px===undefined){if(drag&&drag.m=='bnew')return 1;b.px=opaqueN(b.cvs||region(b))}return b.px}
+// 範囲選択を確定したとき、選択枠を「不透明(アルファ>0)ピクセルの外接矩形」まで自動で縮める。範囲内がすべて透明なら枠はそのまま(対象なし)
+function trimSel(){const b=sel[0];if(!b||b.t!='bs'||b.cvs||!b.src)return;const[X,Y,w,h]=b.src;if(w<=0||h<=0)return;const d=C().bc.getContext('2d').getImageData(X,Y,w,h).data;let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(d[(y*w+x)*4+3]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}if(x1<0)return;const nw=x1-x0+1,nh=y1-y0+1;b.src=[X+x0,Y+y0,nw,nh];b.w=nw;b.h=nh;b.x=X+x0+nw/2;b.y=Y+y0+nh/2;b.px=undefined}
 function lift(){const b=sel[0];if(!b||b.t!='bs'||b.cvs)return;const c=C(),[X,Y,w,h]=b.src,x=c.bc.getContext('2d'),im=x.getImageData(X,Y,w,h),d=im.data,o=document.createElement('canvas');o.width=w;o.height=h;const out=new ImageData(w,h),q=out.data;let n=0;
 for(let i=0;i<d.length;i+=4)if(d[i+3]){q[i]=d[i];q[i+1]=d[i+1];q[i+2]=d[i+2];q[i+3]=d[i+3];d[i]=d[i+1]=d[i+2]=d[i+3]=0;n++}
 o.getContext('2d').putImageData(out,0,0);x.putImageData(im,X,Y);b.cvs=o;b.px=n}
@@ -467,7 +469,7 @@ if(s.t=='bs'){nw=Math.max(1,Math.round(nw));nh=Math.max(1,Math.round(nh))}s.w=nw
 else if(d.m=='band')band=[d.p0[0],d.p0[1],p[0],p[1]];
 draw()}
 function up(e){const c=C(),d=drag;drag=null;if(!d||d.h)return;
-if(c.k=='b')return fin();
+if(c.k=='b'){if(d.m=='bnew')trimSel();return fin()}
 if(d.P){const s=tmp;tmp=null;if(tool=='eras')eraseAt(d.P,+$('#sw').value/2);else if(tool=='brush'){const n=brushShape(d.P,+$('#sw').value/2);if(n){hist();c.sh.push(n);sel=[n]}}else if(s){hist();c.sh.push(s);sel=[s]}}
 else if(d.m=='mk'){const s=tmp;tmp=null;if(Math.hypot(d.p[0]-d.p0[0],d.p[1]-d.p0[1])*z>4){if(tool=='cut')cutAt(d.p0,d.p);else if(s){hist();c.sh.push(s);sel=[s]}}}
 else if(d.m=='band'&&band){const x0=Math.min(band[0],band[2]),x1=Math.max(band[0],band[2]),y0=Math.min(band[1],band[3]),y1=Math.max(band[1],band[3]);
