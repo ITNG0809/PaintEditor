@@ -73,6 +73,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #more{position:absolute;left:6px;bottom:6px;max-width:calc(100% - 12px);background:#fff;border:1px solid #c9d0d9;border-radius:10px;padding:6px;box-shadow:0 2px 10px #0003;z-index:6;display:flex;flex-direction:column;gap:4px}#more h4{margin:2px 0;font-size:12px}#more .grp{gap:4px}
 @media(max-width:700px){#lcol{flex-direction:column}#tools .tsep{width:1px;height:32px;margin:auto 3px}}
 #tovl{display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 6px}#tovl input{width:22px;height:22px}.dlg input[type=checkbox]{width:24px;height:24px}
+#arrd .tb{display:flex;gap:4px;flex-wrap:wrap}#arrd .tb button,#arrd .pn button{min-height:44px;padding:0 10px}#arrd .pn{display:none;flex-direction:column;gap:6px}#arrd .pn.on{display:flex}#arrd label{justify-content:flex-start;gap:6px}#arrd input[type=number]{width:72px;min-height:40px}#arrd select{min-height:40px}#arrd .r{display:flex;flex-wrap:wrap;gap:4px;align-items:center}#arrd h5{margin:2px 0;font-size:12px;color:#555}
 </style></head><body>
 <div id="app">
 <div id="top">
@@ -128,12 +129,12 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="addf" data-i="addfont" data-t="フォントファイル(ttf/otf/woff/woff2)を追加"></button><input type="file" id="ff" accept=".ttf,.otf,.woff,.woff2" hidden>
 <button id="sysf" data-i="sysfont" data-t="システムフォント名を追加"></button>
 <button id="te" data-i="edit" data-t="選択した文字を編集"></button><button id="t2p" data-i="outline" data-t="選択した文字をベクターパス(図形)に変換" data-l="図形化"></button><button id="p2t" data-i="totext" data-t="図形化した文字を元のテキストに戻す" data-l="文字へ"></button><label id="tovl" data-t="ON:文字を確定すると自動で図形化 / OFF:従来どおりテキスト"><input type="checkbox" id="tov">自動図形化</label></span>
-<span class="grp" id="g_rsh"><button id="delpt" data-i="delpt" data-t="選択した点を削除(線の上をタップすると点を追加)"></button><button id="ptm" data-i="ptmode" data-t="選択した点を滑らか/角に切り替え"></button></span>
+<span class="grp" id="g_rsh"><button id="pth" data-i="pathop" data-t="ポイント整列・水平化/垂直化・点の結合・パス操作" data-l="パス操作"></button><button id="delpt" data-i="delpt" data-t="選択した点を削除(線の上をタップすると点を追加)"></button><button id="ptm" data-i="ptmode" data-t="選択した点を滑らか/角に切り替え"></button></span>
 <span class="grp" id="g_bo"><button id="bcp" data-i="copy" data-t="選択範囲をコピー"></button><button id="bct" data-i="scissors" data-t="選択範囲を切り取り"></button><button id="bps" data-i="paste" data-t="貼り付け"></button><button id="bdel" data-i="del" data-t="選択範囲を削除"></button><button id="bfh" data-i="bfh" data-t="選択範囲を左右反転"></button><button id="bfv" data-i="bfv" data-t="選択範囲を上下反転"></button></span>
 <span class="grp" id="g_bpen"><label class="tg"><input type="checkbox" id="aa" checked><span data-i="aa" data-t="アンチエイリアス ON/OFF(OFFでくっきりしたドット)"></span></label><span class="grp" id="g_pk"></span></span>
 <span class="grp" id="g_nd"><button id="nl" data-i="arrL" data-t="選択範囲を左へ1px移動(長押しで連続・矢印キー対応)"></button><button id="nu" data-i="arrU" data-t="選択範囲を上へ1px移動"></button><button id="nd" data-i="arrD" data-t="選択範囲を下へ1px移動"></button><button id="nr" data-i="arrR" data-t="選択範囲を右へ1px移動"></button><span id="bsinfo" aria-live="polite"></span></span>
 <span class="grp" id="g_bf"><label class="tg"><input type="checkbox" id="bf" checked><span data-i="filled" data-t="図形を塗りつぶす/枠のみ"></span></label></span>
-<span class="grp" id="g_ops">
+<span class="grp" id="g_ops"><button id="arr" data-i="alignp" data-t="整列・等間隔・グリッド配置(複数の図形を選択)" data-l="配置"></button>
 <span class="sep"></span>
 <button id="mu" data-i="multi" data-t="複数選択モード(タッチ用)"></button>
 <button id="fr" data-i="front" data-t="前面へ"></button><button id="bkb" data-i="back" data-t="背面へ"></button>
@@ -320,7 +321,7 @@ g.fillStyle='#fff';
 if(sel.length==1&&(tool=='sel'||tool=='bsel')){const s=sel[0];K.forEach(k=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.fillRect(q[0]-8,q[1]-8,16,16);g.strokeRect(q[0]-8,q[1]-8,16,16)});
 const r=l2w(s,0,-s.h/2-30/z),q=S(r[0],r[1]);g.beginPath();g.arc(q[0],q[1],9,0,7);g.fill();g.stroke()}
 if(tool=='rsh'&&sel[0]&&sel[0].pts){const s=sel[0];s.pts.forEach((q,i)=>{const w=l2w(s,q[0]*s.w,q[1]*s.h),r=S(w[0],w[1]);if(i==selPt&&s.bz){g.fillStyle='#855cd6';[[2,3],[4,5]].forEach(([a,b])=>{if(!q[a]&&!q[b])return;const h=l2w(s,(q[0]+q[a])*s.w,(q[1]+q[b])*s.h),u=S(h[0],h[1]);g.beginPath();g.moveTo(r[0],r[1]);g.lineTo(u[0],u[1]);g.stroke();g.beginPath();g.arc(u[0],u[1],7,0,7);g.fill();g.stroke()})}
-g.fillStyle=i==selPt?'#855cd6':'#fff';g.fillRect(r[0]-7,r[1]-7,14,14);g.strokeRect(r[0]-7,r[1]-7,14,14)});g.fillStyle='#fff'}
+g.fillStyle=(i==selPt||spHas(s,i))?'#855cd6':'#fff';g.fillRect(r[0]-7,r[1]-7,14,14);g.strokeRect(r[0]-7,r[1]-7,14,14)});g.fillStyle='#fff'}
 if(band){const p=S(band[0],band[1]),q=S(band[2],band[3]);g.setLineDash([5,4]);g.strokeRect(p[0],p[1],q[0]-p[0],q[1]-p[1]);g.setLineDash([])}}}
 function fit(){const c=C(),W=cv.clientWidth,H=cv.clientHeight;z=Math.min(W/c.w,H/c.h)*.92;ox=(W-c.w*z)/2;oy=(H-c.h*z)/2;draw()}
 function zoomAt(x,y,n){n=Math.min(32,Math.max(.1,n));ox=x-(x-ox)*n/z;oy=y-(y-oy)*n/z;z=n;draw()}
@@ -328,8 +329,8 @@ function zoomAt(x,y,n){n=Math.min(32,Math.max(.1,n));ox=x-(x-ox)*n/z;oy=y-(y-oy)
 function st(c){return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c)}}
 function rs(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;c.res=+t.res>0?+t.res:1;if(c.k=='b'){c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}
 function hist(){const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[]}
-function undo(){bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
-function redo(){bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
+function undo(){SPA.a=[];bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
+function redo(){SPA.a=[];bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
 function nnStamp(x,b){const src=b.cvs,sw=src.width,sh=src.height;if(!sw||!sh)return;const fx=b.fx||1,fy=b.fy||1,c=Math.cos(b.r),s=Math.sin(b.r),hw=b.w/2,hh=b.h/2,ex=Math.abs(c)*hw+Math.abs(s)*hh,ey=Math.abs(s)*hw+Math.abs(c)*hh,
 X0=Math.max(0,Math.floor(b.x-ex)),Y0=Math.max(0,Math.floor(b.y-ey)),X1=Math.min(x.canvas.width,Math.ceil(b.x+ex)),Y1=Math.min(x.canvas.height,Math.ceil(b.y+ey));if(X1<=X0||Y1<=Y0)return;
 const sd=src.getContext('2d').getImageData(0,0,sw,sh).data,dst=x.getImageData(X0,Y0,X1-X0,Y1-Y0),dd=dst.data,dw=X1-X0;
@@ -443,7 +444,7 @@ if(hit){const grp=hit.g?c.sh.filter(s=>s.g==hit.g):[hit];if(add){grp.every(s=>se
 else{if(!add)sel=[];drag.m='band'}sync();draw()}
 else if(tool=='rsh'){const s=sel[0];
 if(s&&s.bz){const hh=hHandle(s,p);if(hh){Object.assign(drag,{m:'bh',i:selPt,k:hh});return}
-const i=hpt(s,p);if(i>=0){selPt=i;Object.assign(drag,{m:'pt',i,L:links(s,i)});sync();draw();return}
+const i=hpt(s,p);if(i>=0){if(multi){spTog(s,i);drag=null;sync();draw();return}SPA.s=s;SPA.a=[i];selPt=i;Object.assign(drag,{m:'pt',i,L:links(s,i)});sync();draw();return}
 const sg=segHit(s,p);if(sg){hist();const j=insertAt(s,sg);selPt=j;Object.assign(drag,{m:'pt',i:j,mv:1,L:[]});sync();draw();return}}
 const h=pick(p);drag=null;sel=[];selPt=-1;if(h){if(h.t=='img'||h.t=='txt')alert('この図形は点の編集に未対応です(文字・画像は対象外)');else{if(!h.bz){hist();toBz(h)}sel=[h]}}sync();draw()}
 else if(tool=='fill'){const h=pick(p);drag=null;if(h){hist();if(h.t=='line'||(h.t=='path'&&!h.cl&&!h.f))h.s=col('fc');else h.f=fv();fin()}}
@@ -921,5 +922,66 @@ const sp2=document.createElement('span');sp2.className='fill';
 T.append(mkG(['sv','ld','png','svgb','bk']),mkG(['undo','redo']),mkG(['zi','zo','zf','z1','pvw']),sp2,mre,$('#tp'),$('#hlp'));
 T.querySelectorAll('.sep').forEach(e=>e.remove());
 const tp=$('#tp');tp.addEventListener('click',()=>tp.classList.toggle('on',!$('#side').hidden));tp.classList.toggle('on',!$('#side').hidden)})();
+
+// ===== 配置(整列/等間隔/グリッド)とパス操作 =====
+Object.assign(IC,{alignp:'<path d="M4 3v18M8 7h12M8 12h8M8 17h11"/>',pathop:'<path d="M4 18C8 4 16 20 20 6"/><circle cx="4" cy="18" r="1.6"/><circle cx="20" cy="6" r="1.6"/>'});
+const SPA={s:null,a:[]};
+const spHas=(s,i)=>SPA.s===s&&SPA.a.includes(i);
+function spTog(s,i){if(SPA.s!==s){SPA.s=s;SPA.a=selPt>=0?[selPt]:[]}const k=SPA.a.indexOf(i);if(k<0){SPA.a.push(i);selPt=i}else{SPA.a.splice(k,1);selPt=SPA.a.length?SPA.a[SPA.a.length-1]:-1}}
+function selPts(){const s=sel[0];if(!s||!s.bz)return[];if(SPA.s!==s)return selPt>=0?[selPt]:[];let a=SPA.a.filter(i=>i<s.pts.length);if(selPt>=0&&selPt<s.pts.length&&!a.includes(selPt))a=[...a,selPt];return a}
+const free=()=>sel.filter(s=>!s.lk&&!s.hid),W_=(s,i)=>{const q=s.pts[i];return l2w(s,q[0]*s.w,q[1]*s.h)},setW=(s,i,x,y)=>{const l=w2l(s,x,y);s.pts[i][0]=l[0]/s.w;s.pts[i][1]=l[1]/s.h};
+// --- 図形の整列(外接矩形=回転後の表示範囲)
+function alignObj(m,cm){const c=C(),L=free(),ref=$('#a_ref').value;if(!L.length)return alert('図形を選択してください');let R=ref=='c'||L.length<2&&ref!='f'?[0,0,c.w,c.h]:ref=='f'?ubox([sel[0]]):ubox(L);if(ref=='f'&&L.length<2)return alert('「最初に選択した図形」を基準にするには2個以上選択してください');
+hist();if(cm){const U=ubox(L),dx=cm!='v'?c.w/2-(U[0]+U[2])/2:0,dy=cm!='h'?c.h/2-(U[1]+U[3])/2:0;L.forEach(s=>{s.x+=dx;s.y+=dy})}
+else L.forEach(s=>{if(ref=='f'&&s===sel[0])return;const[a,b,e,f]=ubox([s]);if(m=='l')s.x+=R[0]-a;if(m=='c')s.x+=(R[0]+R[2])/2-(a+e)/2;if(m=='r')s.x+=R[2]-e;if(m=='t')s.y+=R[1]-b;if(m=='m')s.y+=(R[1]+R[3])/2-(b+f)/2;if(m=='b')s.y+=R[3]-f});fin()}
+// --- 等間隔: e=両端固定で隙間を均等 / c=両端の中心固定で中心を均等 / g=数値の隙間(先頭の位置から)
+function distObj(ax,mode){const L=free(),g=+$('#a_gap').value||0;if(L.length<(mode=='g'?2:3))return alert(mode=='g'?'2個以上の図形を選択してください':'等間隔には3個以上の図形を選択してください');const i0=ax=='x'?0:1,i1=i0+2,B=L.map(s=>({s,b:ubox([s])})).sort((p,q)=>p.b[i0]+p.b[i1]-q.b[i0]-q.b[i1]),n=B.length;hist();
+if(mode=='c'){const c0=(B[0].b[i0]+B[0].b[i1])/2,c1=(B[n-1].b[i0]+B[n-1].b[i1])/2;B.forEach((o,k)=>o.s[ax]+=c0+k*(c1-c0)/(n-1)-(o.b[i0]+o.b[i1])/2)}
+else{const lo=B[0].b[i0],tot=B.reduce((a,o)=>a+o.b[i1]-o.b[i0],0),gap=mode=='g'?g:(Math.max(...B.map(o=>o.b[i1]))-lo-tot)/(n-1);let p=lo;B.forEach(o=>{o.s[ax]+=p-o.b[i0];p+=o.b[i1]-o.b[i0]+gap})}fin()}
+// --- グリッド(選択した順に左上から行方向へ。サイズは維持。セルは最大の幅・高さ)
+function gridObj(){const L=free(),n=L.length;if(n<2)return alert('2個以上の図形を選択してください');let cols=Math.floor(+$('#a_gc').value||0),rows=Math.floor(+$('#a_gr').value||0);if(cols<1&&rows<1)cols=Math.ceil(Math.sqrt(n));if(cols<1)cols=Math.ceil(n/rows);if(rows<1)rows=Math.ceil(n/cols);
+if(cols*rows<n)return alert(`${cols}列×${rows}行では${n}個が入りません`);const B=L.map(s=>ubox([s])),U=ubox(L),cw=Math.max(...B.map(b=>b[2]-b[0])),ch=Math.max(...B.map(b=>b[3]-b[1])),hg=+$('#a_hg').value||0,vg=+$('#a_vg').value||0,sx=$('#a_sx').value===''?U[0]:+$('#a_sx').value,sy=$('#a_sy').value===''?U[1]:+$('#a_sy').value;
+hist();L.forEach((s,k)=>{const b=B[k],X=sx+(k%cols)*(cw+hg)+cw/2,Y=sy+Math.floor(k/cols)*(ch+vg)+ch/2;s.x+=X-(b[0]+b[2])/2;s.y+=Y-(b[1]+b[3])/2});fin()}
+// --- ポイント操作(位置のみ変更。ハンドル・滑らか/角の状態は保持。回転した図形は画面座標で処理)
+function ptOp(f,min=2){const s=sel[0],I=selPts();if(!s||!s.bz)return alert('パス編集ツールで曲線を選択してください');if(I.length<min)return alert(`${min}点以上を選択してください(「複数選択」をONにして点をタップ)`);hist();f(s,I,I.map(i=>W_(s,i)));renorm(s);SPA.s=s;fin()}
+const pAl=m=>ptOp((s,I,P)=>{const X=P.map(p=>p[0]),Y=P.map(p=>p[1]),a=Math.min(...X),b=Math.max(...X),c=Math.min(...Y),d=Math.max(...Y);I.forEach((i,k)=>{let[x,y]=P[k];if(m=='l')x=a;if(m=='c')x=(a+b)/2;if(m=='r')x=b;if(m=='t')y=c;if(m=='m')y=(c+d)/2;if(m=='b')y=d;setW(s,i,x,y)})});
+const pFlat=ax=>ptOp((s,I,P)=>{const k=ax=='y'?1:0,v=$('#a_pref').value=='a'?P.reduce((a,p)=>a+p[k],0)/P.length:P[0][k];I.forEach((i,j)=>{const p=P[j].slice();p[k]=v;setW(s,i,p[0],p[1])})});
+const pDist=ax=>ptOp((s,I,P)=>{const k=ax=='y'?1:0,o=P.map((p,j)=>j).sort((a,b)=>P[a][k]-P[b][k]),lo=P[o[0]][k],hi=P[o[o.length-1]][k];o.forEach((j,r)=>{const p=P[j].slice();p[k]=lo+r*(hi-lo)/(o.length-1);setW(s,I[j],p[0],p[1])})},3);
+const pMove=()=>{const dx=+$('#a_dx').value||0,dy=+$('#a_dy').value||0;ptOp((s,I,P)=>I.forEach((i,j)=>setW(s,i,P[j][0]+dx,P[j][1]+dy)),1)};
+const wpts=s=>{const c=Math.cos(s.r),n=Math.sin(s.r),rv=(a,b)=>[a*s.w*c-b*s.h*n,a*s.w*n+b*s.h*c];return s.pts.map(q=>{const p=l2w(s,q[0]*s.w,q[1]*s.h),i=rv(q[2]||0,q[3]||0),o=rv(q[4]||0,q[5]||0);return[p[0],p[1],i[0],i[1],o[0],o[1],q[6]||0]})},
+rev=P=>P.slice().reverse().map(q=>[q[0],q[1],q[4],q[5],q[2],q[3],q[6]]),
+openOk=s=>s&&s.bz&&!s.cmp&&!s.cl&&s.pts.length>=2;
+function fromW(base,P,closed){const n={...base,w:1,h:1,x:0,y:0,r:0,pts:P.map(q=>q.slice()),cl:!!closed};delete n.cmp;renorm(n);return n}
+const mpos=(a,b)=>$('#a_mp').value=='m'?[(a[0]+b[0])/2,(a[1]+b[1])/2]:[a[0],a[1]];
+// 端点結合(同一パスの端点2つ→閉じる)/ 点の結合(隣り合う2点→1点)
+function endJoin(){const s=sel[0],I=selPts();if(!s||!s.bz||s.cmp)return alert('結合できるのは単一の曲線パスです');if(I.length!=2)return alert('端点を2つ選択してください(複数選択をONにして点をタップ)');const n=s.pts.length;
+if(!openOk(s)||n<3||!(I.includes(0)&&I.includes(n-1)))return alert('同一パスの結合は、開いたパスの両端(先頭と末尾の点)を選択してください。別々のパスは「連結」を使います');
+hist();const a=W_(s,I[0]),b=W_(s,I[1]),p=mpos(a,b);setW(s,0,p[0],p[1]);const f=s.pts[0],l=s.pts[n-1];f[2]=l[2];f[3]=l[3];s.pts.pop();s.cl=true;renorm(s);SPA.a=[];selPt=-1;fin()}
+function nodeMerge(){const s=sel[0],I=selPts();if(!s||!s.bz||s.cmp)return alert('点の結合は単一の曲線パスが対象です');if(I.length!=2)return alert('2点を選択してください');const[a,b]=I.slice().sort((x,y)=>x-y);if(b-a!=1)return alert('点の結合は隣り合う2点が対象です(両端どうしは「端点を結合」)');if(s.pts.length-1<(s.cl?3:2))return alert('点が少なくなりすぎるため結合できません');
+hist();const qa=s.pts[a],qb=s.pts[b],p=$('#a_mp').value=='m'?[(qa[0]+qb[0])/2,(qa[1]+qb[1])/2]:(I[0]==a?[qa[0],qa[1]]:[qb[0],qb[1]]);s.pts.splice(a,2,[p[0],p[1],qa[2],qa[3],qb[4],qb[5],qa[6]||qb[6]?1:0,qa[7]]);renorm(s);SPA.a=[];selPt=-1;fin()}
+// 連結: 選択した2本の開いたパスの最も近い端点どうしを1点に統合して1本に
+function joinPaths(){const c=C();if(sel.length!=2||!sel.every(openOk))return alert('開いた曲線パスを2本選択してください(選択ツールで2本選ぶ)。閉じたパス・複合パス・図形/文字/画像は対象外です');const[A,B]=sel,PA=wpts(A),PB=wpts(B);let best=null;[[0,0],[0,1],[1,0],[1,1]].forEach(([ea,eb])=>{const p=PA[ea?PA.length-1:0],q=PB[eb?PB.length-1:0],d=Math.hypot(p[0]-q[0],p[1]-q[1]);if(!best||d<best.d)best={d,ea,eb}});
+const X=best.ea?PA:rev(PA),Y=best.eb?rev(PB):PB.slice(),e=X[X.length-1],f=Y[0],p=mpos(e,f);hist();const m=[p[0],p[1],e[2],e[3],f[4],f[5],e[6]||f[6]?1:0],n=fromW(A,[...X.slice(0,-1),m,...Y.slice(1)],false);c.sh[c.sh.indexOf(A)]=n;c.sh=c.sh.filter(q=>q!==B);sel=[n];selPt=-1;SPA.a=[];fin()}
+function splitPath(){const c=C(),s=sel[0],I=selPts();if(!s||!s.bz||s.cmp)return alert('分割できるのは単一の曲線パスです');if(I.length!=1)return alert('分割する点を1つだけ選択してください');const i=I[0],n=s.pts.length,P=s.pts.map(q=>q.slice());
+if(s.cl){if(n<3)return;hist();s.pts=[...P.slice(i),...P.slice(0,i),P[i].slice()];s.cl=false;renorm(s)}
+else{if(i<=0||i>=n-1)return alert('端の点では分割できません(途中の点を選択)');hist();const t={...s,pts:P.slice(i).map(q=>q.slice())};s.pts=P.slice(0,i+1);renorm(s);renorm(t);c.sh.splice(c.sh.indexOf(s)+1,0,t)}SPA.a=[];selPt=-1;fin()}
+// 簡略化: ハンドルを持たない直線上の点(許容誤差0.5px)のみ削除。曲線部分は変更しない
+function simplifyPath(){const s=sel[0];if(!s||!s.bz||s.cmp)return alert('単一の曲線パスを選択してください');const z0=q=>!q[2]&&!q[3]&&!q[4]&&!q[5];let P=s.pts.map(q=>q.slice()),rm=0,ch=1;const mn=s.cl?3:2;
+while(ch&&P.length>mn){ch=0;for(let i=s.cl?0:1;i<(s.cl?P.length:P.length-1);i++){const a=P[(i+P.length-1)%P.length],b=P[i],e=P[(i+1)%P.length];if(!(z0(a)&&z0(b)&&z0(e)))continue;const ax=a[0]*s.w,ay=a[1]*s.h,ex=e[0]*s.w,ey=e[1]*s.h,L=Math.hypot(ex-ax,ey-ay)||1,d=Math.abs((b[0]*s.w-ax)*(ey-ay)-(b[1]*s.h-ay)*(ex-ax))/L;if(d<.5){P.splice(i,1);rm++;ch=1;break}}}
+if(!rm)return alert('削除できる点がありません(直線上でハンドルのない点のみ対象です)');hist();s.pts=P;renorm(s);SPA.a=[];selPt=-1;fin()}
+// --- 操作パネル(キャンバスを隠さない下部シート)
+function openArr(tab){if($('#arrd')){$('#arrd').remove()}const D=document.createElement('div');D.id='arrd';D.className='dlg';D.style.cssText='background:none;pointer-events:none;align-items:flex-end;justify-content:flex-end';
+const B=(a,t,tip)=>`<button data-a="${a}" title="${tip||t}">${t}</button>`;
+D.innerHTML=`<div style="pointer-events:auto;box-shadow:0 2px 12px #0005;max-height:52vh;width:min(430px,calc(100vw - 12px))"><span class="tb" id="a_tb">${['整列','等間隔','グリッド','パス操作'].map((t,i)=>`<button data-t="${i}">${t}</button>`).join('')}<button data-s title="パネルを左右に移動(キャンバスの点を隠さないように)">⇄ 左右</button><button data-x>閉じる</button></span><small id="a_st"></small>
+<div class="pn"><h5>基準</h5><div class="r"><select id="a_ref"><option value="a">選択範囲全体</option><option value="f">最初に選択した図形</option><option value="c">キャンバス</option></select></div><div class="r">${B('al_l','左揃え')}${B('al_c','左右中央')}${B('al_r','右揃え')}${B('al_t','上揃え')}${B('al_m','上下中央')}${B('al_b','下揃え')}</div><h5>キャンバスの中央へ(選択全体を移動)</h5><div class="r">${B('cc_h','水平中央')}${B('cc_v','垂直中央')}${B('cc_c','中央')}</div></div>
+<div class="pn"><small>3個以上の図形。位置のみ変更し、サイズは維持します。</small><div class="r">${B('d_xe','水平:両端を基準に均等','左端・右端の図形を固定し、隙間を均等にします')}${B('d_ye','垂直:両端を基準に均等','上端・下端の図形を固定し、隙間を均等にします')}</div><div class="r">${B('d_xc','水平:中心を均等')}${B('d_yc','垂直:中心を均等')}</div><h5>数値で隙間を指定(先頭の位置から)</h5><div class="r"><input type="number" id="a_gap" value="10">px ${B('d_xg','水平に配置')}${B('d_yg','垂直に配置')}</div></div>
+<div class="pn"><small>選択した順に、左上から行方向へ並べます(サイズは維持)。開始位置が空欄なら選択範囲の左上です。</small><div class="r"><label>列数<input type="number" id="a_gc" min="1" value="3"></label><label>行数<input type="number" id="a_gr" min="1" placeholder="自動"></label></div><div class="r"><label>横間隔<input type="number" id="a_hg" value="10"></label><label>縦間隔<input type="number" id="a_vg" value="10"></label></div><div class="r"><label>開始X<input type="number" id="a_sx"></label><label>開始Y<input type="number" id="a_sy"></label></div>${B('grid','グリッドに配置')}</div>
+<div class="pn"><small>パス編集ツールで曲線を選び、「複数選択」をONにして点をタップします。</small><h5>ポイント整列</h5><div class="r">${B('p_l','左端へ')}${B('p_c','水平中央へ')}${B('p_r','右端へ')}${B('p_t','上端へ')}${B('p_m','垂直中央へ')}${B('p_b','下端へ')}</div><h5>水平化・垂直化・等間隔</h5><div class="r"><select id="a_pref"><option value="f">先頭の選択点を基準</option><option value="a">平均位置を基準</option></select>${B('p_hy','水平化(同じY)')}${B('p_vx','垂直化(同じX)')}</div><div class="r">${B('p_dx','点を水平に等間隔')}${B('p_dy','点を垂直に等間隔')}<label>移動X<input type="number" id="a_dx" value="0"></label><label>Y<input type="number" id="a_dy" value="0"></label>${B('p_mv','移動')}</div>
+<h5>結合</h5><div class="r"><select id="a_mp"><option value="f">先頭の選択点の位置</option><option value="m">2点の中間位置</option></select>${B('j_end','端点を結合(閉じる)')}${B('j_mrg','点を結合(隣り合う2点)')}</div><h5>パス操作</h5><div class="r">${B('o_join','連結(2本のパス)','選択ツールで開いたパスを2本選びます')}${B('o_split','選択点で分割')}${B('o_simp','簡略化(直線上の点)')}</div><small>未対応: アウトライン化、複合パス化(既存の「結合」ボタンは図形の合体用)</small></div></div>`;
+document.body.append(D);const pn=D.querySelectorAll('.pn'),tb=D.querySelectorAll('#a_tb [data-t]'),T=i=>{pn.forEach((p,k)=>p.classList.toggle('on',k==i));tb.forEach((b,k)=>b.classList.toggle('on',k==i))};T(tab);tb.forEach(b=>b.onclick=()=>T(+b.dataset.t));
+const A={grid:gridObj,d_xe:()=>distObj('x','e'),d_ye:()=>distObj('y','e'),d_xc:()=>distObj('x','c'),d_yc:()=>distObj('y','c'),d_xg:()=>distObj('x','g'),d_yg:()=>distObj('y','g'),cc_h:()=>alignObj('','h'),cc_v:()=>alignObj('','v'),cc_c:()=>alignObj('','c'),p_hy:()=>pFlat('y'),p_vx:()=>pFlat('x'),p_dx:()=>pDist('x'),p_dy:()=>pDist('y'),p_mv:pMove,j_end:endJoin,j_mrg:nodeMerge,o_join:joinPaths,o_split:splitPath,o_simp:simplifyPath};['l','c','r','t','m','b'].forEach(m=>{A['al_'+m]=()=>alignObj(m);A['p_'+m]=()=>pAl(m)});
+D.onclick=e=>{const b=e.target.closest('button[data-a]');if(b)A[b.dataset.a]();if(e.target.closest('[data-s]'))D.style.justifyContent=D.style.justifyContent=='flex-start'?'flex-end':'flex-start';if(e.target.closest('[data-x]')){clearInterval(iv);D.remove()}};
+const iv=setInterval(()=>{if(!D.isConnected)return clearInterval(iv);const c=C();$('#a_st').textContent=c.k!='v'?'ベクターのコスチュームで使えます':`図形${sel.length}個選択 / 点${selPts().length}個選択`},250)}
+$('#arr').onclick=()=>openArr(0);$('#pth').onclick=()=>openArr(3);
 initIcons();fillFonts();buildPK();cs=[mk('v','コスチューム1')];go(0);refChips();
 </script></body></html>
