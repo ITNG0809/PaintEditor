@@ -93,6 +93,11 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #onion{position:absolute;right:6px;bottom:6px;display:flex;gap:4px;align-items:center;background:#fffffff2;border:1px solid #c9d0d9;border-radius:10px;padding:4px;box-shadow:0 2px 10px #0003;z-index:6;max-width:calc(100% - 12px);flex-wrap:wrap;justify-content:flex-end}
 #onion .onl{display:flex;flex-direction:column;align-items:stretch;gap:0;font-size:11px;min-width:96px}#onion input[type=range]{width:96px;min-height:30px}
 .swl{display:flex;flex-direction:row;align-items:center;gap:3px}#prop #sw{width:64px;min-width:0;min-height:36px;padding:0 4px;text-align:right}.swl .un{font-size:12px;color:#575e75}
+#te_in{position:absolute;z-index:8;margin:0;border:1.5px dashed #855cd6;background:#ffffffe0;outline:0;border-radius:3px;box-sizing:border-box;padding:0 4px;min-width:16px;-webkit-user-select:text;user-select:text;touch-action:auto;font-family:sans-serif}#te_in[hidden]{display:none}
+.fwrap{display:flex;align-items:center;gap:3px}.fnb{min-width:130px;max-width:170px;min-height:44px;flex-direction:row;justify-content:space-between;gap:6px;padding:0 8px;font-size:16px;background:#fff;border:1px solid #c9d0d9;border-radius:8px}.fnb .fnt{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#2b2f42}.fnb .car{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #575e75;flex:none}
+#fpop{position:fixed;z-index:60;width:min(340px,calc(100vw - 16px));max-height:min(60vh,440px);overflow:auto;background:#fff;border:1px solid #c9d0d9;border-radius:10px;box-shadow:0 4px 18px #0005;padding:4px;display:flex;flex-direction:column;gap:2px;overscroll-behavior:contain}#fpop[hidden]{display:none}
+#fpop .fi{display:flex;flex-direction:row;width:100%;min-height:46px;align-items:center;justify-content:space-between;gap:10px;padding:0 10px;font-size:20px;text-align:left;border:0;background:transparent;border-radius:6px;color:#2b2f42}#fpop .fi:hover{background:#f1efff}#fpop .fi.on{background:#e6defc;box-shadow:inset 4px 0 0 #855cd6;font-weight:bold}
+#fpop .fi .nm{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#fpop .fi .sm{font-size:15px;color:#6b7390;white-space:nowrap;flex:none}#fpop .fi .alt{font:11px sans-serif;color:#b45f06;flex:none}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
@@ -119,7 +124,8 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="hlp" data-i="help" data-t="ショートカット一覧(?)"></button>
 </div>
 <div id="lcol"><div id="lhead"></div><div id="list"></div></div><div id="tools"></div>
-<div id="main"><canvas id="cv"></canvas><div id="shpp" hidden></div>
+<div id="fpop" role="listbox" aria-label="フォント一覧" hidden></div>
+<div id="main"><canvas id="cv"></canvas><input id="te_in" type="text" hidden autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="文字を入力(Enterで確定)"><div id="shpp" hidden></div>
 <div id="onion" role="group" aria-label="オニオンスキン"><button id="onb" data-i="onion" data-l="オニオン" data-t="オニオンスキン: 前後のコスチュームを半透明のガイドとして重ねて表示(ガイドは選択・編集できず、保存や書き出しにも含まれません)" aria-pressed="false"></button><span class="grp" id="onx" hidden><button id="onp" data-i="onprev" data-l="前" data-t="一つ前のコスチュームを表示"></button><button id="onn" data-i="onnext" data-l="次" data-t="一つ後のコスチュームを表示"></button><button id="onc" data-i="oncol" data-l="色分け" data-t="前=赤・次=青に色分けして表示"></button><label class="onl"><span>透明度</span><input type="range" id="onop" min="10" max="80" step="5" value="35" aria-label="ガイドの透明度"></label></span></div>
 <div id="more" hidden></div><div id="side" hidden><div id="nm_wrap"><h4>数値指定(中心基準・度)</h4><div class="nm" id="nm">
 <label>X<input type="number" id="qx" step="any" aria-label="中心X"></label><label>Y<input type="number" id="qy" step="any" aria-label="中心Y"></label>
@@ -143,7 +149,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <span class="grp" id="g_rr"><label><span data-i="round" data-t="角の丸み"></span><input type="range" id="rr" min="0" max="100" value="0"></label></span>
 <span class="grp" id="g_pg"><label><span data-i="poly" data-t="多角形の辺の数"></span><input type="number" id="ns" min="3" max="24" value="5"></label>
 <label><span data-i="star" data-t="凹み(星型にする)"></span><input type="range" id="ind" min="0" max="90" value="0"></label></span>
-<span class="grp" id="g_ft"><label><span data-i="font" data-t="フォント"></span><select id="fn"></select></label>
+<span class="grp" id="g_ft"><span class="fwrap"><span data-i="font" data-t="フォント"></span><button type="button" id="fnb" class="fnb" aria-haspopup="listbox" aria-expanded="false" title="フォントを選ぶ(各フォントで表示されます)"><span class="fnt">Sans Serif</span><i class="car"></i></button><input type="hidden" id="fn" value="0"></span>
 <button id="addf" data-i="addfont" data-t="フォントファイル(ttf/otf/woff/woff2)を追加"></button><input type="file" id="ff" accept=".ttf,.otf,.woff,.woff2" hidden>
 <button id="sysf" data-i="sysfont" data-t="システムフォント名を追加"></button>
 <button id="te" data-i="edit" data-t="選択した文字を編集"></button><button id="t2p" data-i="outline" data-t="選択した文字をベクターパス(図形)に変換" data-l="図形化"></button><button id="p2t" data-i="totext" data-t="図形化した文字を元のテキストに戻す" data-l="文字へ"></button><label id="tovl" data-t="ON:文字を確定すると自動で図形化 / OFF:従来どおりテキスト"><input type="checkbox" id="tov">自動図形化</label></span>
@@ -183,7 +189,7 @@ const $=s=>document.querySelector(s),cv=$('#cv'),g=cv.getContext('2d');
 let cs=[],ci=0,tool='sel',sel=[],z=1,ox=0,oy=0,multi=0,tmp=null,drag=null,dirty=0,band=null,gid=1,curShape=0,fonts=[],selPt=-1,gm='s',clip=null;
 const C=()=>cs[ci],rep=(k,v)=>k=='im'?undefined:v,esc=s=>String(s).replace(/[&<>"]/g,m=>'&#'+m.charCodeAt(0)+';');
 const K=[[-1,-1],[1,-1],[1,1],[-1,1]],EK=[[-1,0],[1,0],[0,-1],[0,1]];
-let snapG=null,SNAP=true,BG={c:'#ffffff',chk:true},ON={on:false,prev:true,next:true,col:true,op:.35},ONG=0,SYM=false;
+let TE=null,TEH=null,TT=null,DT=null,snapG=null,SNAP=true,BG={c:'#ffffff',chk:true},ON={on:false,prev:true,next:true,col:true,op:.35},ONG=0,SYM=false;
 // ===== アイコン管理(すべてJS内SVG。追加・変更は IC に1行足すだけ) =====
 const IC={
 sel:'<path d="M6 3l12 8-5.5 1.5L10 18z"/>',rsh:'<path d="M4 19C7 5 17 5 20 19"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/><circle cx="12" cy="7" r="2"/>',
@@ -252,15 +258,15 @@ function buildShp(){const p=$('#shpp');p.innerHTML='';let k=0;SH.forEach(c=>{con
 const FL0=[{n:'Sans Serif',css:'sans-serif'},{n:'Serif',css:'serif'},{n:'Handwriting',css:'"Segoe Script","Bradley Hand",cursive'},{n:'Marker',css:'"Marker Felt","Comic Sans MS",fantasy'},{n:'Curly',css:'"Brush Script MT",cursive'},{n:'Pixel',css:'"Courier New",monospace'},{n:'中文',css:'"Noto Sans SC","PingFang SC",sans-serif'},{n:'日本語',css:'"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif'},{n:'한국어',css:'"Noto Sans KR","Malgun Gothic",sans-serif'}];
 const WEBF=[['Archivo','Archivo'],['Archivo Black','Archivo Black'],['Playful(近似)','Fredoka'],['Bubbly(近似)','Baloo 2'],['Arcade(近似)','Press Start 2P'],['Bits and Bytes(近似)','VT323'],['Technological(近似)','Orbitron'],['Branches(近似)','Chewy']];
 const baseFL=()=>FL0.concat(WEBF.map(w=>({n:w[0],fam:w[1],css:`"${w[1]}",sans-serif`,web:1})));let FL=baseFL();let pal={recent:[],custom:[]};try{Object.assign(pal,JSON.parse(localStorage.getItem('ced_pal')||'{}'))}catch(e){}
-const fillFonts=()=>{const v=$('#fn').value;$('#fn').innerHTML=FL.map((f,i)=>`<option value="${i}">${esc(f.n)}</option>`).join('');if(v)$('#fn').value=v};
-async function regFont(f){if(f.data){try{const ff=new FontFace(f.n,`url(${f.data})`);await ff.load();document.fonts.add(ff)}catch(e){alert('フォントを読み込めませんでした: '+f.n)}}
+const fillFonts=()=>{const e=$('#fn'),v=e.value||'0';buildFpop();e.value=FL[+v]?v:'0'};
+async function regFont(f){if(f.data){try{const ff=new FontFace(f.n,`url(${f.data})`);await ff.load();document.fonts.add(ff)}catch(e){badFont.add(f.n);alert('フォントを読み込めませんでした: '+f.n)}}
 if(!FL.some(x=>x.n==f.n||x.fam==f.n))FL.push({n:f.n,css:`"${f.n}",${f.fb||'sans-serif'}`});fillFonts();cs.forEach(c=>c.sh.forEach(s=>s.t=='txt'&&tm(s)));thumbs();draw()}
-const webLoaded=new Set();
+const webLoaded=new Set(),webFail=new Set(),webPrev=new Set(),webOk=new Set(),badFont=new Set();
 async function ensureWeb(f){if(!f.web||webLoaded.has(f.fam)||fonts.some(x=>x.n==f.fam))return;webLoaded.add(f.fam);
 try{const css=await(await fetch('https://fonts.googleapis.com/css2?family='+encodeURIComponent(f.fam).replace(/%20/g,'+')+'&display=swap')).text();
 const m=css.match(/\/\* latin \*\/\s*@font-face\s*\{[^}]*?url\((https:[^)]+)\)/)||css.match(/url\((https:[^)]+)\)/);const b=await(await fetch(m[1])).blob();
 const data=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)});const o={n:f.fam,data,fb:'sans-serif'};fonts.push(o);await regFont(o)}
-catch(e){webLoaded.delete(f.fam);alert('Webフォント「'+f.n+'」を取得できませんでした(オンライン接続が必要です)。代替フォントで表示します')}}
+catch(e){webLoaded.delete(f.fam);webFail.add(f.fam);buildFpop();alert('Webフォント「'+f.n+'」を取得できませんでした(オンライン接続が必要です)。代替フォントで表示します')}}
 const curFont=()=>{const f=FL[+$('#fn').value]||FL[0];ensureWeb(f);return f.css};
 // ===== モデル =====
 // ビットマップの座標系: c.w/c.h/c.cx/c.cy はすべて「実ピクセル」単位。論理(Scratch)サイズ = 実ピクセル ÷ c.res。
@@ -308,7 +314,7 @@ function tm(s){g.font=`${s.fs}px ${s.fn||'sans-serif'}`;s.w=Math.max(4,g.measure
 function p2d(s){const d=dOf(s);if(s.t!='pd')return new Path2D(d);const p=new Path2D();p.addPath(new Path2D(d),new DOMMatrix().scale(s.w/s.w0,s.h/s.h0));return p}
 function fsty(x,s,f){if(!f||typeof f=='string')return f;const w=s.w/2,h=s.h/2;let G;if(f.g=='h')G=x.createLinearGradient(-w,0,w,0);else if(f.g=='v')G=x.createLinearGradient(0,-h,0,h);else G=x.createRadialGradient(0,0,0,0,0,Math.hypot(w,h));G.addColorStop(0,f.c1);G.addColorStop(1,f.c2);return G}
 const fv=()=>gm=='s'?col('fc'):{g:gm,c1:col('fc'),c2:col('fc2')};
-function dsh(x,s){x.save();x.translate(s.x,s.y);x.rotate(s.r);
+function dsh(x,s){if(s===TEH&&x===g)return;x.save();x.translate(s.x,s.y);x.rotate(s.r);
 if(s.t=='img'){if(s.im&&s.im.complete)x.drawImage(s.im,-s.w/2,-s.h/2,s.w,s.h)}
 else if(s.t=='txt'){x.font=`${s.fs}px ${s.fn||'sans-serif'}`;x.textBaseline='middle';x.textAlign='center';if(s.f){x.fillStyle=fsty(x,s,s.f);x.fillText(s.tx,0,0)}if(s.s){x.strokeStyle=s.s;x.lineWidth=s.sw;x.lineJoin='round';x.strokeText(s.tx,0,0)}}
 else{const p=p2d(s);if(s.f){x.fillStyle=fsty(x,s,s.f);x.fill(p,s.fr||'evenodd')}if(s.s){x.strokeStyle=s.s;x.lineWidth=s.sw;x.lineCap=x.lineJoin='round';x.stroke(p)}}
@@ -339,11 +345,12 @@ const S=(x,y)=>[ox+x*z,oy+y*z];
 g.strokeStyle='#855cd6';g.lineWidth=1.5;const[a,b]=S(c.cx,c.cy);g.beginPath();g.moveTo(a-12,b);g.lineTo(a+12,b);g.moveTo(a,b-12);g.lineTo(a,b+12);g.stroke();g.beginPath();g.arc(a,b,6,0,7);g.stroke();
 if(c.k=='v'||(sel[0]&&sel[0].t=='bs')){sel.forEach(s=>{g.beginPath();K.concat([K[0]]).forEach((k,i)=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.stroke()});
 g.fillStyle='#fff';
-if(sel.length==1&&(tool=='sel'||tool=='bsel')){const s=sel[0];K.forEach(k=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.fillRect(q[0]-8,q[1]-8,16,16);g.strokeRect(q[0]-8,q[1]-8,16,16)});
+if(!TE&&sel.length==1&&(tool=='sel'||tool=='bsel')){const s=sel[0];K.forEach(k=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.fillRect(q[0]-8,q[1]-8,16,16);g.strokeRect(q[0]-8,q[1]-8,16,16)});
 if(c.k=='v'&&s.t!='txt'&&s.t!='bs')EK.forEach((k,i)=>{if((i<2?s.h:s.w)*z<44)return;const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.save();g.translate(q[0],q[1]);g.rotate(s.r);const a=i<2?[-4.5,-10,9,20]:[-10,-4.5,20,9];g.fillRect(a[0],a[1],a[2],a[3]);g.strokeRect(a[0],a[1],a[2],a[3]);g.restore()});
 const r=l2w(s,0,-s.h/2-30/z),q=S(r[0],r[1]);g.beginPath();g.arc(q[0],q[1],9,0,7);g.fill();g.stroke()}
 if(tool=='rsh'&&sel[0]&&sel[0].pts){const s=sel[0];s.pts.forEach((q,i)=>{const w=l2w(s,q[0]*s.w,q[1]*s.h),r=S(w[0],w[1]);if(i==selPt&&s.bz){g.fillStyle='#855cd6';[[2,3],[4,5]].forEach(([a,b])=>{if(!q[a]&&!q[b])return;const h=l2w(s,(q[0]+q[a])*s.w,(q[1]+q[b])*s.h),u=S(h[0],h[1]);g.beginPath();g.moveTo(r[0],r[1]);g.lineTo(u[0],u[1]);g.stroke();g.beginPath();g.arc(u[0],u[1],5,0,7);g.fill();g.stroke()})}
 const on=(i==selPt||spHas(s,i)),rd=on?5.5:4.5;g.fillStyle=on?'#855cd6':'#fff';g.strokeStyle=on?'#2d1466':'#855cd6';g.lineWidth=on?1.8:1.5;g.beginPath();if(q[6]==1)g.arc(r[0],r[1],rd,0,7);else g.rect(r[0]-rd,r[1]-rd,rd*2,rd*2);g.fill();g.stroke();g.strokeStyle='#855cd6';g.lineWidth=1.5});g.fillStyle='#fff'}
+if(TE)teLayout();
 if(snapG&&drag){g.save();g.strokeStyle='#ff8c1a';g.lineWidth=1.5;g.setLineDash([6,4]);if(snapG.x){const a=S(c.w/2,0),b=S(c.w/2,c.h);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}if(snapG.y){const a=S(0,c.h/2),b=S(c.w,c.h/2);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}g.restore()}
 if(band){const p=S(band[0],band[1]),q=S(band[2],band[3]);g.setLineDash([5,4]);g.strokeRect(p[0],p[1],q[0]-p[0],q[1]-p[1]);g.setLineDash([])}}}
 function fit(){const c=C(),W=cv.clientWidth,H=cv.clientHeight;z=Math.min(W/c.w,H/c.h)*.92;ox=(W-c.w*z)/2;oy=(H-c.h*z)/2;draw()}
@@ -352,8 +359,8 @@ function zoomAt(x,y,n){n=Math.min(32,Math.max(.1,n));ox=x-(x-ox)*n/z;oy=y-(y-oy)
 function st(c){return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c)}}
 function rs(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;c.res=+t.res>0?+t.res:1;if(c.k=='b'){c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}
 function hist(){const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[]}
-function undo(){SPA.a=[];bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
-function redo(){SPA.a=[];bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
+function undo(){if(TE)teEnd();SPA.a=[];bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
+function redo(){if(TE)teEnd();SPA.a=[];bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
 function nnStamp(x,b){const src=b.cvs,sw=src.width,sh=src.height;if(!sw||!sh)return;const fx=b.fx||1,fy=b.fy||1,c=Math.cos(b.r),s=Math.sin(b.r),hw=b.w/2,hh=b.h/2,ex=Math.abs(c)*hw+Math.abs(s)*hh,ey=Math.abs(s)*hw+Math.abs(c)*hh,
 X0=Math.max(0,Math.floor(b.x-ex)),Y0=Math.max(0,Math.floor(b.y-ey)),X1=Math.min(x.canvas.width,Math.ceil(b.x+ex)),Y1=Math.min(x.canvas.height,Math.ceil(b.y+ey));if(X1<=X0||Y1<=Y0)return;
 const sd=src.getContext('2d').getImageData(0,0,sw,sh).data,dst=x.getImageData(X0,Y0,X1-X0,Y1-Y0),dd=dst.data,dw=X1-X0;
@@ -428,7 +435,7 @@ a.remove();if(ch){hist();c.sh=out;sel=[]}}
 const ps=new Map();let pin=null;
 const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left-ox)/z,(e.clientY-r.top-oy)/z]};
 const rel=a=>{const r=cv.getBoundingClientRect();return[a[0]-r.left,a[1]-r.top]};
-cv.addEventListener('pointerdown',e=>{e.preventDefault();cv.setPointerCapture(e.pointerId);ps.set(e.pointerId,[e.clientX,e.clientY]);
+cv.addEventListener('pointerdown',e=>{e.preventDefault();if(TE)teEnd();cv.setPointerCapture(e.pointerId);ps.set(e.pointerId,[e.clientX,e.clientY]);
 if(ps.size==2){drag=null;tmp=null;band=null;const a=[...ps.values()];pin={d:Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),z,ox,oy,m:rel([(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2])};draw();return}
 if(ps.size==1)down(e)});
 cv.addEventListener('pointermove',e=>{if(!ps.has(e.pointerId))return;ps.set(e.pointerId,[e.clientX,e.clientY]);
@@ -469,6 +476,7 @@ if(pickMode){const t=pickMode;pickMode=null;cv.style.cursor='';$('#cp').classLis
 if(tool=='hand'){drag.h=[e.clientX,e.clientY,ox,oy];return}
 if(tool=='ctr'){hist();c.cx=p[0];c.cy=p[1];drag=null;return fin()}
 if(c.k=='b')return bdown(c,p);
+if(tool=='sel'&&!multi&&!e.shiftKey){const now=performance.now();if(DT&&now-DT.t<420&&Math.hypot(e.clientX-DT.x,e.clientY-DT.y)<26){const h0=pick(p);if(h0&&h0.t=='txt'&&!h0.lk)TT={p,x:e.clientX,y:e.clientY,h:h0};DT=null}else DT={t:now,x:e.clientX,y:e.clientY}}
 if(tool=='sel'){const h=hitH(p);if(h){Object.assign(drag,h);return}
 const hit=pick(p),add=multi||e.shiftKey;
 if(hit){const grp=hit.g?c.sh.filter(s=>s.g==hit.g):[hit];if(add){grp.every(s=>sel.includes(s))?sel=sel.filter(s=>!grp.includes(s)):sel=[...new Set([...sel,...grp])]}else if(!sel.includes(hit))sel=grp;drag.m='mv'}
@@ -479,7 +487,7 @@ const i=hpt(s,p);if(i>=0){if(multi||e.shiftKey){spTog(s,i);drag=null;sync();draw
 const sg=segHit(s,p);if(sg){hist();const j=insertAt(s,sg);selPt=j;Object.assign(drag,{m:'pt',i:j,mv:1,L:[]});sync();draw();return}}
 const h=pick(p);drag=null;sel=[];selPt=-1;if(h){if(h.t=='img'||h.t=='txt')alert('この図形は点の編集に未対応です(文字・画像は対象外)');else{if(!h.bz){hist();toBz(h)}sel=[h]}}sync();draw()}
 else if(tool=='fill'){const h=pick(p);drag=null;if(h){hist();if(h.t=='line'||(h.t=='path'&&!h.cl&&!h.f))h.s=col('fc');else h.f=fv();fin()}}
-else if(tool=='txt'){drag=null;const t=prompt('テキストを入力');if(t){hist();const y=sty(),s={t:'txt',x:p[0],y:p[1],r:0,fs:Math.max(12,y.sw*6),tx:t,f:fv(),s:null,sw:2,fn:curFont()};tm(s);c.sh.push(s);sel=[s];fin();if($('#tov').checked)t2p([s],1)}}
+else if(tool=='txt'){drag=null;const h0=pick(p);TT={p,x:e.clientX,y:e.clientY,h:h0&&h0.t=='txt'&&!h0.lk?h0:null}}
 else if(tool=='pen'||tool=='brush'||tool=='eras'){drag.P=[p]}
 else if(tool=='line'){drag.m='mk';drag.p0=snap(p)}
 else drag.m='mk'}
@@ -586,7 +594,7 @@ function renAt(i,inp){const v=inp.value.trim();if(!v){inp.value=cs[i].n;inp.clas
 function dupAt(i){bcommit();const c=cs[i],n=mk(c.k,c.n+'のコピー');rs(n,st(c));cs.splice(i+1,0,n);go(i+1)}
 function delAt(i){if(cs.length<2)return alert('最後のコスチュームは削除できません');if(!confirm('コスチューム「'+cs[i].n+'」を削除しますか?'))return;if(i!=ci)bcommit();cs.splice(i,1);if(i<ci)ci--;else if(i==ci)ci=Math.min(ci,cs.length-1);sel=[];go(ci)}
 function thumbs(){document.querySelectorAll('#list canvas').forEach((t,i)=>{const c=cs[i],x=t.getContext('2d');x.clearRect(0,0,72,54);const k=Math.min(72/c.w,54/c.h);x.save();x.translate((72-c.w*k)/2,(54-c.h*k)/2);x.scale(k,k);dc(x,c);x.restore()})}
-function go(i){ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();list();sync();const c=C();{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
+function go(i){if(TE)teEnd();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();list();sync();const c=C();{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
 function grow(c,W,H){if(c.k=='v'||W<=c.w&&H<=c.h)return;W=Math.max(W,c.w);H=Math.max(H,c.h);if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);c.bc.width=W;c.bc.height=H;c.bc.getContext('2d').drawImage(o,0,0)}c.w=W;c.h=H}
 $('#addv').onclick=()=>add('v');$('#addb').onclick=()=>add('b');
@@ -599,7 +607,7 @@ $('#dp').onclick=()=>{const c=C();if(!sel.length)return;hist();const n=sel.map(s
 $('#dl').onclick=()=>{const c=C();if(!sel.length)return;hist();c.sh=c.sh.filter(s=>!sel.includes(s)||s.lk);sel=[];fin()};
 $('#gp').onclick=()=>{if(sel.length<2)return;hist();const i=++gid+Date.now();sel.forEach(s=>s.g=i);fin()};
 $('#ug').onclick=()=>{if(!sel.length)return;hist();sel.forEach(s=>delete s.g);fin()};
-$('#te').onclick=()=>{const s=sel[0];if(!s||s.t!='txt')return;const t=prompt('テキスト',s.tx);if(t){hist();s.tx=t;tm(s);fin()}};
+$('#te').onclick=()=>{const s=sel[0];if(!s||s.t!='txt')return;teStart(s)};
 ['merge:bmg','mask:bmk','sub:bsb','filter:bft'].forEach(x=>{const[o,i]=x.split(':');$('#'+i).onclick=()=>bool(o)});
 $('#al').onchange=e=>{const m=e.target.value;e.target.value='';const c=C();if(!m||!sel.length)return;hist();
 const X=s=>[(Math.abs(s.w*Math.cos(s.r))+Math.abs(s.h*Math.sin(s.r)))/2,(Math.abs(s.w*Math.sin(s.r))+Math.abs(s.h*Math.cos(s.r)))/2];
@@ -1056,5 +1064,30 @@ if(document.activeElement!==$('#onop'))$('#onop').value=Math.round(ON.op*100);co
 (()=>{const set=()=>{uiSave();onSync();draw()};$('#onb').onclick=()=>{ON.on=!ON.on;set()};$('#onp').onclick=()=>{ON.prev=!ON.prev;set()};$('#onn').onclick=()=>{ON.next=!ON.next;set()};$('#onc').onclick=()=>{ON.col=!ON.col;set()};
 $('#onop').oninput=e=>{ON.op=Math.min(.8,Math.max(.1,+e.target.value/100));draw()};$('#onop').onchange=()=>uiSave();
 $('#symb').onclick=()=>{SYM=!SYM;sync()}})();
+// ===== ベクター文字: キャンバス上で直接入力 + 独自フォント一覧 =====
+function teGeom(){const t=TE;if(t.s){const s=t.s;return{fs:s.fs,fn:s.fn||'sans-serif',r:s.r,A:t.A,col:typeof s.f=='string'?s.f:null}}const f=fv();return{fs:Math.max(12,sty().sw*6),fn:curFont(),r:0,A:[t.ax,t.ay],col:typeof f=='string'?f:null}}
+function teLayout(){if(!TE)return;const q=teGeom(),inp=$('#te_in'),pad=4;g.save();g.font=`${q.fs}px ${q.fn}`;const w=Math.max(4,g.measureText(inp.value||'').width);g.restore();
+const H=q.fs*1.2*z,cr=cv.getBoundingClientRect(),mr=$('#main').getBoundingClientRect(),sx=cr.left-mr.left+ox+q.A[0]*z,sy=cr.top-mr.top+oy+q.A[1]*z,col=q.col||'#000000',pc=parseC(col),lum=pc?(.299*pc.r+.587*pc.g+.114*pc.b)/255:0,st=inp.style;
+st.font=`${q.fs*z}px ${q.fn}`;st.lineHeight=H+'px';st.height=H+'px';st.width=(w*z+pad*2+6)+'px';st.left=(sx-pad)+'px';st.top=(sy-H/2)+'px';st.transformOrigin=pad+'px 50%';st.transform=`rotate(${q.r}rad)`;st.color=col;st.caretColor=col;st.background=lum>.8?'#303030e6':'#ffffffe0'}
+function teStart(s,p){if(TE)teEnd();const c=C();if(c.k!='v')return;const inp=$('#te_in');
+if(s){const co=Math.cos(s.r),si=Math.sin(s.r);TE={s,orig:s.tx,w0:s.w,A:[s.x-s.w/2*co,s.y-s.w/2*si]};sel=[s]}else{TE={s:null,ax:p[0],ay:p[1]};sel=[]}
+TEH=s||null;inp.value=s?s.tx:'';inp.hidden=false;sync();draw();teLayout();inp.focus();if(s)inp.select()}
+function teEnd(){if(!TE)return;const t=TE,inp=$('#te_in'),v=inp.value,c=C();TE=null;TEH=null;inp.hidden=true;if(document.activeElement===inp)inp.blur();
+if(!t.s){if(v){hist();const y=sty(),s={t:'txt',x:t.ax,y:t.ay,r:0,fs:Math.max(12,y.sw*6),tx:v,f:fv(),s:null,sw:2,fn:curFont()};tm(s);s.x=t.ax+s.w/2;c.sh.push(s);sel=[s];fin();if($('#tov').checked)t2p([s],1)}}
+else{const s=t.s;if(!c.sh.includes(s)){sync();draw();return}if(!v){hist();c.sh.splice(c.sh.indexOf(s),1);sel=[];fin()}else if(v!==t.orig){hist();s.tx=v;tm(s);const co=Math.cos(s.r),si=Math.sin(s.r);s.x=t.A[0]+s.w/2*co;s.y=t.A[1]+s.w/2*si;fin()}}
+sync();draw()}
+(()=>{const inp=$('#te_in');inp.addEventListener('input',()=>{teLayout()});inp.addEventListener('keydown',e=>{e.stopPropagation();if((e.key=='Enter'||e.key=='Escape')&&!e.isComposing&&e.keyCode!==229){e.preventDefault();teEnd()}});inp.addEventListener('blur',()=>{setTimeout(()=>{if(TE&&document.activeElement!==inp)teEnd()},0)});
+cv.addEventListener('click',e=>{const t=TT;TT=null;if(!t||Math.hypot(e.clientX-t.x,e.clientY-t.y)>8||C().k!='v')return;if(t.h)teStart(t.h);else if(tool=='txt')teStart(null,t.p)})})();
+// --- 独自フォント一覧
+function fnRefresh(){const f=FL[+$('#fn').value]||FL[0],b=$('#fnb');if(!b)return;const t=b.querySelector('.fnt');t.textContent=f.n;t.style.fontFamily=f.css;$('#fpop').querySelectorAll('.fi').forEach((x,i)=>{x.classList.toggle('on',i==+$('#fn').value);x.setAttribute('aria-selected',i==+$('#fn').value)})}
+(()=>{const e=$('#fn'),d=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');Object.defineProperty(e,'value',{get(){return d.get.call(this)},set(v){d.set.call(this,v);fnRefresh()},configurable:true})})();
+function buildFpop(){const P=$('#fpop');if(!P)return;P.innerHTML='';FL.forEach((f,i)=>{const b=document.createElement('button');b.type='button';b.className='fi';b.setAttribute('role','option');b.dataset.i=i;const alt=badFont.has(f.n)||(f.web&&webFail.has(f.fam)&&!webOk.has(f.fam)&&!fonts.some(x=>x.n==f.fam));
+b.innerHTML=`<span class="nm"></span><span class="sm"></span>${alt?'<span class="alt">代替表示</span>':''}`;const nm=b.querySelector('.nm'),sm=b.querySelector('.sm');nm.textContent=f.n;sm.textContent='Abc あいう';nm.style.fontFamily=sm.style.fontFamily=f.css;P.append(b)});fnRefresh()}
+async function prevWeb(f){if(!f.web||webPrev.has(f.fam)||webFail.has(f.fam)||fonts.some(x=>x.n==f.fam))return;webPrev.add(f.fam);try{const css=await(await fetch('https://fonts.googleapis.com/css2?family='+encodeURIComponent(f.fam).replace(/%20/g,'+')+'&display=swap')).text();const m=css.match(/\/\* latin \*\/\s*@font-face\s*\{[^}]*?url\((https:[^)]+)\)/)||css.match(/url\((https:[^)]+)\)/);const buf=await(await fetch(m[1])).arrayBuffer();const ff=new FontFace(f.fam,buf);await ff.load();document.fonts.add(ff);webOk.add(f.fam)}catch(e){webPrev.delete(f.fam);webFail.add(f.fam)}buildFpop()}
+(()=>{const P=$('#fpop'),B=$('#fnb'),close=()=>{P.hidden=true;B.setAttribute('aria-expanded','false')},keep=e=>e.preventDefault();
+P.addEventListener('mousedown',keep);B.addEventListener('mousedown',keep);
+B.onclick=()=>{if(!P.hidden)return close();FL.forEach(prevWeb);P.hidden=false;B.setAttribute('aria-expanded','true');const r=B.getBoundingClientRect(),w=P.offsetWidth,h=P.offsetHeight;P.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';const up=r.top-h-6>=8;P.style.top=(up?r.top-h-6:Math.min(r.bottom+6,innerHeight-h-8))+'px';fnRefresh();const on=P.querySelector('.fi.on');if(on)on.scrollIntoView({block:'nearest'})};
+P.addEventListener('click',e=>{const b=e.target.closest('.fi');if(!b)return;const f=$('#fn');f.value=b.dataset.i;f.dispatchEvent(new Event('change'));close()});
+addEventListener('pointerdown',e=>{if(!P.hidden&&!e.target.closest('#fpop,#fnb'))close()},true);addEventListener('keydown',e=>{if(e.key=='Escape'&&!P.hidden)close()});addEventListener('resize',close)})();
 initIcons();fillFonts();buildPK();cs=[mk('v','コスチューム1')];go(0);refChips();
 </script></body></html>
