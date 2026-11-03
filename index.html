@@ -378,7 +378,7 @@ const S=(x,y)=>[ox+x*z,oy+y*z];
 g.strokeStyle='#855cd6';g.lineWidth=1.5;const[a,b]=S(...(PRV.ctr||[c.cx,c.cy]));g.beginPath();g.moveTo(a-12,b);g.lineTo(a+12,b);g.moveTo(a,b-12);g.lineTo(a,b+12);g.stroke();g.beginPath();g.arc(a,b,6,0,7);g.stroke();
 if(c.k=='v'||(sel[0]&&sel[0].t=='bs')){sel.forEach(s0=>{const s=vs(s0);g.beginPath();K.concat([K[0]]).forEach((k,i)=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.stroke()});
 g.fillStyle='#fff';
-if(!TE&&sel.length==1&&(tool=='sel'||tool=='bsel')){const s=vs(sel[0]);K.forEach(k=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.fillRect(q[0]-8,q[1]-8,16,16);g.strokeRect(q[0]-8,q[1]-8,16,16)});
+if(!TE&&sel.length>=1&&(tool=='sel'||tool=='bsel')&&selFrame()){const s=(sel.length>1&&drag&&drag.gf&&drag.mv)?drag.gf:selFrame();if(sel.length>1){g.beginPath();K.concat([K[0]]).forEach((k,i)=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.stroke()}K.forEach(k=>{const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.fillRect(q[0]-8,q[1]-8,16,16);g.strokeRect(q[0]-8,q[1]-8,16,16)});
 if(c.k=='v'&&s.t!='txt'&&s.t!='bs')EK.forEach((k,i)=>{if((i<2?s.h:s.w)*z<44)return;const p=l2w(s,k[0]*s.w/2,k[1]*s.h/2),q=S(p[0],p[1]);g.save();g.translate(q[0],q[1]);g.rotate(s.r);const a=i<2?[-4.5,-10,9,20]:[-10,-4.5,20,9];g.fillRect(a[0],a[1],a[2],a[3]);g.strokeRect(a[0],a[1],a[2],a[3]);g.restore()});
 const r=l2w(s,0,-s.h/2-30/z),q=S(r[0],r[1]);g.beginPath();g.arc(q[0],q[1],9,0,7);g.fill();g.stroke()}
 if(tool=='rsh'&&sel[0]&&sel[0].pts){const s=vs(sel[0]);s.pts.forEach((q,i)=>{const w=l2w(s,q[0]*s.w,q[1]*s.h),r=S(w[0],w[1]);if(i==selPt&&s.bz){g.fillStyle='#855cd6';[[2,3],[4,5]].forEach(([a,b])=>{if(!q[a]&&!q[b])return;const h=l2w(s,(q[0]+q[a])*s.w,(q[1]+q[b])*s.h),u=S(h[0],h[1]);g.beginPath();g.moveTo(r[0],r[1]);g.lineTo(u[0],u[1]);g.stroke();g.beginPath();g.arc(u[0],u[1],5,0,7);g.fill();g.stroke()})}
@@ -482,7 +482,7 @@ else if(HC>d.h0&&c.u.length){const ix=sel.map(q=>c.sh.indexOf(q));rs(c,c.u.pop()
 if(ch){ONG++;thumbs()}sync();draw()}
 function beginOp(e){down(e);OPPID=e.pointerId;OP=!drag?'idle':(drag.h?'move':(DRAWT.includes(tool)?'draw':'move'))}
 function firePD(){if(!PD)return;const p=PD;PD=null;clearTimeout(p.t);if(OP!='pending')return;beginOp(p.e)}
-cv.addEventListener('pointerdown',e=>{e.preventDefault();
+cv.addEventListener('pointerdown',e=>{e.preventDefault();{const a=document.activeElement;if(a&&a.id!=='te_in'&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))a.blur()}
 if(e.pointerType=='touch'&&PENS.size)return;/* スタイラス使用中の手のひら(タッチ)は無視 */
 if(e.pointerType=='pen')PENS.add(e.pointerId);
 if(TE)teEnd();cv.setPointerCapture(e.pointerId);ps.set(e.pointerId,[e.clientX,e.clientY]);
@@ -507,7 +507,22 @@ cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientR
 if(e.ctrlKey)zoomAt(x,y,z*Math.exp(-clamp(e.deltaY,-30,30)*.012));
 else if(e.deltaMode==0&&(e.deltaX!=0||Math.abs(e.deltaY)<40)){ox-=e.deltaX;oy-=e.deltaY;draw()}
 else zoomAt(x,y,z*Math.exp(-clamp(e.deltaY,-100,100)*.0006))},{passive:false});
-function hitH(p){if(sel.length!=1)return 0;const s=sel[0];let best=0,bd=22;const D=q=>Math.hypot(q[0]-p[0],q[1]-p[1])*z;
+// 選択範囲の枠: 1個ならその図形、複数なら全体を囲む外接矩形(回転0)。サイズ・角度のハンドルはこの枠に付く
+function selFrame(){if(!sel.length)return null;if(sel.length==1)return vs(sel[0]);const L=sel.filter(s=>!s.lk).map(vs);if(!L.length)return null;const[a,b,e,f]=ubox(L);return{t:'grp',x:(a+e)/2,y:(b+f)/2,w:Math.max(e-a,1e-6),h:Math.max(f-b,1e-6),r:0}}
+// 複数選択のまとめて変形(拡大縮小・回転)。確定までは作業コピー(PRV)だけを動かす
+function gTransform(d,p,ev){if(!d.mv){const L=sel.filter(s=>!s.lk);if(!L.length)return;const[a,b,e,f]=ubox(L);d.L=L;d.F={x:(a+e)/2,y:(b+f)/2,w:Math.max(e-a,1e-6),h:Math.max(f-b,1e-6)};d.O=L.map(s=>({x:s.x,y:s.y,w:s.w,h:s.h,r:s.r,fs:s.fs}));pvBegin(L);d.mv=1}
+const F=d.F,L=d.L,O=d.O;
+if(d.m=='rot'){const a0=Math.atan2(d.p0[1]-F.y,d.p0[0]-F.x);let da=Math.atan2(p[1]-F.y,p[0]-F.x)-a0;if(ev.shiftKey)da=Math.round(da/.2618)*.2618;const co=Math.cos(da),si=Math.sin(da);
+L.forEach((s,i)=>{const w=vs(s),o=O[i],dx=o.x-F.x,dy=o.y-F.y;w.x=F.x+dx*co-dy*si;w.y=F.y+dx*si+dy*co;w.r=o.r+da});d.gf={x:F.x,y:F.y,w:F.w,h:F.h,r:da};return}
+let sx,sy,Ax,Ay,nw,nh,ke;
+if(d.m=='rs'){[sx,sy]=K[d.i];Ax=F.x-sx*F.w/2;Ay=F.y-sy*F.h/2;nw=Math.max(1,(p[0]-Ax)*sx);nh=Math.max(1,(p[1]-Ay)*sy);if(ev.shiftKey){const k=Math.max(nw/F.w,nh/F.h);nw=F.w*k;nh=F.h*k}}
+else{[sx,sy]=EK[d.e];if(sx){Ax=F.x-sx*F.w/2;Ay=F.y;nw=Math.max(1,(p[0]-Ax)*sx);nh=F.h}else{Ax=F.x;Ay=F.y-sy*F.h/2;nw=F.w;nh=Math.max(1,(p[1]-Ay)*sy)}}
+const kx=nw/F.w,ky=nh/F.h;ke=d.m=='rs'?Math.sqrt(kx*ky):(sx?kx:ky);
+L.forEach((s,i)=>{const w=vs(s),o=O[i];w.x=Ax+(o.x-Ax)*kx;w.y=Ay+(o.y-Ay)*ky;const q=o.r/(Math.PI/2),ortho=Math.abs(q-Math.round(q))<1e-6;
+if(s.t=='txt'||s.t=='img'||!ortho){w.w=Math.max(1,o.w*ke);w.h=Math.max(1,o.h*ke);if(s.t=='txt'){w.fs=o.fs*ke;tm(w)}}
+else{const sw=Math.abs(Math.round(q))%2==1;w.w=Math.max(1,o.w*(sw?ky:kx));w.h=Math.max(1,o.h*(sw?kx:ky))}});
+d.gf={x:Ax+(sx?sx*nw/2:0),y:Ay+(sy?sy*nh/2:0),w:nw,h:nh,r:0}}
+function hitH(p){const s=selFrame();if(!s)return 0;let best=0,bd=22;const D=q=>Math.hypot(q[0]-p[0],q[1]-p[1])*z;
 for(let i=0;i<4;i++){const d=D(l2w(s,K[i][0]*s.w/2,K[i][1]*s.h/2));if(d<bd){bd=d;best={m:'rs',i}}}
 {const d=D(l2w(s,0,-s.h/2-30/z));if(d<bd){bd=d;best={m:'rot'}}}
 if(C().k=='v'&&s.t!='txt'&&s.t!='bs')EK.forEach((k,i)=>{if((i<2?s.h:s.w)*z<44)return;const d=D(l2w(s,k[0]*s.w/2,k[1]*s.h/2));if(d<bd-1){bd=d;best={m:'re',e:i}}});return best}
@@ -565,6 +580,7 @@ else if(d.m=='mv'){const bs=sel[0]&&sel[0].t=='bs';if(!d.mv){pvBegin(bs?sel.slic
 let tx=p[0]-d.p0[0],ty=p[1]-d.p0[1];snapG=null;if(bs){tx=Math.round(tx);ty=Math.round(ty)}
 if(SNAP&&!e.altKey){const th=8/z,cx0=c.w/2,cy0=c.h/2,nx=d.bb[0]+tx,ny=d.bb[1]+ty;let a=0,b=0;if(Math.abs(nx-cx0)<th){tx+=cx0-nx;a=1}if(Math.abs(ny-cy0)<th){ty+=cy0-ny;b=1}if(bs){tx=Math.round(tx);ty=Math.round(ty)}if(a||b)snapG={x:a,y:b}}
 sel.forEach((s,i)=>{if(bs||!s.lk){const w=vs(s);w.x=d.o[i][0]+tx;w.y=d.o[i][1]+ty}})}
+else if(sel.length>1&&(d.m=='rot'||d.m=='rs'||d.m=='re'))gTransform(d,p,e);
 else if(d.m=='rot'){if(!d.mv){pvBegin([sel[0]]);d.mv=1}const s=vs(sel[0]);let a=Math.atan2(p[1]-s.y,p[0]-s.x)+Math.PI/2;if(e.shiftKey)a=Math.round(a/.2618)*.2618;s.r=a}
 else if(d.m=='pts'){if(!d.mv){pvBegin([sel[0]]);d.mv=1}const s=vs(sel[0]);d.A.forEach(i=>{const w=W_(s,i);setW(s,i,w[0]+dx,w[1]+dy)});renorm(s)}
 else if(d.m=='pt'){if(!d.mv){pvBegin([sel[0],...(d.L||[]).map(q=>q[0])]);d.mv=1}const s=vs(sel[0]),l=w2l(s,p[0],p[1]);s.pts[d.i][0]=l[0]/s.w;s.pts[d.i][1]=l[1]/s.h;(d.L||[]).forEach(([o0,j])=>{const o=vs(o0),m=w2l(o,p[0],p[1]);o.pts[j][0]=m[0]/o.w;o.pts[j][1]=m[1]/o.h;renorm(o)});renorm(s)}
@@ -869,14 +885,14 @@ const SC=[['v',0,0,'選択ツール',tl('sel','bsel')],['a',0,0,'リシェイプ
 ['d',1,0,'複製(ベクター)',()=>isV()&&$('#dp').click()],['a',1,0,'全選択',selAll],['s',1,0,'保存(JSON)',()=>$('#sv').click()],['o',1,0,'読み込み(JSON)',()=>$('#ld').click()],
 ['c',1,0,'コピー',()=>isV()?vcopy():$('#bcp').click()],['x',1,0,'切り取り',()=>{if(isV()){vcopy();$('#dl').click()}else $('#bct').click()}],['v',1,0,'貼り付け',()=>isV()?vpaste():$('#bps').click()],
 ['g',1,0,'グループ化(ベクター)',()=>$('#gp').click()],['g',1,1,'グループ解除(ベクター)',()=>$('#ug').click()],[']',1,0,'前面へ(ベクター)',()=>$('#fr').click()],['[',1,0,'背面へ(ベクター)',()=>$('#bkb').click()],['?',0,1,'ショートカット一覧',()=>help()]];
-addEventListener('keydown',e=>{const T=e.target;if(/INPUT|SELECT|TEXTAREA/.test(T.tagName)||T.isContentEditable||document.querySelector('.dlg')||CP.open||pickMode||e.altKey||!C())return;
+addEventListener('keydown',e=>{const T=e.target;if(/INPUT|SELECT|TEXTAREA/.test(T.tagName)||T.isContentEditable||document.querySelector('.dlg:not(#arrd)')||CP.open||pickMode||e.altKey||!C())return;
 const m=e.ctrlKey||e.metaKey,k=e.key.length==1?e.key.toLowerCase():e.key,h=SC.find(x=>x[0]==k&&!!x[1]==m&&!!x[2]==e.shiftKey);if(h){e.preventDefault();h[4]();return}
 if(!m&&k.startsWith('Arrow')&&isV()){const n=e.shiftKey?10:.1,dx={ArrowLeft:-n,ArrowRight:n}[k]||0,dy={ArrowUp:-n,ArrowDown:n}[k]||0,rd=v=>Math.round(v*1e6)/1e6,s0=sel[0],I=tool=='rsh'&&s0&&s0.bz&&!s0.lk?selPts():[];
-if(I.length){/* 点編集: 選択中の点を移動(1点のときは重なっている他パスの点も一緒に動かす。ドラッグと同じ) */e.preventDefault();const LK=I.length==1?links(s0,I[0]):[],P=I.map(i=>W_(s0,i)),Q=LK.map(([o,j])=>W_(o,j));if(!AR.t)hist();clearTimeout(AR.t);AR.t=setTimeout(()=>AR.t=0,700);
+if(I.length){/* 点編集: 選択中の点(複数可)を移動。1点のときは重なっている他パスの点も一緒に動かす(ドラッグと同じ) */e.preventDefault();const LK=I.length==1?links(s0,I[0]):[],P=I.map(i=>W_(s0,i)),Q=LK.map(([o,j])=>W_(o,j));if(!AR.t)hist();clearTimeout(AR.t);AR.t=setTimeout(()=>AR.t=0,700);
 I.forEach((i,j)=>setW(s0,i,rd(P[j][0]+dx),rd(P[j][1]+dy)));LK.forEach(([o,j],q)=>{setW(o,j,rd(Q[q][0]+dx),rd(Q[q][1]+dy));renorm(o)});renorm(s0);fin();return}
 const L=sel.filter(s=>!s.lk);if(!L.length)return;e.preventDefault();if(!AR.t)hist();clearTimeout(AR.t);AR.t=setTimeout(()=>AR.t=0,700);L.forEach(s=>{s.x=rd(s.x+dx);s.y=rd(s.y+dy)});fin()}});
 addEventListener('keydown',e=>{if(e.key=='Escape'){const d=document.querySelector('.dlg'),b=d&&d.querySelector('[data-x]');b&&b.click()}});
-function help(){const D=document.createElement('div');D.className='dlg';D.innerHTML='<div role="dialog" aria-label="ショートカット一覧"><b>ショートカット一覧</b>'+SC.filter(x=>x[3]).map(x=>`<div style="display:flex;justify-content:space-between;gap:16px"><span>${x[3]}</span><kbd>${(x[1]?MK+'+':'')+(x[2]?'Shift+':'')+(x[0].length>1?x[0]:x[0].toUpperCase())}</kbd></div>`).join('')+'<small>矢印キー: 選択図形を0.1px(Shiftで10px)移動。点編集ツールで点を選択中は、その点を同じ量だけ移動 / ビットマップ選択範囲は従来どおり1px。入力欄・ダイアログ表示中は無効です。</small><button data-x>閉じる</button></div>';D.onclick=e=>{if(e.target==D||e.target.closest('[data-x]'))D.remove()};document.body.append(D)}
+function help(){const D=document.createElement('div');D.className='dlg';D.innerHTML='<div role="dialog" aria-label="ショートカット一覧"><b>ショートカット一覧</b>'+SC.filter(x=>x[3]).map(x=>`<div style="display:flex;justify-content:space-between;gap:16px"><span>${x[3]}</span><kbd>${(x[1]?MK+'+':'')+(x[2]?'Shift+':'')+(x[0].length>1?x[0]:x[0].toUpperCase())}</kbd></div>`).join('')+'<small>矢印キー: 選択図形を0.1px(Shiftで10px)移動。点編集ツールで点を選択中は、その点(複数選択も)を同じ量だけ移動 / ビットマップ選択範囲は従来どおり1px。入力欄・ダイアログ表示中は無効です。</small><button data-x>閉じる</button></div>';D.onclick=e=>{if(e.target==D||e.target.closest('[data-x]'))D.remove()};document.body.append(D)}
 $('#hlp').onclick=help;
 // --- D. 画像フィルター(ビットマップ全体。プレビューは常に元画像から再計算。適用で1回のUndo履歴)
 const FP=[['br','明るさ',-100,100,0],['ct','コントラスト',-100,100,0],['sa','彩度',-100,100,0],['hu','色相',-180,180,0],['bl','ぼかし',0,20,0],['sh','シャープ化',0,100,0]],FC=[['gy','グレースケール'],['sp','セピア'],['iv','ネガポジ反転']];
@@ -1101,47 +1117,73 @@ const area=P=>{let a=0;for(let i=0,n=P.length;i<n;i++){const p=P[i],q=P[(i+1)%n]
 // loops: [{pts:[[x,y]...], set:0}] すべて閉多角形。pred(w) : w=各セットの回転数配列 -> 領域に含めるか
 // 戻り値: 領域の境界ループ配列(内部が進行方向の左側)
 function region(loops,pred,opt){opt=opt||{};let minx=1e18,maxx=-1e18,miny=1e18,maxy=-1e18,N=0;for(const l of loops)for(const p of l.pts){minx=Math.min(minx,p[0]);maxx=Math.max(maxx,p[0]);miny=Math.min(miny,p[1]);maxy=Math.max(maxy,p[1]);N++}
-if(!N)return[];const sc=Math.max(maxx-minx,maxy-miny,1),eps=opt.eps||sc*1e-7,key=(x,y)=>Math.round(x/eps)+','+Math.round(y/eps);
-// 1) 入力線分(同一点に丸め、長さ0を除く)
+if(!N)return[];const sc=Math.max(maxx-minx,maxy-miny,1),eps=opt.eps||sc*1e-7,snap=eps*4;
+// 1) 入力線分(格子に丸め、長さ0を除く)
 const S=[];let nset=0;for(const l of loops){nset=Math.max(nset,l.set+1);const P=l.pts,n=P.length;for(let i=0;i<n;i++){let a=P[i],b=P[(i+1)%n];const ax=Math.round(a[0]/eps)*eps,ay=Math.round(a[1]/eps)*eps,bx=Math.round(b[0]/eps)*eps,by=Math.round(b[1]/eps)*eps;if(ax==bx&&ay==by)continue;S.push({ax,ay,bx,by,set:l.set})}}
-const M=S.length;if(!M)return[];
-// 2) 格子で候補ペアを求め、交点を分割点として収集
+const M=S.length;if(!M)return[];const SL=S.map(s=>hyp(s.bx-s.ax,s.by-s.ay)),gr=v=>Math.round(v/eps)*eps;
+// 2) 格子で候補ペアを求め、交点を分割点として収集。交点の座標は2本の線分で共有する(別々に計算して食い違うのを防ぐ)
 const gs=Math.max(8,Math.min(256,Math.ceil(Math.sqrt(M)))),cw=(maxx-minx)/gs||1,ch=(maxy-miny)/gs||1,grid=new Map(),cl=(v,o,c)=>Math.min(gs-1,Math.max(0,Math.floor((v-o)/c)));
 S.forEach((s,i)=>{const x0=cl(Math.min(s.ax,s.bx),minx,cw),x1=cl(Math.max(s.ax,s.bx),minx,cw),y0=cl(Math.min(s.ay,s.by),miny,ch),y1=cl(Math.max(s.ay,s.by),miny,ch);for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++){const k=x*gs+y;let a=grid.get(k);if(!a)grid.set(k,a=[]);a.push(i)}});
-const cuts=S.map(()=>[]),seen=new Set();
-const addCut=(i,t)=>{if(t>1e-9&&t<1-1e-9)cuts[i].push(t)};
+const cuts=S.map(()=>[]),seen=new Set(),addCut=(i,t,x,y)=>{cuts[i].push({t,x,y})};
 for(const a of grid.values())for(let u=0;u<a.length;u++)for(let v=u+1;v<a.length;v++){const i=a[u],j=a[v],pk=i<j?i*M+j:j*M+i;if(seen.has(pk))continue;seen.add(pk);const s=S[i],t=S[j];
 const rx=s.bx-s.ax,ry=s.by-s.ay,qx=t.bx-t.ax,qy=t.by-t.ay,den=rx*qy-ry*qx,wx=t.ax-s.ax,wy=t.ay-s.ay;
-if(Math.abs(den)>1e-12*(hyp(rx,ry)*hyp(qx,qy))){const ta=(wx*qy-wy*qx)/den,tb=(wx*ry-wy*rx)/den,tol=1e-9;if(ta>=-tol&&ta<=1+tol&&tb>=-tol&&tb<=1+tol){addCut(i,ta);addCut(j,tb)}}
+if(Math.abs(den)>1e-12*(SL[i]*SL[j])){const ta=(wx*qy-wy*qx)/den,tb=(wx*ry-wy*rx)/den,e1=snap/SL[i],e2=snap/SL[j];
+if(ta>=-e1&&ta<=1+e1&&tb>=-e2&&tb<=1+e2){const s0=ta<=e1,s1=ta>=1-e1,t0=tb<=e2,t1=tb>=1-e2;let X;
+if(s0)X=[s.ax,s.ay];else if(s1)X=[s.bx,s.by];else if(t0)X=[t.ax,t.ay];else if(t1)X=[t.bx,t.by];else X=[gr(s.ax+rx*ta),gr(s.ay+ry*ta)];
+if(!(s0||s1))addCut(i,ta,X[0],X[1]);if(!(t0||t1))addCut(j,tb,X[0],X[1])}}
 else{// 平行: 共線なら端点で相互分割
-const cr=(wx*ry-wy*rx)/(hyp(rx,ry)||1);if(Math.abs(cr)<eps*4){const L1=rx*rx+ry*ry,L2=qx*qx+qy*qy;const p=(px,py)=>((px-s.ax)*rx+(py-s.ay)*ry)/L1,q=(px,py)=>((px-t.ax)*qx+(py-t.ay)*qy)/L2;addCut(i,p(t.ax,t.ay));addCut(i,p(t.bx,t.by));addCut(j,q(s.ax,s.ay));addCut(j,q(s.bx,s.by))}}}
-// 3) 分割して無向辺集合(重複除去)
-const E=new Map();S.forEach((s,i)=>{const ts=[0,...cuts[i].sort((a,b)=>a-b),1];let px=s.ax,py=s.ay;for(let k=1;k<ts.length;k++){const x=k==ts.length-1?s.bx:Math.round((s.ax+(s.bx-s.ax)*ts[k])/eps)*eps,y=k==ts.length-1?s.by:Math.round((s.ay+(s.by-s.ay)*ts[k])/eps)*eps;if(x!=px||y!=py){const k1=key(px,py),k2=key(x,y),ek=k1<k2?k1+'|'+k2:k2+'|'+k1;if(!E.has(ek))E.set(ek,[px,py,x,y]);px=x;py=y}}});
-// 4) 回転数の高速計算(y範囲で分割した+x方向レイ)
+const cr=(wx*ry-wy*rx)/(SL[i]||1);if(Math.abs(cr)<snap){const L1=rx*rx+ry*ry,L2=qx*qx+qy*qy,p=(px,py)=>((px-s.ax)*rx+(py-s.ay)*ry)/L1,q=(px,py)=>((px-t.ax)*qx+(py-t.ay)*qy)/L2;
+for(const[k,tt,x,y]of[[i,p(t.ax,t.ay),t.ax,t.ay],[i,p(t.bx,t.by),t.bx,t.by],[j,q(s.ax,s.ay),s.ax,s.ay],[j,q(s.bx,s.by),s.bx,s.by]]){const e=snap/SL[k];if(tt>e&&tt<1-e)addCut(k,tt,x,y)}}}}
+// 3) ノード(snap 以内の点は同一ノードに溶接)と辺。同じ辺は向き付き個数(delta)として集約する
+const NX=[],NY=[],NG=new Map(),nid=(x,y)=>{const cx=Math.floor(x/snap),cy=Math.floor(y/snap);for(let u=-1;u<=1;u++)for(let v=-1;v<=1;v++){const l=NG.get((cx+u)+','+(cy+v));if(l)for(const id of l)if(Math.abs(NX[id]-x)<=snap&&Math.abs(NY[id]-y)<=snap)return id}
+const id=NX.length;NX.push(x);NY.push(y);const k=cx+','+cy;let l=NG.get(k);if(!l)NG.set(k,l=[]);l.push(id);return id};
+const EM=new Map();
+S.forEach((s,i)=>{const cs=cuts[i];cs.sort((a,b)=>a.t-b.t);let pu=nid(s.ax,s.ay);const pts=cs.map(c=>[c.x,c.y]);pts.push([s.bx,s.by]);
+for(const[x,y]of pts){const v=nid(x,y);if(v===pu)continue;const a=Math.min(pu,v),b=Math.max(pu,v),k=a+'|'+b;let e=EM.get(k);if(!e)EM.set(k,e={a,b,d:new Array(nset).fill(0)});e.d[s.set]+=pu<v?1:-1;pu=v}});
+const edges=[...EM.values()].filter(e=>e.d.some(v=>v!=0)),nE=edges.length,nN=NX.length;if(!nE)return[];
+// 4) 半辺構造。各ノード周りを角度順に並べ、面(左側)を辿る
+const nH=2*nE,hu=new Int32Array(nH),hv=new Int32Array(nH),ang=new Float64Array(nH),pos=new Int32Array(nH),nxt=new Int32Array(nH),out=Array.from({length:nN},()=>[]);
+edges.forEach((e,k)=>{hu[2*k]=e.a;hv[2*k]=e.b;hu[2*k+1]=e.b;hv[2*k+1]=e.a;out[e.a].push(2*k);out[e.b].push(2*k+1)});
+for(let h=0;h<nH;h++)ang[h]=Math.atan2(NY[hv[h]]-NY[hu[h]],NX[hv[h]]-NX[hu[h]]);
+for(let v=0;v<nN;v++){const l=out[v];l.sort((p,q)=>ang[p]-ang[q]);l.forEach((h,i)=>{pos[h]=i})}
+for(let h=0;h<nH;h++){const l=out[hv[h]],k=pos[h^1];nxt[h]=l[(k-1+l.length)%l.length]}
+const face=new Int32Array(nH).fill(-1),fA=[],fH=[];
+for(let h=0;h<nH;h++){if(face[h]>=0)continue;const f=fA.length,list=[];let a=0,x=h,g=0;do{face[x]=f;list.push(x);a+=NX[hu[x]]*NY[hv[x]]-NX[hv[x]]*NY[hu[x]];x=nxt[x]}while(x!==h&&g++<nH+5);fA.push(a/2);fH.push(list)}
+// 5) 巻き数: 辺を挟んだ左右の差は delta で厳密に決まるので、面から面へ伝播させる。連結成分ごとの外側だけ、光線法で求める
+const nF=fA.length,W=new Array(nF).fill(null),seenF=new Uint8Array(nF);
 const bins=64,by0=miny,bh=(maxy-miny)/bins||1,B=Array.from({length:bins},()=>[]);S.forEach(s=>{const y0=Math.max(0,Math.min(bins-1,Math.floor((Math.min(s.ay,s.by)-by0)/bh))),y1=Math.max(0,Math.min(bins-1,Math.floor((Math.max(s.ay,s.by)-by0)/bh)));for(let b=y0;b<=y1;b++)B[b].push(s)});
 const wind=(px,py)=>{const w=new Array(nset).fill(0),b=Math.max(0,Math.min(bins-1,Math.floor((py-by0)/bh)));for(const s of B[b]){if(s.ay<=py){if(s.by>py){const c=(s.bx-s.ax)*(py-s.ay)-(px-s.ax)*(s.by-s.ay);if(c>0)w[s.set]++}}else if(s.by<=py){const c=(s.bx-s.ax)*(py-s.ay)-(px-s.ax)*(s.by-s.ay);if(c<0)w[s.set]--}}return w};
-// 5) 各辺の左右の領域判定 -> 境界辺(内部が左)
-const dl=Math.max(eps*40,sc*1e-6),out=new Map();
-for(const[ek,e]of E){const[x0,y0,x1,y1]=e,dx=x1-x0,dy=y1-y0,L=hyp(dx,dy);if(!L)continue;const mx=(x0+x1)/2,my=(y0+y1)/2,nx=-dy/L*dl,ny=dx/L*dl;
-const inL=pred(wind(mx+nx,my+ny)),inR=pred(wind(mx-nx,my-ny));if(inL==inR)continue;const a=inL?[x0,y0,x1,y1]:[x1,y1,x0,y0],k=key(a[0],a[1]);let l=out.get(k);if(!l)out.set(k,l=[]);l.push(a)}
-// 6) 辺をつないでループ化
-const res=[];while(out.size){const k0=out.keys().next().value,l0=out.get(k0),e0=l0.pop();if(!l0.length)out.delete(k0);const P=[[e0[0],e0[1]]];let cx=e0[2],cy=e0[3],guard=0;const sk=key(e0[0],e0[1]);
-while(guard++<N*8+100){const k=key(cx,cy);if(k==sk){break}const l=out.get(k);if(!l||!l.length)break;let bi=0;if(l.length>1){const dx0=cx-P[P.length-1][0],dy0=cy-P[P.length-1][1];let best=-1e9;l.forEach((e,i)=>{const ex=e[2]-e[0],ey=e[3]-e[1],cr=dx0*ey-dy0*ex,dt=dx0*ex+dy0*ey,ang=Math.atan2(cr,dt);if(ang>best){best=ang;bi=i}})}
-const e=l.splice(bi,1)[0];if(!l.length)out.delete(k);P.push([e[0],e[1]]);cx=e[2];cy=e[3]}
-if(P.length>=3&&Math.abs(area(P))>eps*eps*10)res.push(P)}
+for(let f0=0;f0<nF;f0++){if(seenF[f0])continue;const comp=[f0];seenF[f0]=1;
+for(let qi=0;qi<comp.length;qi++)for(const h of fH[comp[qi]]){const g=face[h^1];if(!seenF[g]){seenF[g]=1;comp.push(g)}}
+let root=comp[0];for(const f of comp)if(fA[f]<fA[root])root=f;
+let best=-1;for(const f of comp)for(const h of fH[f]){const v=hu[h];if(best<0||NX[v]<NX[best]||(NX[v]==NX[best]&&NY[v]<NY[best]))best=v}
+W[root]=wind(NX[best]-snap*5,NY[best]);const q=[root];
+for(let qi=0;qi<q.length;qi++){const f=q[qi];for(const h of fH[f]){const g=face[h^1];if(W[g]===null){const d=edges[h>>1].d,sg=h&1?-1:1;W[g]=W[f].map((x,i)=>x-sg*d[i]);q.push(g)}}}}
+// 6) 領域の内外が変わる辺だけを残し(内部が左)、つないでループ化。位相から作っているので必ず閉じる
+const O=new Map();for(let k=0;k<nE;k++){const h=2*k,iL=pred(W[face[h]]),iR=pred(W[face[h+1]]);if(iL===iR)continue;const a=iL?hu[h]:hv[h],b=iL?hv[h]:hu[h];let l=O.get(a);if(!l)O.set(a,l=[]);l.push(b)}
+const res=[];while(O.size){const s0=O.keys().next().value,l0=O.get(s0),b0=l0.pop();if(!l0.length)O.delete(s0);const P=[s0];let cur=b0,prev=s0,guard=0,closed=false;
+while(guard++<nE*2+10){if(cur===s0){closed=true;break}P.push(cur);const l=O.get(cur);if(!l||!l.length)break;let bi=0;
+if(l.length>1){const dx0=NX[cur]-NX[prev],dy0=NY[cur]-NY[prev];let best=-1e9;l.forEach((nb,i)=>{const ex=NX[nb]-NX[cur],ey=NY[nb]-NY[cur],cr=dx0*ey-dy0*ex,dt=dx0*ex+dy0*ey,an=Math.atan2(cr,dt);if(an>best){best=an;bi=i}})}
+const nb=l.splice(bi,1)[0];if(!l.length)O.delete(cur);prev=cur;cur=nb}
+if(closed&&P.length>=3){const Q=despike(P.map(id=>[NX[id],NY[id]]),eps*32);if(Q.length>=3&&Math.abs(area(Q))>eps*eps*10)res.push(Q)}}
 return res}
+// 幅が tol 以下の突起(a→先端→e で a と e がほぼ同じ点)と重複点を取り除く。面積はほぼ変わらない
+function despike(P,tol){let ch=true;while(ch&&P.length>=3){ch=false;for(let i=0;i<P.length;i++){const n=P.length,a=P[(i+n-1)%n],b=P[i],e=P[(i+1)%n];
+if(hyp(b[0]-a[0],b[1]-a[1])<=tol){P.splice(i,1);ch=true;break}
+if(n>3&&hyp(a[0]-e[0],a[1]-e[1])<=tol){const ia=(i+n-1)%n,ie=(i+1)%n;const rm=[i,ie].sort((x,y)=>y-x);P.splice(rm[0],1);P.splice(rm[1],1);ch=true;break}}}return P}
 // ---- 整理: 領域規則に従って内部が左になる単純なループへ
 function normalize(polys,rule){const L=polys.map(p=>({pts:p,set:0}));return region(L,rule=='nonzero'?(w=>w[0]!=0):(w=>(w[0]&1)!=0))}
 // ---- オフセット(d>0: 外側へ。内部が左のループが前提)
-function offsetLoops(loops,d,join,miter){const out=[],ad=Math.abs(d);if(!ad)return loops.map(l=>l.slice());miter=miter||4;
+function offsetLoops(loops,d,join,miter,sharp){const out=[],ad=Math.abs(d);if(!ad)return loops.map(l=>l.slice());miter=miter||4;
 for(const P0 of loops){const P=[];for(const p of P0){const q=P[P.length-1];if(!q||hyp(p[0]-q[0],p[1]-q[1])>1e-9)P.push(p)}if(P.length>1&&hyp(P[0][0]-P[P.length-1][0],P[0][1]-P[P.length-1][1])<1e-9)P.pop();const n=P.length;if(n<3)continue;
 const U=[],Nn=[];for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n],dx=b[0]-a[0],dy=b[1]-a[1],L=hyp(dx,dy)||1;U.push([dx/L,dy/L]);Nn.push([dy/L*d,-dx/L*d])}// 右法線×d(d<0で左へ)
 const R=[];for(let i=0;i<n;i++){const v=P[i],j=(i+n-1)%n,u1=U[j],u2=U[i],n1=Nn[j],n2=Nn[i],cr=u1[0]*u2[1]-u1[1]*u2[0],dt=u1[0]*u2[0]+u1[1]*u2[1],A=[v[0]+n1[0],v[1]+n1[1]],Bp=[v[0]+n2[0],v[1]+n2[1]];
 if(Math.abs(cr)<1e-5&&dt>0){R.push([(A[0]+Bp[0])/2,(A[1]+Bp[1])/2]);continue}
 const uturn=dt<-1+1e-9,gap=uturn?(d>0):((d>0)?cr>0:cr<0);// 外へ動かす側が開く頂点(Uターンは線の端点=キャップ)
 if(!gap){R.push(A,[v[0],v[1]],Bp);continue}
-if(join=='round'){const a0=Math.atan2(n1[1],n1[0]),a1=Math.atan2(n2[1],n2[0]);let da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;if(uturn)da=Math.PI;const k=Math.max(1,Math.ceil(Math.abs(da)/(Math.PI/18)));R.push(A);for(let s=1;s<k;s++){const a=a0+da*s/k;R.push([v[0]+Math.cos(a)*ad,v[1]+Math.sin(a)*ad])}R.push(Bp)}
-else if(join=='miter'){const k=1+(n1[0]*n2[0]+n1[1]*n2[1])/(ad*ad);if(k>1e-9&&1/Math.sqrt((k)/2)<=miter){R.push([v[0]+(n1[0]+n2[0])/k,v[1]+(n1[1]+n2[1])/k])}else R.push(A,Bp)}
+let jj=join;if(join=='orig')jj=(uturn||!(sharp?sharp(v):Math.abs(Math.atan2(cr,dt))>.35))?'round':'miter';/* 元の角を維持: 角ばった頂点はマイター、丸い(なめらかな)頂点は丸のまま */
+if(jj=='round'){const a0=Math.atan2(n1[1],n1[0]),a1=Math.atan2(n2[1],n2[0]);let da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;if(uturn)da=Math.PI;const k=Math.max(1,Math.ceil(Math.abs(da)/(Math.PI/18)));R.push(A);for(let s=1;s<k;s++){const a=a0+da*s/k;R.push([v[0]+Math.cos(a)*ad,v[1]+Math.sin(a)*ad])}R.push(Bp)}
+else if(jj=='miter'){const k=1+(n1[0]*n2[0]+n1[1]*n2[1])/(ad*ad);if(k>1e-9&&1/Math.sqrt((k)/2)<=miter){R.push([v[0]+(n1[0]+n2[0])/k,v[1]+(n1[1]+n2[1])/k])}else R.push(A,Bp)}
 else R.push(A,Bp)}
 out.push(R)}
 return region(out.map(p=>({pts:p,set:0})),w=>w[0]>0)}
@@ -1214,6 +1256,12 @@ async function textOutlines(s){if(!s.tx||/[\u0590-\u08FF\u0900-\u0DFF\u0E00-\u0E
 g.font=`${s.fs}px ${s.fn||'sans-serif'}`;g.textBaseline='middle';g.textAlign='left';const W=t=>g.measureText(t).width,tot=W(s.tx),by=-g.measureText(s.tx).alphabeticBaseline,k=s.fs/f.upm,loops=[];let pre='';
 for(let i=0;i<chars.length;i++){const ch=chars[i];pre+=ch;const pen=W(pre)-W(ch)-tot/2;if(gids[i]){const M=(x,y)=>[pen+x*k,by-y*k];for(const p of f.glyph(gids[i]))loops.push(pathAnchors(p).map(a=>({p:M(a.p[0],a.p[1]),i:[a.i[0]*k,-a.i[1]*k],o:[a.o[0]*k,-a.o[1]*k]})))}}
 return loops.length?loops:null}
+// 閉ループのアンカーごとに「角か」を判定(進入・退出の接線が約1°以上ずれていれば角)
+function anchorSharp(A){const n=A.length,F=[];for(let k=0;k<n;k++){const a=A[k],pr=A[(k+n-1)%n],nx=A[(k+1)%n];let din=a.i[0]||a.i[1]?[-a.i[0],-a.i[1]]:null,dout=a.o[0]||a.o[1]?[a.o[0],a.o[1]]:null;
+if(!din){const c=pr.o[0]||pr.o[1]?[pr.p[0]+pr.o[0],pr.p[1]+pr.o[1]]:pr.p;din=[a.p[0]-c[0],a.p[1]-c[1]];if(!din[0]&&!din[1])din=[a.p[0]-pr.p[0],a.p[1]-pr.p[1]]}
+if(!dout){const c=nx.i[0]||nx.i[1]?[nx.p[0]+nx.i[0],nx.p[1]+nx.i[1]]:nx.p;dout=[c[0]-a.p[0],c[1]-a.p[1]];if(!dout[0]&&!dout[1])dout=[nx.p[0]-a.p[0],nx.p[1]-a.p[1]]}
+const l1=Math.hypot(din[0],din[1]),l2=Math.hypot(dout[0],dout[1]);F.push(!l1||!l2||(din[0]*dout[0]+din[1]*dout[1])/(l1*l2)<.9998)}return F}
+function anchorsPolyF(A,tol){const P=[],F=[],S=anchorSharp(A),n=A.length;for(let k=0;k<n;k++){const a=A[k],b=A[(k+1)%n],p0=a.p,p3=b.p;P.push(p0);F.push(S[k]);if(a.o[0]||a.o[1]||b.i[0]||b.i[1]){const T=[];GEO.flattenCubic(p0,[p0[0]+a.o[0],p0[1]+a.o[1]],[p3[0]+b.i[0],p3[1]+b.i[1]],p3,tol,T);T.pop();T.forEach(q=>{P.push(q);F.push(false)})}}return[P,F]}
 // アンカー列(閉ループ)→多角形
 function anchorsPoly(A,tol){const P=[],n=A.length;for(let k=0;k<n;k++){const a=A[k],b=A[(k+1)%n],p0=a.p,p3=b.p;if(!a.o[0]&&!a.o[1]&&!b.i[0]&&!b.i[1]){P.push(p0)}else{P.push(p0);const T=[];GEO.flattenCubic(p0,[p0[0]+a.o[0],p0[1]+a.o[1]],[p3[0]+b.i[0],p3[1]+b.i[1]],p3,tol,T);T.pop();P.push(...T)}}return P}
 // 画像トレース(代替): 高解像度で描画し、サブピクセル輪郭 → 角を保ったベジェへあてはめ
@@ -1242,19 +1290,28 @@ function toast(t){let e=$('#toast');if(!e){e=document.createElement('div');e.id=
 const OFS={open:false,dist:10,dir:'out',join:'round',keep:true,miter:4,prev:null,msg:'',busy:0};
 const clone2=s=>JSON.parse(JSON.stringify(s,rep));
 // 図形 → ワールド座標の多角形列 {polys, open:[...], rule}
+// path図形のアンカーが「角」か(両端点・接線が不連続=角)
+function ptSharp(t,a0,b0,cl,i){const n=b0-a0,l=i-a0;if(!cl&&(l==0||l==n-1))return true;const q=t.pts[i],pr=t.pts[a0+(l+n-1)%n],nx=t.pts[a0+(l+1)%n],w=t.w,h=t.h,H=(r,k)=>[(r[k]||0)*w,(r[k+1]||0)*h],P=r=>[r[0]*w,r[1]*h];
+let din=H(q,2),dout=H(q,4);din=din[0]||din[1]?[-din[0],-din[1]]:null;dout=dout[0]||dout[1]?dout:null;const qp=P(q);
+if(!din){const o=H(pr,4),pp=P(pr),c=o[0]||o[1]?[pp[0]+o[0],pp[1]+o[1]]:pp;din=[qp[0]-c[0],qp[1]-c[1]];if(!din[0]&&!din[1])din=[qp[0]-pp[0],qp[1]-pp[1]]}
+if(!dout){const o=H(nx,2),np=P(nx),c=o[0]||o[1]?[np[0]+o[0],np[1]+o[1]]:np;dout=[c[0]-qp[0],c[1]-qp[1]];if(!dout[0]&&!dout[1])dout=[np[0]-qp[0],np[1]-qp[1]]}
+const l1=Math.hypot(din[0],din[1]),l2=Math.hypot(dout[0],dout[1]);return!l1||!l2||(din[0]*dout[0]+din[1]*dout[1])/(l1*l2)<.9998}
+// オフセット後の頂点→もとの図形の同じ位置の頂点が「角」だったか。もとに無い頂点(交差でできた点)は角として扱う
+function sharpOracle(Ps,Fs){const cell=.05,M=new Map();Ps.forEach((P,k)=>P.forEach((p,i)=>{const kk=Math.floor(p[0]/cell)+','+Math.floor(p[1]/cell);let l=M.get(kk);if(!l)M.set(kk,l=[]);l.push([p[0],p[1],!!(Fs[k]&&Fs[k][i])])}));
+return v=>{const cx=Math.floor(v[0]/cell),cy=Math.floor(v[1]/cell);let best=null,bd=.02;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=M.get((cx+a)+','+(cy+b));if(l)for(const q of l){const d=Math.hypot(q[0]-v[0],q[1]-v[1]);if(d<bd){bd=d;best=q}}}return best?best[2]:true}}
 async function shapeGeom(s){const tol=.03;let t;
-if(s.t=='txt'){let L=await textOutlines(s);const co=Math.cos(s.r),si=Math.sin(s.r),T=p=>[s.x+p[0]*co-p[1]*si,s.y+p[0]*si+p[1]*co];if(L)return{polys:L.map(l=>anchorsPoly(l,Math.max(tol,s.fs*.0005)).map(T)),open:[],rule:'nonzero'};L=rasterOutlines(s,'fill');return{polys:L.map(l=>anchorsPoly(l,tol).map(T)),open:[],rule:'nonzero'}}
+if(s.t=='txt'){let L=await textOutlines(s);const co=Math.cos(s.r),si=Math.sin(s.r),T=p=>[s.x+p[0]*co-p[1]*si,s.y+p[0]*si+p[1]*co];if(L){const PF=L.map(l=>anchorsPolyF(l,Math.max(tol,s.fs*.0005)));return{polys:PF.map(x=>x[0].map(T)),fl:PF.map(x=>x[1]),open:[],ofl:[],rule:'nonzero'}}L=rasterOutlines(s,'fill');{const PF=L.map(l=>anchorsPolyF(l,tol));return{polys:PF.map(x=>x[0].map(T)),fl:PF.map(x=>x[1]),open:[],ofl:[],rule:'nonzero'}}}
 if(!['rect','ell','path','pd','line'].includes(s.t))return null;
 if(s.t=='rect'&&s.rr>0){t={t:'pd',d:dOf(s),w0:s.w,h0:s.h,w:s.w,h:s.h,x:s.x,y:s.y,r:s.r};toBz(t)}else{t=clone2(s);if(!t.bz)toBz(t)}
-const polys=[],open=[];for(const[a0,b0,cl]of rng(t)){const P=[];const n=b0-a0;for(let i=0;i<(cl?n:n-1);i++){const A=t.pts[a0+i],B=t.pts[a0+(i+1)%n],p0=[A[0]*t.w,A[1]*t.h],p3=[B[0]*t.w,B[1]*t.h];P.push(l2w(t,p0[0],p0[1]));const Tt=[];GEO.flattenCubic(p0,[p0[0]+A[4]*t.w,p0[1]+A[5]*t.h],[p3[0]+B[2]*t.w,p3[1]+B[3]*t.h],p3,tol,Tt);Tt.pop();Tt.forEach(q=>P.push(l2w(t,q[0],q[1])))}
-if(!cl){const e=t.pts[b0-1];P.push(l2w(t,e[0]*t.w,e[1]*t.h))}(cl?polys:open).push(P)}
-return{polys,open,rule:t.cmp?(s.fr||'evenodd'):'nonzero'}}
+const polys=[],open=[],fl=[],ofl=[];for(const[a0,b0,cl]of rng(t)){const P=[],F=[];const n=b0-a0;for(let i=0;i<(cl?n:n-1);i++){const A=t.pts[a0+i],B=t.pts[a0+(i+1)%n],p0=[A[0]*t.w,A[1]*t.h],p3=[B[0]*t.w,B[1]*t.h];P.push(l2w(t,p0[0],p0[1]));F.push(ptSharp(t,a0,b0,cl,a0+i));const Tt=[];GEO.flattenCubic(p0,[p0[0]+A[4]*t.w,p0[1]+A[5]*t.h],[p3[0]+B[2]*t.w,p3[1]+B[3]*t.h],p3,tol,Tt);Tt.pop();Tt.forEach(q=>{P.push(l2w(t,q[0],q[1]));F.push(false)})}
+if(!cl){const e=t.pts[b0-1];P.push(l2w(t,e[0]*t.w,e[1]*t.h));F.push(true)}(cl?polys:open).push(P);(cl?fl:ofl).push(F)}
+return{polys,open,fl,ofl,rule:t.cmp?(s.fr||'evenodd'):'nonzero'}}
 const offDist=()=>OFS.dir=='in'?-OFS.dist:OFS.dist;
 // オフセット結果(多角形)を計算。入力が複数ならそれぞれ別々に
 async function offsetCompute(){const res=[];for(const s of sel){const G=await shapeGeom(s);if(!G){res.push({s,err:'この種類の図形は対象外です(画像・ビットマップ)'});continue}
 const d=offDist();let loops=[];
-if(G.polys.length){const N=GEO.normalize(G.polys,G.rule);loops=GEO.offsetLoops(N,d,OFS.join,OFS.miter)}
-if(G.open.length){if(d>0){const dbl=G.open.map(P=>P.concat(P.slice(1,-1).reverse())),o=GEO.offsetLoops(dbl,d,OFS.join,OFS.miter);loops=loops.length?GEO.region([...loops.map(p=>({pts:p,set:0})),...o.map(p=>({pts:p,set:0}))],w=>w[0]>0):o}else if(!G.polys.length){res.push({s,err:'内側へのオフセットは閉じたパスだけに使えます'});continue}}
+if(G.polys.length){const N=GEO.normalize(G.polys,G.rule);loops=GEO.offsetLoops(N,d,OFS.join,OFS.miter,OFS.join=='orig'?sharpOracle(G.polys,G.fl):null)}
+if(G.open.length){if(d>0){const dbl=G.open.map(P=>P.concat(P.slice(1,-1).reverse())),o=GEO.offsetLoops(dbl,d,OFS.join,OFS.miter,OFS.join=='orig'?sharpOracle(G.open,G.ofl):null);loops=loops.length?GEO.region([...loops.map(p=>({pts:p,set:0})),...o.map(p=>({pts:p,set:0}))],w=>w[0]>0):o}else if(!G.polys.length){res.push({s,err:'内側へのオフセットは閉じたパスだけに使えます'});continue}}
 res.push({s,loops})}return res}
 let ofsTok=0;async function offsetPreview(){if(!OFS.open)return;const tk=++ofsTok;if(!sel.length||C().k!='v'){OFS.prev=null;OFS.msg='図形を選択してください';ofsUI();draw();return}
 OFS.busy=1;ofsUI();let r;try{r=await offsetCompute()}catch(e){if(tk!=ofsTok)return;OFS.prev=null;OFS.msg='計算に失敗しました: '+e.message;OFS.busy=0;ofsUI();draw();return}if(tk!=ofsTok)return;OFS.busy=0;OFS.prev=r;const ok=r.filter(x=>x.loops&&x.loops.length).length,er=r.find(x=>x.err);OFS.msg=ok?'プレビュー: '+ok+'個の図形':(er?er.err:'結果が空になりました(距離が大きすぎます)');ofsUI();draw()}
@@ -1262,19 +1319,38 @@ let ofsT=0;const ofsSoon=()=>{cancelAnimationFrame(ofsT);ofsT=requestAnimationFr
 function drawOfs(S){if(!OFS.open||!OFS.prev)return;g.save();g.lineWidth=1.5;g.strokeStyle='#e8590c';g.fillStyle='#e8590c22';g.setLineDash([5,3]);for(const r of OFS.prev){if(!r.loops)continue;g.beginPath();for(const P of r.loops){P.forEach((p,i)=>{const q=S(p[0],p[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.closePath()}g.fill('nonzero');g.stroke()}g.restore()}
 // アンカー列→パス図形(編集可能なベジェ。直線区間は直線として保持)
 function straighten(A,tol){const n=A.length;for(let k=0;k<n;k++){const a=A[k],b=A[(k+1)%n],dx=b.p[0]-a.p[0],dy=b.p[1]-a.p[1],L=Math.hypot(dx,dy)||1,c1=[a.o[0],a.o[1]],c2=[b.p[0]+b.i[0]-a.p[0],b.p[1]+b.i[1]-a.p[1]],dist=c=>Math.abs(c[0]*dy-c[1]*dx)/L;if(dist(c1)<tol&&dist(c2)<tol&&(c1[0]*dx+c1[1]*dy)>=-tol*L&&(c2[0]*dx+c2[1]*dy)<=(dx*dx+dy*dy)+tol*L){a.o=[0,0];b.i=[0,0]}}return A}
-function loopsToShape(loops,src){const pts=[];const tol=.15;loops.forEach(P=>{const A=GEO.fitLoop(P,tol,35);if(!A||A.length<3)return;straighten(A,tol*2);A.forEach((a,j)=>{const m=Math.hypot(a.i[0],a.i[1])*Math.hypot(a.o[0],a.o[1]),sm=m>0&&Math.abs(a.i[0]*a.o[1]-a.i[1]*a.o[0])<1e-3*m&&a.i[0]*a.o[0]+a.i[1]*a.o[1]<0?1:0;pts.push([a.p[0],a.p[1],a.i[0],a.i[1],a.o[0],a.o[1],sm,j==0?1:0])})});if(!pts.length)return null;
+// ---- オフセット結果(多角形ループ)→ 編集可能なベジェ。
+// プレビューと同じ輪郭になることを検証してから採用する。許容誤差(OFS_TOL px)を超える近似は採用せず、
+// 元の輪郭点をそのまま頂点として保持した(=プレビューと完全一致する)パスに切り替える。
+const OFS_TOL=.03,OFS_REPORT={fit:0,poly:0,maxDev:0};
+function ofsClean(P0){const P=[];for(const p of P0){const q=P[P.length-1];if(!q||Math.hypot(p[0]-q[0],p[1]-q[1])>1e-9)P.push([p[0],p[1]])}if(P.length>1&&Math.hypot(P[0][0]-P[P.length-1][0],P[0][1]-P[P.length-1][1])<1e-9)P.pop();
+let ch=true;while(ch&&P.length>3){ch=false;for(let k=0;k<P.length;k++){const a=P[(k+P.length-1)%P.length],b=P[k],c=P[(k+1)%P.length],dx=c[0]-a[0],dy=c[1]-a[1],L=Math.hypot(dx,dy);if(L>0&&Math.abs((b[0]-a[0])*dy-(b[1]-a[1])*dx)/L<1e-7&&(b[0]-a[0])*dx+(b[1]-a[1])*dy>0&&(c[0]-b[0])*dx+(c[1]-b[1])*dy>0){P.splice(k,1);ch=true;break}}}// 厳密に一直線上の中間点だけ除去
+return P}
+function ofsFlat(A,tol){const out=[],n=A.length;for(let k=0;k<n;k++){const a=A[k],b=A[(k+1)%n];out.push(a.p);if(a.o[0]||a.o[1]||b.i[0]||b.i[1]){const T=[];GEO.flattenCubic(a.p,[a.p[0]+a.o[0],a.p[1]+a.o[1]],[b.p[0]+b.i[0],b.p[1]+b.i[1]],b.p,tol,T);T.pop();out.push(...T)}}return out}
+// S(閉多角形)の輪郭上のすべての点が T(閉多角形)から tol 以内にあるか。戻り値: 最大距離(tol を超えたら打ち切って tol より大きい値)
+function ofsDev(S,T,tol){const n=T.length;let tot=0;for(let i=0;i<n;i++){const a=T[i],b=T[(i+1)%n];tot+=Math.hypot(b[0]-a[0],b[1]-a[1])}const cell=Math.max(tol*4,tot/n,1e-3),G=new Map(),K=(x,y)=>x+','+y;
+for(let i=0;i<n;i++){const a=T[i],b=T[(i+1)%n],L=Math.hypot(b[0]-a[0],b[1]-a[1]),m=Math.max(1,Math.ceil(L/(cell/2))),seen=new Set();for(let k=0;k<=m;k++){const x=a[0]+(b[0]-a[0])*k/m,y=a[1]+(b[1]-a[1])*k/m,cx=Math.floor(x/cell),cy=Math.floor(y/cell);for(let u=-1;u<=1;u++)for(let v=-1;v<=1;v++){const key=K(cx+u,cy+v);if(seen.has(key))continue;seen.add(key);let l=G.get(key);if(!l)G.set(key,l=[]);l.push(i)}}}
+const dseg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;let t=L2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
+let ts=0;const sn=S.length;for(let i=0;i<sn;i++){const a=S[i],b=S[(i+1)%sn];ts+=Math.hypot(b[0]-a[0],b[1]-a[1])}const step=Math.max(.25,ts/40000);let worst=0;
+for(let i=0;i<sn;i++){const a=S[i],b=S[(i+1)%sn],L=Math.hypot(b[0]-a[0],b[1]-a[1]),m=Math.max(1,Math.ceil(L/step));for(let k=0;k<m;k++){const p=[a[0]+(b[0]-a[0])*k/m,a[1]+(b[1]-a[1])*k/m],l=G.get(K(Math.floor(p[0]/cell),Math.floor(p[1]/cell)));let d=1e18;if(l)for(const j of l){const dd=dseg(p,T[j],T[(j+1)%n]);if(dd<d)d=dd;if(d<=tol*.02)break}if(d>tol)return d;if(d>worst)worst=d}}return worst}
+function ofsSame(A,P,tol){const F=ofsFlat(A,tol*.1),d1=ofsDev(P,F,tol);if(d1>tol)return -1;const d2=ofsDev(F,P,tol);if(d2>tol)return -1;return Math.max(d1,d2)}
+function loopToAnchors(P0){const P=ofsClean(P0);if(P.length<3)return null;
+for(const[tol,deg]of[[OFS_TOL*.5,12],[OFS_TOL*.15,12],[OFS_TOL*.15,6]]){let A=null;try{A=GEO.fitLoop(P,tol,deg)}catch(e){A=null}
+if(!A||A.length<3||A.length>=P.length)continue;straighten(A,OFS_TOL*.1);const d=ofsSame(A,P,OFS_TOL);if(d>=0){OFS_REPORT.fit++;OFS_REPORT.maxDev=Math.max(OFS_REPORT.maxDev,d);return A}}
+OFS_REPORT.poly++;return P.map(p=>({p,i:[0,0],o:[0,0]}))}
+function loopsToShape(loops,src){const pts=[];OFS_REPORT.fit=0;OFS_REPORT.poly=0;OFS_REPORT.maxDev=0;loops.forEach(P=>{const A=loopToAnchors(P);if(!A||A.length<3)return;A.forEach((a,j)=>{const m=Math.hypot(a.i[0],a.i[1])*Math.hypot(a.o[0],a.o[1]),sm=m>0&&Math.abs(a.i[0]*a.o[1]-a.i[1]*a.o[0])<1e-3*m&&a.i[0]*a.o[0]+a.i[1]*a.o[1]<0?1:0;pts.push([a.p[0],a.p[1],a.i[0],a.i[1],a.o[0],a.o[1],sm,j==0?1:0])})});if(!pts.length)return null;
 const o={t:'path',bz:1,cmp:1,cl:1,x:0,y:0,r:0,w:1,h:1,pts,f:src.t=='line'?src.s:(src.f==null?null:src.f),s:src.s||null,sw:src.sw||1,fr:'nonzero',...(src.sj?{sj:src.sj}:{})};if(src.t=='line'||(src.t=='path'&&!src.cl&&!src.f))o.f=src.s;if(src.g)o.g=src.g;renorm(o);return o}
 async function offsetApply(){if(!sel.length)return;await offsetPreview();const R=OFS.prev;if(!R||!R.some(x=>x.loops&&x.loops.length))return;const c=C();hist();const made=[];
 for(const r of R){if(!r.loops||!r.loops.length)continue;const o=loopsToShape(r.loops,r.s.t=='txt'?{f:r.s.f,s:r.s.s,sw:r.s.sw,sj:r.s.sj}:r.s);if(!o)continue;if(r.s.t=='txt'&&!r.s.f)o.f=r.s.s;const k=c.sh.indexOf(r.s);if(OFS.keep)c.sh.splice(k+1,0,o);else c.sh.splice(k,1,o);made.push(o)}
 if(!made.length){return}sel=made;OFS.prev=null;fin();OFS.msg='オフセットパスを作成しました('+made.length+'個)';ofsUI();ofsSoon()}
-function ofsUI(){const p=$('#ofp');if(!p)return;$('#ofd').value!=String(OFS.dist)&&document.activeElement!==$('#ofd')&&($('#ofd').value=OFS.dist);if(document.activeElement!==$('#ofr'))$('#ofr').value=Math.min(+$('#ofr').max,OFS.dist);$('#ofi').className=OFS.dir=='in'?'':'on';$('#ofo').className=OFS.dir=='out'?'on':'';$('#ofi').setAttribute('aria-pressed',OFS.dir=='in');$('#ofo').setAttribute('aria-pressed',OFS.dir=='out');$('#ofj').value=OFS.join;$('#ofmw').hidden=OFS.join!='miter';$('#ofk').checked=OFS.keep;$('#ofm').textContent=OFS.busy?'計算中…':OFS.msg;$('#ofa').disabled=OFS.busy||!OFS.prev||!OFS.prev.some(x=>x.loops&&x.loops.length)}
+function ofsUI(){const p=$('#ofp');if(!p)return;$('#ofd').value!=String(OFS.dist)&&document.activeElement!==$('#ofd')&&($('#ofd').value=OFS.dist);if(document.activeElement!==$('#ofr'))$('#ofr').value=Math.min(+$('#ofr').max,OFS.dist);$('#ofi').className=OFS.dir=='in'?'':'on';$('#ofo').className=OFS.dir=='out'?'on':'';$('#ofi').setAttribute('aria-pressed',OFS.dir=='in');$('#ofo').setAttribute('aria-pressed',OFS.dir=='out');$('#ofj').value=OFS.join;$('#ofmw').hidden=!(OFS.join=='miter'||OFS.join=='orig');$('#ofk').checked=OFS.keep;$('#ofm').textContent=OFS.busy?'計算中…':OFS.msg;$('#ofa').disabled=OFS.busy||!OFS.prev||!OFS.prev.some(x=>x.loops&&x.loops.length)}
 (()=>{const css=document.createElement('style');css.textContent=`#toast{position:fixed;left:50%;bottom:70px;transform:translateX(-50%);background:#333c;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:80;max-width:90vw}#toast.show{opacity:1}
 #ofp{position:absolute;left:6px;bottom:6px;width:min(360px,calc(100% - 12px));background:#fff;border:1px solid #c9d0d9;border-radius:10px;padding:8px;box-shadow:0 2px 10px #0003;z-index:7;display:flex;flex-direction:column;gap:6px}#ofp[hidden]{display:none}#ofp .rw{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px}#ofp button{min-height:44px;min-width:0;padding:0 10px;font-size:13px;flex-direction:row}#ofp input[type=number]{width:76px;min-height:40px}#ofp input[type=range]{flex:1;min-width:120px;min-height:40px}#ofp select{min-height:40px;font-size:13px}#ofm{font-size:12px;color:#575e75;min-height:16px}#ofp h4{margin:0;font-size:13px}`;document.head.append(css);
 const p=document.createElement('div');p.id='ofp';p.hidden=true;p.setAttribute('role','dialog');p.setAttribute('aria-label','オフセットパス');
 p.innerHTML=`<div class="rw"><h4 style="flex:1">オフセットパス</h4><button id="ofx" type="button" title="閉じる(プレビューを消します)">閉じる</button></div>
 <div class="rw"><button id="ofo" type="button" title="輪郭を外側へ広げます">外側に拡張</button><button id="ofi" type="button" title="輪郭を内側へ縮めます">内側に縮小</button></div>
 <div class="rw"><label>距離<input type="number" id="ofd" min="0" step="0.5" value="10" inputmode="decimal"> px</label><input type="range" id="ofr" min="0" max="100" step="0.5" value="10" aria-label="距離のスライダー"></div>
-<div class="rw"><label>角<select id="ofj"><option value="round">ラウンド(丸める)</option><option value="miter">マイター(尖らせる)</option><option value="bevel">ベベル(斜めに切る)</option></select></label><label id="ofmw" hidden>制限<input type="number" id="ofl" min="1" step="0.5" value="4"></label></div>
+<div class="rw"><label>角<select id="ofj"><option value="round">ラウンド(丸める)</option><option value="miter">マイター(尖らせる)</option><option value="bevel">ベベル(斜めに切る)</option><option value="orig">元の角を維持(丸は丸・角は角のまま)</option></select></label><label id="ofmw" hidden>制限<input type="number" id="ofl" min="1" step="0.5" value="4"></label></div>
 <div class="rw"><label><input type="checkbox" id="ofk" checked> 元の図形を残す</label><span style="font-size:11px;color:#6b7390">(OFFで置き換え)</span></div>
 <div id="ofm" aria-live="polite"></div><div class="rw"><button id="ofa" type="button" title="プレビューの形でパスを作成します" style="flex:1;background:#855cd6;color:#fff;border-color:#855cd6">適用</button></div>`;
 $('#main').append(p);const setD=v=>{OFS.dist=Math.max(0,isFinite(v)?v:0);ofsUI();ofsSoon()};
