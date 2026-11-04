@@ -209,13 +209,13 @@ let LVN=4,OP='idle',OPPID=null,PD=null,HC=0,TE=null,TEH=null,TT=null,DT=null,sna
 //   ctr : 中心点の仮位置 / cur: 消しゴムの輪 [x,y,半径] / hv: ホバー表示中の印 / hp: 直前に計算したビットマップ画素
 //   (ペン・線・図形・矢印の描きかけは従来どおり tmp に仮図形として持つ。確定時にその図形がそのまま実データになる)
 // 描画は paint() の dcv() だけがPRVを見る。保存(ser)・書き出し(svg/PNG)・サムネイル・Undoは dc()/c.sh を使うのでPRVは混入しない
-const PRV={map:null,list:null,bm:null,ctr:null,cur:null,hv:null,hp:null};
+const PRV={map:null,list:null,bm:null,ctr:null,cur:null,hv:null,hp:null,dot:null};
 let SJ='round',pvT=0,pvF=null;
 const vs=s=>(PRV.map&&PRV.map.get(s))||s;
 const pvList=c=>PRV.list||(PRV.map?c.sh.map(vs):c.sh);
 const pvClone=s=>{if(s.t=='bs')return{...s};const q=JSON.parse(JSON.stringify(s,rep));if(s.im)q.im=s.im;return q};
 function pvStart(L){PRV.map=new Map();L.forEach(s=>{if(s&&!PRV.map.has(s))PRV.map.set(s,pvClone(s))})}
-function pvClear(){PRV.map=PRV.list=PRV.bm=PRV.ctr=PRV.cur=PRV.hv=PRV.hp=null;pvF=null}
+function pvClear(){PRV.map=PRV.list=PRV.bm=PRV.ctr=PRV.cur=PRV.hv=PRV.hp=PRV.dot=null;pvF=null}
 // 重い計算(ブール演算・塗りつぶし)は 1フレームに1回だけ、最新の位置で行う
 function pvSoon(f){pvF=f;if(pvT)return;pvT=requestAnimationFrame(()=>{pvT=0;const h=pvF;pvF=null;if(h){try{h()}catch(e){}}draw()})}
 // ===== アイコン管理(すべてJS内SVG。追加・変更は IC に1行足すだけ) =====
@@ -269,7 +269,7 @@ pendot:'<circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="
 const ic=(n,s=24)=>`<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${IC[n]||IC._}</svg>`;
 function setB(b,n,t,l){b.innerHTML=ic(n)+(l?`<small>${l}</small>`:'');b.title=t;b.setAttribute('aria-label',t)}
 function initIcons(){document.querySelectorAll('[data-i]').forEach(b=>{if(b.tagName=='BUTTON')setB(b,b.dataset.i,b.dataset.t,b.dataset.l);else{b.innerHTML=ic(b.dataset.i);const l=b.parentNode,i=l.querySelector('input');l.title=b.dataset.t;if(i)i.setAttribute('aria-label',b.dataset.t)}})}
-const TN={sel:'選択',rsh:'リシェイプ(点の編集)',brush:'ブラシ',pen:'ペン(線を描く)',eras:'消しゴム',fill:'塗りつぶし(Shift+クリック: 同じ色を一括塗り)',txt:'文字',line:'線',ell:'楕円',rect:'長方形(角丸対応)',poly:'多角形・星',shp:'図形ライブラリ',arw:'矢印',cut:'切り取り(直線で分割)',hand:'画面移動',ctr:'中心点を設定',pick:'スポイト',brect:'長方形',bell:'楕円',bline:'線',bsel:'範囲選択(切り取り・コピー・変形)'};
+const TN={sel:'選択',rsh:'リシェイプ(点の編集)',brush:'ブラシ',pen:'ペン(線を描く)',eras:'消しゴム',fill:'塗りつぶし',txt:'文字',line:'線',ell:'楕円',rect:'長方形(角丸対応)',poly:'多角形・星',shp:'図形ライブラリ',arw:'矢印',cut:'切り取り(直線で分割)',hand:'画面移動',ctr:'中心点を設定',pick:'スポイト',brect:'長方形',bell:'楕円',bline:'線',bsel:'範囲選択(切り取り・コピー・変形)'};
 const TV=['sel','rsh','brush','pen','eras','fill','txt','line','ell','rect','poly','shp','arw','cut','hand','ctr'],TB=['bsel','brush','eras','fill','pick','brect','bell','bline','hand','ctr'];
 // ===== 図形ライブラリ =====
 function nrm(P){const xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);return P.map(q=>[(q[0]-x0)/(x1-x0||1)-.5,(q[1]-y0)/(y1-y0||1)-.5])}
@@ -385,6 +385,7 @@ if(tool=='rsh'&&sel[0]&&sel[0].pts){const s=vs(sel[0]);s.pts.forEach((q,i)=>{con
 const on=(i==selPt||spHas(sel[0],i)),rd=on?5.5:4.5;g.fillStyle=on?'#855cd6':'#fff';g.strokeStyle=on?'#2d1466':'#855cd6';g.lineWidth=on?1.8:1.5;g.beginPath();if(q[6]==1)g.arc(r[0],r[1],rd,0,7);else g.rect(r[0]-rd,r[1]-rd,rd*2,rd*2);g.fill();g.stroke();g.strokeStyle='#855cd6';g.lineWidth=1.5});g.fillStyle='#fff'}
 drawOfs(S);
 if(PRV.cur){const q=S(PRV.cur[0],PRV.cur[1]);g.save();g.strokeStyle='#855cd6';g.lineWidth=1.5;g.beginPath();g.arc(q[0],q[1],Math.max(2,PRV.cur[2]*z),0,7);g.stroke();g.restore()}
+if(PRV.dot){const q=S(PRV.dot[0],PRV.dot[1]),rr=Math.max(.75,PRV.dot[2]*z);g.save();g.globalAlpha=.75;g.fillStyle=PRV.dot[3];g.beginPath();g.arc(q[0],q[1],rr,0,7);g.fill();g.globalAlpha=.9;g.strokeStyle='#855cd6';g.lineWidth=1;g.beginPath();g.arc(q[0],q[1],rr+.5,0,7);g.stroke();g.restore()}
 if(TE)teLayout();
 if(snapG&&drag){g.save();g.strokeStyle='#ff8c1a';g.lineWidth=1.5;g.setLineDash([6,4]);if(snapG.x){const a=S(c.w/2,0),b=S(c.w/2,c.h);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}if(snapG.y){const a=S(0,c.h/2),b=S(c.w,c.h/2);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke()}g.restore()}
 if(band){const p=S(band[0],band[1]),q=S(band[2],band[3]);g.setLineDash([5,4]);g.strokeRect(p[0],p[1],q[0]-p[0],q[1]-p[1]);g.setLineDash([])}}}
@@ -458,8 +459,20 @@ function cutAt(a,b){const c=C(),len=Math.hypot(b[0]-a[0],b[1]-a[1]);if(len<4||!p
 const q=k=>new paper.Path({segments:[[a[0]-ux*L,a[1]-uy*L],[a[0]+ux*L,a[1]+uy*L],[a[0]+ux*L+nx*k*L,a[1]+uy*L+ny*k*L],[a[0]-ux*L+nx*k*L,a[1]-uy*L+ny*k*L]],closed:true,insert:false});
 let ch=0;const out=[];c.sh.forEach(s=>{if(!elig(s)){out.push(s);return}const it=toP(s),pc=[1,-1].map(k=>{const h=q(k),r=it.intersect(h,o);const n=fromP(r,s);r.remove();h.remove();return n}).filter(Boolean);it.remove();if(pc.length==2){ch=1;out.push(...pc)}else out.push(s)});
 if(ch){hist();c.sh=out;sel=[]}}
-function eraseCalc(P,r){/* 結果だけを計算して返す(実データは変更しない)。プレビューと確定で共用 */const c=C(),o={insert:false};let a=null,l=null;
-P.forEach(p=>{if(l&&Math.hypot(p[0]-l[0],p[1]-l[1])<r*.6)return;l=p;const k=new paper.Path.Circle({center:p,radius:r,insert:false});a=a?a.unite(k,o):k});if(!a)return null;
+// 消しゴムの軌跡: 点列をなめらかな曲線(ペンと同じ Catmull-Rom 接線のベジェ)にして細かく標本化する
+function strokeSamples(P,step){const Q=[P[0]];P.forEach(p=>{const l=Q[Q.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>1e-3)Q.push(p)});const n=Q.length;if(n<2)return Q;
+const T=Q.map((p,i)=>i==0||i==n-1?[0,0]:[(Q[i+1][0]-Q[i-1][0])/6,(Q[i+1][1]-Q[i-1][1])/6]),O=[Q[0]];
+for(let i=0;i<n-1;i++){const A=Q[i],B=Q[i+1],C1=[A[0]+T[i][0],A[1]+T[i][1]],C2=[B[0]-T[i+1][0],B[1]-T[i+1][1]],len=Math.hypot(C1[0]-A[0],C1[1]-A[1])+Math.hypot(C2[0]-C1[0],C2[1]-C1[1])+Math.hypot(B[0]-C2[0],B[1]-C2[1]),k=Math.min(240,Math.max(1,Math.ceil(len/step)));
+for(let j=1;j<=k;j++){const t=j/k,u=1-t;O.push([u*u*u*A[0]+3*u*u*t*C1[0]+3*u*t*t*C2[0]+t*t*t*B[0],u*u*u*A[1]+3*u*u*t*C1[1]+3*u*t*t*C2[1]+t*t*t*B[1]])}}return O}
+// 曲線の両側へ半径rだけずらし、両端を丸めた「線の帯」の輪郭(1つの閉じた多角形)を作る
+function strokePoly(S,r){const m=Math.max(8,Math.min(48,Math.ceil(Math.sqrt(r)*3))),n=S.length;
+if(n<2){const c=S[0],o=[];for(let k=0;k<m*2;k++){const a=k*Math.PI/m;o.push([c[0]+r*Math.cos(a),c[1]+r*Math.sin(a)])}return o}
+const N=S.map((p,i)=>{const a=S[Math.max(i-1,0)],b=S[Math.min(i+1,n-1)],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1;return[-dy/l,dx/l]});
+const L=S.map((p,i)=>[p[0]+N[i][0]*r,p[1]+N[i][1]*r]),R=S.map((p,i)=>[p[0]-N[i][0]*r,p[1]-N[i][1]*r]),cap=(c,t0)=>{const o=[];for(let k=1;k<m;k++){const a=t0-k*Math.PI/m;o.push([c[0]+r*Math.cos(a),c[1]+r*Math.sin(a)])}return o};
+return[...L,...cap(S[n-1],Math.atan2(N[n-1][1],N[n-1][0])),...R.reverse(),...cap(S[0],Math.atan2(N[0][1],N[0][0])+Math.PI)]}
+function eraseCalc(P,r){/* 結果だけを計算して返す(実データは変更しない)。プレビューと確定で共用。軌跡は曲線の帯として消す(スタンプの連続ではない) */if(typeof paper=='undefined'||!P||!P.length)return null;paperOK();const c=C(),o={insert:false};let a=null;
+try{const it=new paper.Path({segments:strokePoly(strokeSamples(P,Math.max(1,r*.3)),r),closed:true,insert:false});it.fillRule='nonzero';a=it.resolveCrossings?it.resolveCrossings():it;if(!a||!a.bounds||!isFinite(a.bounds.width)||!isFinite(a.bounds.height))a=null}catch(e){a=null}
+if(!a){/* 予備: 曲線を密に標本化した円の合成 */strokeSamples(P,Math.max(.5,r*.2)).forEach(p=>{const k=new paper.Path.Circle({center:p,radius:r,insert:false});a=a?a.unite(k,o):k})}if(!a)return null;
 let ch=0;const out=[];c.sh.forEach(s=>{if(!elig(s)){out.push(s);return}const it=toP(s);if(!it.bounds.intersects(a.bounds)){it.remove();out.push(s);return}
 const res=it.subtract(a,o);it.remove();ch=1;
 if(res.children&&res.children.length>1){const ch0=res.children,hole=h=>ch0.some(o2=>o2!==h&&o2.bounds.contains(h.bounds)&&o2.contains(h.interiorPoint));const sol=ch0.filter(x=>!hole(x)),hol=ch0.filter(hole);
@@ -490,7 +503,7 @@ if(OP=='gesture'){if(ps.size>=2)startPin();return}
 if(ps.size>=2){if(PD){clearTimeout(PD.t);PD=null}cancelOp();OP='gesture';OPPID=null;startPin();draw();return}
 if(e.pointerType=='touch'){OP='pending';OPPID=e.pointerId;PD={e,x:e.clientX,y:e.clientY,t:setTimeout(firePD,60)};return}
 beginOp(e)});
-cv.addEventListener('pointermove',e=>{if(!ps.has(e.pointerId)){if(e.pointerType=='mouse'&&tool=='fill'&&!drag&&OP=='idle')hoverFill(e);return}ps.set(e.pointerId,[e.clientX,e.clientY]);
+cv.addEventListener('pointermove',e=>{if(!ps.has(e.pointerId)){if((e.pointerType=='mouse'||e.pointerType=='pen')&&!drag&&OP=='idle')hoverPrev(e);return}ps.set(e.pointerId,[e.clientX,e.clientY]);
 if(OP=='gesture'){if(pin&&ps.size>=2){const a=[...ps.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]),m=rel([(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2]),nz=Math.min(32,Math.max(.1,pin.z*d/pin.d)),wx=(pin.m[0]-pin.ox)/pin.z,wy=(pin.m[1]-pin.oy)/pin.z;z=nz;ox=m[0]-wx*nz;oy=m[1]-wy*nz;draw()}return}
 if(e.pointerId!==OPPID)return;
 if(OP=='pending'){if(Math.hypot(e.clientX-PD.x,e.clientY-PD.y)>6){firePD();if(OP!='idle')mv(e)}return}
@@ -553,7 +566,7 @@ function down(e){const c=C(),p=pt(e);drag={p0:p,p,mv:0,h0:HC,r0:c.r.slice()};pvC
 if(pickMode){const t=pickMode;pickMode=null;cv.style.cursor='';$('#cp').classList.remove('hid');pickState();drag=null;if(p[0]>=0&&p[1]>=0&&p[0]<c.w&&p[1]<c.h){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;const ox_=o.getContext('2d');dc(ox_,c);const d=ox_.getImageData(Math.floor(p[0]),Math.floor(p[1]),1,1).data;CP.t=t;setHSVfrom({r:d[0],g:d[1],b:d[2],a:d[3]/255},false)}return}
 if(tool=='hand'){drag.h=[e.clientX,e.clientY,ox,oy];return}
 if(tool=='ctr'){drag.m='ctr';PRV.ctr=p;draw();return}
-if(c.k=='b')return bdown(c,p,e);
+if(c.k=='b')return bdown(c,p);
 if(tool=='sel'&&!multi&&!e.shiftKey){const now=performance.now();if(DT&&now-DT.t<420&&Math.hypot(e.clientX-DT.x,e.clientY-DT.y)<26){const h0=pick(p);if(h0&&h0.t=='txt'&&!h0.lk)TT={p,x:e.clientX,y:e.clientY,h:h0};DT=null}else DT={t:now,x:e.clientX,y:e.clientY}}
 if(tool=='sel'){const h=hitH(p);if(h){Object.assign(drag,h);return}
 const hit=pick(p),add=multi||e.shiftKey;
@@ -564,7 +577,7 @@ if(s&&s.bz){const hh=hHandle(s,p);if(hh){Object.assign(drag,{m:'bh',i:selPt,k:hh
 const i=hpt(s,p);if(i>=0){if(multi||e.shiftKey){spTog(s,i);drag=null;sync();draw();return}const A=selPts();if(A.length>1&&A.includes(i)){Object.assign(drag,{m:'pts',A:A.slice(),col:i});sync();draw();return}SPA.s=s;SPA.a=[i];selPt=i;Object.assign(drag,{m:'pt',i,L:links(s,i)});sync();draw();return}
 const sg=segHit(s,p);if(sg){const w=pvClone(s);PRV.map=new Map([[s,w]]);const j=insertAt(w,sg);selPt=j;Object.assign(drag,{m:'pt',i:j,mv:1,L:[]});sync();draw();return}}
 const h=pick(p);drag=null;sel=[];selPt=-1;if(h){if(h.t=='img'||h.t=='txt')alert('この図形は点の編集に未対応です(文字・画像は対象外)');else{if(!h.bz){hist();toBz(h)}sel=[h]}}sync();draw()}
-else if(tool=='fill'){drag.m='fill';vFillPrev(p,shf(e))}
+else if(tool=='fill'){drag.m='fill';vFillPrev(p)}
 else if(tool=='txt'){drag=null;const h0=pick(p);TT={p,x:e.clientX,y:e.clientY,h:h0&&h0.t=='txt'&&!h0.lk?h0:null}}
 else if(tool=='pen'||tool=='brush'||tool=='eras'){drag.P=[p]}
 else if(tool=='line'){drag.m='mk';drag.p0=snap(p)}
@@ -572,10 +585,10 @@ else drag.m='mk'}
 function mv(e){const c=C(),d=drag;if(!d)return;
 if(d.h){ox=d.h[2]+e.clientX-d.h[0];oy=d.h[3]+e.clientY-d.h[1];return draw()}
 const p=pt(e),dx=p[0]-d.p[0],dy=p[1]-d.p[1];d.p=p;
-if(d.m=='ctr'){PRV.ctr=p;return draw()}if(c.k=='b'&&tool!='bsel')return bmove(c,p,e);
+if(d.m=='ctr'){PRV.ctr=p;return draw()}if(c.k=='b'&&tool!='bsel')return bmove(c,p);
 if(d.P){const l=d.P[d.P.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])*z>2)d.P.push(p);tmp=mkP(d.P,tool);if(tool=='eras'){tmp.sw=swv();if(typeof paper!='undefined'){tmp=null;PRV.cur=[p[0],p[1],swv()/2];const P=d.P.slice();pvSoon(()=>{if(drag!==d)return;const r=eraseCalc(P,swv()/2);PRV.list=r&&r.ch?r.out:null})}}}
 else if(d.m=='mk')tmp=build(d.p0,p,e.shiftKey);
-else if(d.m=='fill'){const sh=shf(e);pvSoon(()=>vFillPrev(p,sh))}
+else if(d.m=='fill')pvSoon(()=>vFillPrev(p));
 else if(d.m=='mv'){const bs=sel[0]&&sel[0].t=='bs';if(!d.mv){pvBegin(bs?sel.slice(0,1):sel);d.mv=1;d.o=sel.map(s=>[s.x,s.y]);if(bs)d.bb=[sel[0].x,sel[0].y];else{const F=sel.filter(s=>!s.lk),u=F.length?ubox(F):[0,0,0,0];d.bb=[(u[0]+u[2])/2,(u[1]+u[3])/2]}}
 let tx=p[0]-d.p0[0],ty=p[1]-d.p0[1];snapG=null;if(bs){tx=Math.round(tx);ty=Math.round(ty)}
 if(SNAP&&!e.altKey){const th=8/z,cx0=c.w/2,cy0=c.h/2,nx=d.bb[0]+tx,ny=d.bb[1]+ty;let a=0,b=0;if(Math.abs(nx-cx0)<th){tx+=cx0-nx;a=1}if(Math.abs(ny-cy0)<th){ty+=cy0-ny;b=1}if(bs){tx=Math.round(tx);ty=Math.round(ty)}if(a||b)snapG={x:a,y:b}}
@@ -600,8 +613,8 @@ function up(e){const c=C(),d=drag;drag=null;snapG=null;if(!d||d.h){pvClear();ret
 if(PVTF.includes(d.m)){if(d.mv&&PRV.map)pvApply();else pvClear()}
 else if(d.m=='ctr'){const q=PRV.ctr;pvClear();if(q){hist();c.cx=q[0];c.cy=q[1]}return fin()}
 else if(d.pv)bCommit(c,d);
-else if(d.m=='bfill')bFillCommit(c,d.p,shf(e));
-else if(d.m=='fill'){const L=vFillSet(pick(d.p),shf(e));pvClear();if(L.length){hist();L.forEach(s=>fillTo(s));fin()}else draw();return}
+else if(d.m=='bfill')bFillCommit(c,d.p);
+else if(d.m=='fill'){const h=pick(d.p);pvClear();if(h){hist();fillTo(h);fin()}else draw();return}
 else pvClear();
 if(c.k=='b'){if(d.m=='bnew')trimSel();return fin()}
 if(d.P){const s=tmp;tmp=null;if(tool=='eras')eraseAt(d.P,swv()/2);else if(tool=='brush'){const n=brushShape(d.P,swv()/2);if(n){hist();c.sh.push(n);sel=[n]}}else if(s){hist();c.sh.push(s);sel=[s]}}
@@ -618,31 +631,25 @@ if(!b.cvs){w.cvs=region(b);const o=document.createElement('canvas');o.width=c.w;
 function pvApply(){const M=PRV.map;if(!M||!M.size){pvClear();return}pre();
 M.forEach((w,o)=>{if(o.t=='bs'){['x','y','w','h','r','fx','fy'].forEach(k=>{if(w[k]!==undefined)o[k]=w[k]})}else{Object.keys(o).forEach(k=>{if(!(k in w))delete o[k]});Object.keys(w).forEach(k=>{o[k]=w[k]})}});pvClear()}
 // バケツ(ベクター): 押下中・ホバー中に塗り結果を作業コピーで表示。確定は指を離したとき
-// ===== Shift+クリック: 同色一括塗り =====
-let SHF=false,FLP=null;/* SHF: Shiftキー(物理・仮想キーボード)の押下状態 / FLP: ホバー中の最終位置 */
-const shf=e=>SHF||!!(e&&e.shiftKey);/* ポインタイベントのshiftKeyと、keydown/keyupで追跡した状態のどちらでも有効 */
-const fkey=f=>{if(!f)return'-';if(typeof f=='string'){const q=parseC(f);return q?`${q.r},${q.g},${q.b},${+q.a.toFixed(3)}`:f}return`${f.g}|${fkey(f.c1)}|${fkey(f.c2)}`};
-const fillOnly=s=>s.t!='img'&&s.t!='bs'&&!(s.t=='line'||(s.t=='path'&&!s.cl&&!s.f));/* fillToが「塗り」を変更する図形(線・開いたパスは線の色が変わるため除外) */
-function vFillSet(h,sh){if(!h)return[];if(!sh||!h.f||!fillOnly(h))return[h];/* 塗りなし・線のみ・画像は基準になる塗り色がないので通常モード */
- const k=fkey(h.f),r=[];C().sh.forEach(s=>{if(!s.hid&&!s.lk&&fillOnly(s)&&fkey(s.f)==k)r.push(s)});return r}
-function fillRefresh(){if(tool!='fill'||!C())return;const c=C(),d=drag;/* Shiftの押下・解放時に、位置を動かさなくてもプレビューを更新 */
- if(d&&(d.m=='fill'||d.m=='bfill')){pvSoon(()=>{if(drag!==d)return;c.k=='b'?bFillPrev(c,d.p,shf()):vFillPrev(d.p,shf())});return}
- if(PRV.hv&&!drag&&OP=='idle'&&FLP)pvSoon(()=>{if(drag||OP!='idle')return;c.k=='b'?bFillPrev(c,FLP,shf()):vFillPrev(FLP,shf())})}
-addEventListener('keydown',e=>{if(e.key=='Shift'&&!SHF){SHF=true;fillRefresh()}});
-addEventListener('keyup',e=>{if(e.key=='Shift'&&SHF){SHF=false;fillRefresh()}});
-addEventListener('blur',()=>{if(SHF){SHF=false;fillRefresh()}});/* フォーカス喪失でShiftが押されっぱなしになるのを防ぐ */
 function fillTo(s){if(s.t=='line'||(s.t=='path'&&!s.cl&&!s.f))s.s=col('fc');else s.f=fv()}
-function vFillPrev(p,sh){const h=pick(p);PRV.hv=1;if(!h){PRV.map=null;vFillPrev.h=null;return}
- const k=(sh?1:0)+'|'+col('fc')+'|'+gm+'|'+col('fc2')+'|'+col('sc');if(PRV.map&&vFillPrev.h===h&&vFillPrev.k===k)return;/* 同じ図形・同じ条件なら再計算しない */
- vFillPrev.h=h;vFillPrev.k=k;const M=new Map();vFillSet(h,sh).forEach(s=>{const w={...s};fillTo(w);M.set(s,w)});/* fillToは最上位のf/sしか変えないので浅いコピーで十分 */
- PRV.map=M}
+function vFillPrev(p){const h=pick(p);PRV.hv=1;if(!h){PRV.map=null;return}const w=pvClone(h);fillTo(w);PRV.map=new Map([[h,w]])}
 // バケツ(ビットマップ): 塗り結果をプレビュー用キャンバスに作る
 let bfc=null;
-function bFillPrev(c,p,all){all=all?1:0;const px=Math.floor(p[0]),py=Math.floor(p[1]);PRV.hv=1;if(PRV.hp&&PRV.hp[0]==px&&PRV.hp[1]==py&&PRV.hp[2]==all)return;PRV.hp=[px,py,all];const k=getC('sc'),im=(all?floodAllCalc:floodCalc)(c,px,py,[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im){PRV.bm=null;return}
+function bFillPrev(c,p){const px=Math.floor(p[0]),py=Math.floor(p[1]);PRV.hv=1;if(PRV.hp&&PRV.hp[0]==px&&PRV.hp[1]==py)return;PRV.hp=[px,py];const k=getC('sc'),im=floodCalc(c,px,py,[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im){PRV.bm=null;return}
 if(!bfc)bfc=document.createElement('canvas');if(bfc.width!=c.w||bfc.height!=c.h){bfc.width=c.w;bfc.height=c.h}bfc.getContext('2d').putImageData(im,0,0);PRV.bm=bfc}
-function bFillCommit(c,p,all){pvClear();const k=getC('sc'),im=(all?floodAllCalc:floodCalc)(c,p[0],p[1],[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im)return;hist();const x=c.bc.getContext('2d');
- if(im.box){const[a,b,e,f]=im.box;x.putImageData(im,0,0,a,b,e-a,f-b)}else x.putImageData(im,0,0)}/* 一括塗りは変更範囲だけ書き戻す */
-function hoverFill(e){const c=C(),p=pt(e);if(p[0]<0||p[1]<0||p[0]>=c.w||p[1]>=c.h){if(PRV.hv){pvClear();draw()}return}FLP=p;const sh=shf(e);pvSoon(()=>{if(drag||OP!='idle')return;c.k=='b'?bFillPrev(c,p,sh):vFillPrev(p,sh)})}
+function bFillCommit(c,p){pvClear();const k=getC('sc'),im=floodCalc(c,p[0],p[1],[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im)return;hist();c.bc.getContext('2d').putImageData(im,0,0)}
+function hoverFill(e){const c=C(),p=pt(e);if(p[0]<0||p[1]<0||p[0]>=c.w||p[1]>=c.h){if(PRV.hv){pvClear();draw()}return}pvSoon(()=>{if(drag||OP!='idle')return;c.k=='b'?bFillPrev(c,p):vFillPrev(p)})}
+// ペン・ブラシ・消しゴム: 押す前(ホバー中)に「いまクリックしたときの結果」を表示する。確定は従来どおり押して描いたとき
+let hvc=null;
+function hoverPrev(e){const t=tool;if(t=='fill')return hoverFill(e);if(t!='pen'&&t!='brush'&&t!='eras')return;const c=C(),p=pt(e);
+if(c.k=='b'&&(p[0]<0||p[1]<0||p[0]>=c.w||p[1]>=c.h)){if(PRV.hv){pvClear();draw()}return}
+pvSoon(()=>{if(drag||OP!='idle'||tool!=t||C()!==c)return;const key=(c.k=='b'?Math.floor(p[0])+','+Math.floor(p[1]):Math.round(p[0]*2)+','+Math.round(p[1]*2))+'|'+swv()+'|'+t+'|'+penK;if(PRV.hp===key)return;
+PRV.map=PRV.list=PRV.bm=PRV.cur=PRV.dot=null;PRV.hv=1;PRV.hp=key;
+if(c.k=='b'){if(!hvc)hvc=document.createElement('canvas');if(hvc.width!=c.w||hvc.height!=c.h){hvc.width=c.w;hvc.height=c.h}
+const x=hvc.getContext('2d');x.save();x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='copy';x.drawImage(c.bc,0,0);x.restore();
+const d={pv:hvc,P:[p],seed:((Math.floor(p[0])*73856093)^(Math.floor(p[1])*19349663))|0};bPen(c,d);PRV.bm=hvc;if(t=='eras')PRV.cur=[p[0],p[1],swv()*RS(c)/2]}
+else if(t=='eras'){PRV.cur=[p[0],p[1],swv()/2];if(typeof paper!='undefined'){const r=eraseCalc([p],swv()/2);PRV.list=r&&r.ch?r.out:null}}
+else PRV.dot=[p[0],p[1],swv()/2,t=='brush'?col('fc'):col('sc')]})}
 // ビットマップのペン・消しゴム・図形: 描画はプレビュー用キャンバス(d.pv)。確定時だけ履歴に積んで本体へ書き戻す
 function bBegin(c,d){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);d.pv=o;PRV.bm=o}
 function bCommit(c,d){const o=d.pv;pvClear();if(!o||!d.db)return;hist();const x=c.bc.getContext('2d');x.save();x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='copy';x.drawImage(o,0,0);x.restore()}
@@ -671,27 +678,17 @@ function bShape(c,d,p){const R=RS(c),lw=Math.max(1,swv()*R),cc=getC('sc'),a=d.p0
 bRender(c,d,[Math.min(a[0],p[0])-m,Math.min(a[1],p[1])-m,Math.max(a[0],p[0])+m,Math.max(a[1],p[1])+m],x=>{x.fillStyle=x.strokeStyle=rgbOf(cc);x.lineWidth=lw;x.lineCap=x.lineJoin='round';x.beginPath();
 if(tool=='bline'){x.moveTo(a[0],a[1]);x.lineTo(p[0],p[1])}else if(tool=='brect')x.rect(a[0],a[1],p[0]-a[0],p[1]-a[1]);else x.ellipse((a[0]+p[0])/2,(a[1]+p[1])/2,Math.abs(p[0]-a[0])/2,Math.abs(p[1]-a[1])/2,0,0,7);
 $('#bf').checked&&tool!='bline'?x.fill():x.stroke()},{alpha:cc.a})}
-function bdown(c,p,e){if(tool=='bsel'){const b=sel[0]&&sel[0].t=='bs'?sel[0]:null;if(b){if(bsPx(b)>0){const h=hitH(p);if(h){Object.assign(drag,h);return}const l=w2l(b,p[0],p[1]);if(Math.abs(l[0])<=b.w/2&&Math.abs(l[1])<=b.h/2){drag.m='mv';return}}bcommit()}drag.m='bnew';return}
+function bdown(c,p){if(tool=='bsel'){const b=sel[0]&&sel[0].t=='bs'?sel[0]:null;if(b){if(bsPx(b)>0){const h=hitH(p);if(h){Object.assign(drag,h);return}const l=w2l(b,p[0],p[1]);if(Math.abs(l[0])<=b.w/2&&Math.abs(l[1])<=b.h/2){drag.m='mv';return}}bcommit()}drag.m='bnew';return}
 if(tool=='brush'||tool=='eras'){bBegin(c,drag);drag.P=[p];drag.seed=(Math.random()*4e9)|0;bPen(c,drag);draw()}
 else if(tool=='brect'||tool=='bell'||tool=='bline'){bBegin(c,drag)}
-else if(tool=='fill'){drag.m='bfill';bFillPrev(c,p,shf(e))}
+else if(tool=='fill'){drag.m='bfill';bFillPrev(c,p)}
 else if(tool=='pick'){const x=Math.floor(p[0]),y=Math.floor(p[1]);if(x>=0&&y>=0&&x<c.w&&y<c.h){const d=c.bc.getContext('2d').getImageData(x,y,1,1).data;if(d[3])setCol('sc',`rgba(${d[0]},${d[1]},${d[2]},${+(d[3]/255).toFixed(3)})`)}drag=null}}
-function bmove(c,p,e){const d=drag;if(tool=='brush'||tool=='eras'){const l=d.P[d.P.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>=.35){d.P.push(p);bPen(c,d);draw()}}else if(d.pv){bShape(c,d,p);draw()}else if(d.m=='bfill'){const sh=shf(e);pvSoon(()=>bFillPrev(c,p,sh))}}
+function bmove(c,p){const d=drag;if(tool=='brush'||tool=='eras'){const l=d.P[d.P.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>=.35){d.P.push(p);bPen(c,d);draw()}}else if(d.pv){bShape(c,d,p);draw()}else if(d.m=='bfill'){pvSoon(()=>bFillPrev(c,p))}}
 function floodCalc(c,px,py,col){px|=0;py|=0;if(px<0||py<0||px>=c.w||py>=c.h)return null;const x=c.bc.getContext('2d'),im=x.getImageData(0,0,c.w,c.h),D=im.data,W=c.w,H=c.h,o=(py*W+px)*4,t=[D[o],D[o+1],D[o+2],D[o+3]],n=col;
 if(t[0]==n[0]&&t[1]==n[1]&&t[2]==n[2]&&t[3]==n[3])return null;
 const seen=new Uint8Array(W*H),S=[py*W+px];
 while(S.length){const q=S.pop();if(seen[q])continue;const i=q*4;if(Math.abs(D[i]-t[0])+Math.abs(D[i+1]-t[1])+Math.abs(D[i+2]-t[2])+Math.abs(D[i+3]-t[3])>40)continue;seen[q]=1;D[i]=n[0];D[i+1]=n[1];D[i+2]=n[2];D[i+3]=n[3];const X=q%W;if(X>0)S.push(q-1);if(X<W-1)S.push(q+1);if(q>=W)S.push(q-W);if(q+W<W*H)S.push(q+W)}
 return im}
-// 同じ色を全体から置換。基準が透明: アルファ0の画素だけ(通常色とは区別) / 基準が不透明系: RGB完全一致かつアルファ>0の画素。
-// 各画素のアルファは維持し(選択色の不透明度は掛ける)、境界の半透明を壊さない。変更範囲(box)だけを書き戻せるよう印を付ける
-function floodAllCalc(c,px,py,col){px|=0;py|=0;const W=c.w,H=c.h;if(px<0||py<0||px>=W||py>=H)return null;
- const im=c.bc.getContext('2d').getImageData(0,0,W,H),D=im.data,o=(py*W+px)*4,tr=D[o],tg=D[o+1],tb=D[o+2],ta=D[o+3],na=col[3]/255;
- if(ta==0&&col[3]==0)return null;let ch=0,x0=W,y0=H,x1=-1,y1=-1;
- for(let y=0;y<H;y++)for(let x=0,i=y*W*4;x<W;x++,i+=4){const a=D[i+3];let r,g_,b,al;
-  if(ta==0){if(a)continue;r=col[0];g_=col[1];b=col[2];al=col[3]}
-  else{if(!a||D[i]!=tr||D[i+1]!=tg||D[i+2]!=tb)continue;r=col[0];g_=col[1];b=col[2];al=Math.round(a*na)}
-  if(D[i]==r&&D[i+1]==g_&&D[i+2]==b&&a==al)continue;D[i]=r;D[i+1]=g_;D[i+2]=b;D[i+3]=al;ch++;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
- if(!ch)return null;im.box=[x0,y0,x1+1,y1+1];return im}
 function flood(c,px,py,col){const im=floodCalc(c,px,py,col);if(im)c.bc.getContext('2d').putImageData(im,0,0)}
 // ===== UI =====
 function fin(){ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(()=>{try{localStorage.setItem('ced_bk',ser())}catch(e){}},1200)}
