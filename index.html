@@ -168,6 +168,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <span class="grp" id="g_bo"><button id="bcp" data-i="copy" data-t="選択範囲をコピー"></button><button id="bct" data-i="scissors" data-t="選択範囲を切り取り"></button><button id="bps" data-i="paste" data-t="貼り付け"></button><button id="bdel" data-i="del" data-t="選択範囲を削除"></button><button id="bfh" data-i="bfh" data-t="選択範囲を左右反転"></button><button id="bfv" data-i="bfv" data-t="選択範囲を上下反転"></button></span>
 <span class="grp" id="g_bpen"><label class="tg"><input type="checkbox" id="aa"><span data-i="aa" data-t="アンチエイリアス ON/OFF(OFFでくっきりしたドット)"></span></label><span class="grp" id="g_pk"></span></span>
 <span class="grp" id="g_nd"><button id="nl" data-i="arrL" data-t="選択範囲を左へ1px移動(長押しで連続・矢印キー対応)"></button><button id="nu" data-i="arrU" data-t="選択範囲を上へ1px移動"></button><button id="nd" data-i="arrD" data-t="選択範囲を下へ1px移動"></button><button id="nr" data-i="arrR" data-t="選択範囲を右へ1px移動"></button><span id="bsinfo" aria-live="polite"></span></span>
+<span class="grp" id="g_fall"><label class="tg"><input type="checkbox" id="fall"><span data-i="fall" data-t="同じ色を一括で塗る(Ctrl/⌘を押しながらクリックでも同じ動作)"></span></label></span>
 <span class="grp" id="g_bf"><label class="tg"><input type="checkbox" id="bf" checked><span data-i="filled" data-t="図形を塗りつぶす/枠のみ"></span></label></span>
 <span class="grp" id="g_ops"><button id="arr" data-i="alignp" data-t="整列・等間隔・グリッド配置(複数の図形を選択)" data-l="配置"></button>
 <span class="sep"></span>
@@ -259,6 +260,7 @@ grad2:'<rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" fill-
 ptmode:'<circle cx="12" cy="12" r="3"/><path d="M3 15c3 0 5-3 9-3s6 3 9 3"/>',bsel:'<rect x="4" y="4" width="13" height="13" rx="1" stroke-dasharray="3 2"/><path d="M12 12l8 3-3.5 1.5L15 20z"/>',
 paste:'<rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2"/>',bfh:'<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M8 7L3 12l5 5zM16 7l5 5-5 5z"/>',bfv:'<path d="M3 12h18" stroke-dasharray="2 2"/><path d="M7 8l5-5 5 5zM7 16l5 5 5-5z"/>',
 _:'<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="3 2"/>'};
+IC.fall='<rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="14" y="14" width="7" height="7" rx="1"/>';
 IC.brect=IC.rect;IC.bell=IC.ell;IC.bline=IC.line;IC.copy=IC.dup;IC.gsolid=IC.fillon;IC.eyedrop=IC.pick;
 Object.assign(IC,{joinm:'<path d="M7 21V7h14" stroke-width="6" stroke-linejoin="miter" stroke-linecap="butt"/>',joinr:'<path d="M7 21V7h14" stroke-width="6" stroke-linejoin="round" stroke-linecap="butt"/>'});
 Object.assign(IC,{plus:'<path d="M12 5v14M5 12h14"/>',close:'<path d="M6 6l12 12M18 6L6 18"/>',nofill:'<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M4 20L20 4" stroke="#e33"/>',
@@ -368,7 +370,7 @@ ox=Math.round(ox*d)/d;oy=Math.round(oy*d)/d;
 g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,W,H);g.fillStyle='#cfd8e3';g.fillRect(0,0,W,H);
 const X0=Math.round(ox*d),Y0=Math.round(oy*d),X1=Math.round((ox+c.w*z)*d),Y1=Math.round((oy+c.h*z)*d);
 drawChecker(c,d,X0,Y0,X1,Y1);g.setTransform(d,0,0,d,0,0);
-g.save();g.translate(ox,oy);g.scale(z,z);g.imageSmoothingEnabled=z<2;
+g.save();g.translate(ox,oy);g.scale(z,z);g.imageSmoothingEnabled=(c.k=='b'&&!$('#aa').checked)?z<1:z<2;
 if(ON.on){g.save();g.beginPath();g.rect(0,0,c.w,c.h);g.clip();onionDraw(c);g.restore()}
 if(c.k=='v'&&c.sh.length){const u=ubox(pvList(c).filter(s=>!s.hid));if(u[0]<0||u[1]<0||u[2]>c.w||u[3]>c.h){g.save();g.globalAlpha=.3;dcv(g,c);g.restore()}}g.save();g.beginPath();g.rect(0,0,c.w,c.h);g.clip();dcv(g,c);if(tmp)dsh(g,tmp);g.restore();g.restore();
 g.setTransform(1,0,0,1,0,0);g.strokeStyle='#855cd6';g.lineWidth=1;g.strokeRect(X0-.5,Y0-.5,X1-X0+1,Y1-Y0+1);g.setTransform(d,0,0,d,0,0);
@@ -614,7 +616,7 @@ if(PVTF.includes(d.m)){if(d.mv&&PRV.map)pvApply();else pvClear()}
 else if(d.m=='ctr'){const q=PRV.ctr;pvClear();if(q){hist();c.cx=q[0];c.cy=q[1]}return fin()}
 else if(d.pv)bCommit(c,d);
 else if(d.m=='bfill')bFillCommit(c,d.p);
-else if(d.m=='fill'){const h=pick(d.p);pvClear();if(h){hist();fillTo(h);fin()}else draw();return}
+else if(d.m=='fill'){const h=pick(d.p);pvClear();if(h){hist();fillTargets(h).forEach(fillTo);fin()}else draw();return}
 else pvClear();
 if(c.k=='b'){if(d.m=='bnew')trimSel();return fin()}
 if(d.P){const s=tmp;tmp=null;if(tool=='eras')eraseAt(d.P,swv()/2);else if(tool=='brush'){const n=brushShape(d.P,swv()/2);if(n){hist();c.sh.push(n);sel=[n]}}else if(s){hist();c.sh.push(s);sel=[s]}}
@@ -632,10 +634,20 @@ function pvApply(){const M=PRV.map;if(!M||!M.size){pvClear();return}pre();
 M.forEach((w,o)=>{if(o.t=='bs'){['x','y','w','h','r','fx','fy'].forEach(k=>{if(w[k]!==undefined)o[k]=w[k]})}else{Object.keys(o).forEach(k=>{if(!(k in w))delete o[k]});Object.keys(w).forEach(k=>{o[k]=w[k]})}});pvClear()}
 // バケツ(ベクター): 押下中・ホバー中に塗り結果を作業コピーで表示。確定は指を離したとき
 function fillTo(s){if(s.t=='line'||(s.t=='path'&&!s.cl&&!s.f))s.s=col('fc');else s.f=fv()}
-function vFillPrev(p){const h=pick(p);PRV.hv=1;if(!h){PRV.map=null;return}const w=pvClone(h);fillTo(w);PRV.map=new Map([[h,w]])}
+// 同色一括: Ctrl(Mac: ⌘)を押しながら、または「同色一括」チェックONで有効。FAは直近のポインター操作時点の状態
+let FA=false,LPE=null;
+const fillAllOn=e=>!!($('#fall')&&$('#fall').checked)||!!(e&&(e.ctrlKey||e.metaKey));
+const fillIsStroke=s=>s.t=='line'||(s.t=='path'&&!s.cl&&!s.f);
+function fillTargets(h){if(!FA)return[h];const isS=fillIsStroke(h),v=isS?h.s:h.f;if(v==null||v===''||v==='none')return[h];const k=JSON.stringify(v);
+return C().sh.filter(s=>s===h||(s.t!='img'&&!s.hid&&!s.lk&&fillIsStroke(s)==isS&&(isS?s.s:s.f)!=null&&JSON.stringify(isS?s.s:s.f)==k))}
+function vFillPrev(p){const h=pick(p);PRV.hv=1;if(!h){PRV.map=null;return}const M=new Map();fillTargets(h).forEach(o=>{const w=pvClone(o);fillTo(w);M.set(o,w)});PRV.map=M}
+function fillAllRefresh(){const n=fillAllOn(LPE);if(n===FA&&!arguments[0])return;FA=n;if(tool!='fill'||drag||OP!='idle'||!LPE)return;PRV.hp=null;const c=C(),p=pt(LPE);if(p[0]<0||p[1]<0||p[0]>=c.w||p[1]>=c.h)return;c.k=='b'?bFillPrev(c,p):vFillPrev(p);draw()}
+addEventListener('pointerdown',e=>{LPE=e;FA=fillAllOn(e)},true);addEventListener('pointermove',e=>{LPE=e;FA=fillAllOn(e)},true);addEventListener('pointerup',e=>{FA=fillAllOn(e)},true);
+addEventListener('keydown',e=>{if(e.key=='Control'||e.key=='Meta')fillAllRefresh()});addEventListener('keyup',e=>{if(e.key=='Control'||e.key=='Meta')fillAllRefresh()});
+{const f=$('#fall');if(f)f.addEventListener('change',()=>fillAllRefresh(1))}
 // バケツ(ビットマップ): 塗り結果をプレビュー用キャンバスに作る
 let bfc=null;
-function bFillPrev(c,p){const px=Math.floor(p[0]),py=Math.floor(p[1]);PRV.hv=1;if(PRV.hp&&PRV.hp[0]==px&&PRV.hp[1]==py)return;PRV.hp=[px,py];const k=getC('sc'),im=floodCalc(c,px,py,[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im){PRV.bm=null;return}
+function bFillPrev(c,p){const px=Math.floor(p[0]),py=Math.floor(p[1]);PRV.hv=1;if(PRV.hp&&PRV.hp[0]==px&&PRV.hp[1]==py&&PRV.hp[2]===FA)return;PRV.hp=[px,py,FA];const k=getC('sc'),im=floodCalc(c,px,py,[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im){PRV.bm=null;return}
 if(!bfc)bfc=document.createElement('canvas');if(bfc.width!=c.w||bfc.height!=c.h){bfc.width=c.w;bfc.height=c.h}bfc.getContext('2d').putImageData(im,0,0);PRV.bm=bfc}
 function bFillCommit(c,p){pvClear();const k=getC('sc'),im=floodCalc(c,p[0],p[1],[k.r,k.g,k.b,Math.round(k.a*255)]);if(!im)return;hist();c.bc.getContext('2d').putImageData(im,0,0)}
 function hoverFill(e){const c=C(),p=pt(e);if(p[0]<0||p[1]<0||p[0]>=c.w||p[1]>=c.h){if(PRV.hv){pvClear();draw()}return}pvSoon(()=>{if(drag||OP!='idle')return;c.k=='b'?bFillPrev(c,p):vFillPrev(p)})}
@@ -675,7 +687,7 @@ if(d.db){
  /* copy合成は透明画素まで置換するため、クリップ端や透明度の扱いが
     ブラウザ差で不安定にならないよう、範囲を消してから元画像を戻す。 */
  x.globalAlpha=1;x.globalCompositeOperation='source-over';
- x.clearRect(a,b,e-a,f);
+ x.clearRect(a,b,e-a,f-b);
  x.imageSmoothingEnabled=false;
  x.drawImage(c.bc,0,0);
  x.restore();
@@ -686,7 +698,9 @@ const lx=L.getContext('2d');lx.imageSmoothingEnabled=false;lx.translate(-x0,-y0)
 if(!$('#aa').checked){
  lx.setTransform(1,0,0,1,0,0);
  const im=lx.getImageData(0,0,w,h),q=im.data;
- for(let i=3;i<q.length;i+=4)q[i]=q[i]>=128?255:0;
+ /* AA OFF: 半透明の縁は「完全不透明か完全透明」の2値にし、不透明にしたピクセルの色は指定色そのものに固定する
+   (縁の半透明ピクセルは色が劣化しているため、そのままだと線の一部だけ微妙に違う色になる) */
+ const rg=o.rgb;for(let i=3;i<q.length;i+=4){if(q[i]>=128){q[i]=255;if(rg&&!o.erase){q[i-3]=rg[0];q[i-2]=rg[1];q[i-1]=rg[2]}}else{q[i]=0;q[i-1]=q[i-2]=q[i-3]=0}}
  lx.putImageData(im,0,0);
 }
 x.save();x.globalAlpha=o.alpha;x.globalCompositeOperation=o.erase?'destination-out':'source-over';
@@ -696,19 +710,20 @@ d.db=d.db?[Math.min(d.db[0],x0),Math.min(d.db[1],y0),Math.max(d.db[2],x1),Math.m
 const rgbOf=c=>`rgb(${c.r},${c.g},${c.b})`;
 function swSync(){}
 function bPen(c,d){const R=RS(c),sz=Math.max(1,swv()*R),k=tool=='eras'?(penK=='square'?'square':'round'):penK,cc=getC('sc'),xs=d.P.map(p=>p[0]),ys=d.P.map(p=>p[1]),m=sz/2+2*R;
-bRender(c,d,[Math.min(...xs)-m,Math.min(...ys)-m,Math.max(...xs)+m,Math.max(...ys)+m],x=>PEN[k](x,d.P,sz,rgbOf(cc),d.seed,R),{alpha:tool=='eras'?1:cc.a*(k=='marker'?.45:1),erase:tool=='eras'})}
+bRender(c,d,[Math.min(...xs)-m,Math.min(...ys)-m,Math.max(...xs)+m,Math.max(...ys)+m],x=>PEN[k](x,d.P,sz,rgbOf(cc),d.seed,R),{alpha:tool=='eras'?1:cc.a*(k=='marker'?.45:1),erase:tool=='eras',rgb:[cc.r,cc.g,cc.b]})}
 function bShape(c,d,p){const R=RS(c),lw=Math.max(1,swv()*R),cc=getC('sc'),a=d.p0,m=lw/2+2*R;
 bRender(c,d,[Math.min(a[0],p[0])-m,Math.min(a[1],p[1])-m,Math.max(a[0],p[0])+m,Math.max(a[1],p[1])+m],x=>{x.fillStyle=x.strokeStyle=rgbOf(cc);x.lineWidth=lw;x.lineCap=x.lineJoin='round';x.beginPath();
 if(tool=='bline'){x.moveTo(a[0],a[1]);x.lineTo(p[0],p[1])}else if(tool=='brect')x.rect(a[0],a[1],p[0]-a[0],p[1]-a[1]);else x.ellipse((a[0]+p[0])/2,(a[1]+p[1])/2,Math.abs(p[0]-a[0])/2,Math.abs(p[1]-a[1])/2,0,0,7);
-$('#bf').checked&&tool!='bline'?x.fill():x.stroke()},{alpha:cc.a})}
+$('#bf').checked&&tool!='bline'?x.fill():x.stroke()},{alpha:cc.a,rgb:[cc.r,cc.g,cc.b]})}
 function bdown(c,p){if(tool=='bsel'){const b=sel[0]&&sel[0].t=='bs'?sel[0]:null;if(b){if(bsPx(b)>0){const h=hitH(p);if(h){Object.assign(drag,h);return}const l=w2l(b,p[0],p[1]);if(Math.abs(l[0])<=b.w/2&&Math.abs(l[1])<=b.h/2){drag.m='mv';return}}bcommit()}drag.m='bnew';return}
 if(tool=='brush'||tool=='eras'){bBegin(c,drag);drag.P=[p];drag.seed=(Math.random()*4e9)|0;bPen(c,drag);draw()}
 else if(tool=='brect'||tool=='bell'||tool=='bline'){bBegin(c,drag)}
 else if(tool=='fill'){drag.m='bfill';bFillPrev(c,p)}
 else if(tool=='pick'){const x=Math.floor(p[0]),y=Math.floor(p[1]);if(x>=0&&y>=0&&x<c.w&&y<c.h){const d=c.bc.getContext('2d').getImageData(x,y,1,1).data;if(d[3])setCol('sc',`rgba(${d[0]},${d[1]},${d[2]},${+(d[3]/255).toFixed(3)})`)}drag=null}}
 function bmove(c,p){const d=drag;if(tool=='brush'||tool=='eras'){const l=d.P[d.P.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>=.35){d.P.push(p);bPen(c,d);draw()}}else if(d.pv){bShape(c,d,p);draw()}else if(d.m=='bfill'){pvSoon(()=>bFillPrev(c,p))}}
-function floodCalc(c,px,py,col){px|=0;py|=0;if(px<0||py<0||px>=c.w||py>=c.h)return null;const x=c.bc.getContext('2d'),im=x.getImageData(0,0,c.w,c.h),D=im.data,W=c.w,H=c.h,o=(py*W+px)*4,t=[D[o],D[o+1],D[o+2],D[o+3]],n=col;
+function floodCalc(c,px,py,col,all=FA){px|=0;py|=0;if(px<0||py<0||px>=c.w||py>=c.h)return null;const x=c.bc.getContext('2d'),im=x.getImageData(0,0,c.w,c.h),D=im.data,W=c.w,H=c.h,o=(py*W+px)*4,t=[D[o],D[o+1],D[o+2],D[o+3]],n=col;
 if(t[0]==n[0]&&t[1]==n[1]&&t[2]==n[2]&&t[3]==n[3])return null;
+if(all){for(let i=0;i<D.length;i+=4)if(D[i]==t[0]&&D[i+1]==t[1]&&D[i+2]==t[2]&&D[i+3]==t[3]){D[i]=n[0];D[i+1]=n[1];D[i+2]=n[2];D[i+3]=n[3]}return im}
 const seen=new Uint8Array(W*H),S=[py*W+px];
 while(S.length){const q=S.pop();if(seen[q])continue;const i=q*4;if(Math.abs(D[i]-t[0])+Math.abs(D[i+1]-t[1])+Math.abs(D[i+2]-t[2])+Math.abs(D[i+3]-t[3])>40)continue;seen[q]=1;D[i]=n[0];D[i+1]=n[1];D[i+2]=n[2];D[i+3]=n[3];const X=q%W;if(X>0)S.push(q-1);if(X<W-1)S.push(q+1);if(q>=W)S.push(q-W);if(q+W<W*H)S.push(q+W)}
 return im}
@@ -721,7 +736,7 @@ const dis=(i,v)=>{$('#'+i).disabled=!!v};
 function sync(){const c=C(),v=c.k=='v',s0=sel[0];
 ['dp','dl','mu','fr','bkb','gp','ug','arr'].forEach(i=>$('#'+i).hidden=!v);$('#bdel').hidden=v;$('#snapb').className=SNAP?'on':'';$('#snapb').setAttribute('aria-pressed',!!SNAP);$('#l_fc').hidden=$('#fo').parentNode.hidden=$('#l_so').hidden=$('#g_sj').hidden=!v;
 $('#g_rr').hidden=!(v&&(tool=='rect'||(s0&&s0.t=='rect')));$('#g_pg').hidden=!(v&&tool=='poly');
-$('#g_ft').hidden=!(v&&(tool=='txt'||(s0&&(s0.t=='txt'||s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot)))));$('#g_bf').hidden=!(!v&&(tool=='brect'||tool=='bell'));
+$('#g_ft').hidden=!(v&&(tool=='txt'||(s0&&(s0.t=='txt'||s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot)))));$('#g_bf').hidden=!(!v&&(tool=='brect'||tool=='bell'));$('#g_fall').hidden=tool!='fill';
 $('#shpp').hidden=!(v&&tool=='shp');if(!$('#shpp').hidden&&!$('#shpp').firstChild)buildShp();
 setB($('#cs'),v?'strokeon':'brush',v?'線の色(タップでカラーピッカー)':'ブラシの色(タップでカラーピッカー)');refChips();
 $('#g_bpen').hidden=v||!['brush','eras','brect','bell','bline','bsel'].includes(tool);$('#g_pk').hidden=!(tool=='brush'||tool=='eras');$('#g_nd').hidden=v||tool!='bsel';$('#g_gr').hidden=!v;$('#l_fc2').hidden=gm=='s';$('#g_rsh').hidden=!(v&&tool=='rsh');$('#g_bo').hidden=v;
@@ -1454,13 +1469,19 @@ D.innerHTML=`<div role="dialog" aria-label="プレビュー" style="width:min(76
 document.body.append(D);const $$=i=>D.querySelector('#'+i),cvs=$$('pc'),rng=()=>{let a=+$$('pas').value,b=+$$('pae').value;dir=a<=b?1:-1;const L=[];for(let i=a;i!=b+dir;i+=dir)L.push(i);return L};
 $$('pas').value=ci;$$('pae').value=Math.min(cs.length-1,ci+Math.max(0,Math.min(cs.length-1,4)));
 const info=()=>{if(!mode){$$('pin').textContent=`${ci+1}/${cs.length}: ${cs[ci].n}(編集中の内容を表示。点線は${+(cs[ci].w/RS(cs[ci])).toFixed(1)}×${+(cs[ci].h/RS(cs[ci])).toFixed(1)}の枠)`;return}const L=rng();$$('pin').textContent=`${fr+1}/${L.length}枚目 — コスチューム${L[fr]+1}「${cs[L[fr]].n}」 / ${(+$$('pms').value/1000).toFixed(2)}秒/枚${dir<0?' / 逆順再生':''}${play?' / 再生中':''}`},
-show=()=>{if(!mode){paintPrev(cvs,cs[ci],cbounds([cs[ci]]),zm,px,py);$$('pzv').textContent=Math.round(zm*100)+'%'}else{const L=rng();fr=Math.min(fr,L.length-1);paintPrev(cvs,cs[L[fr]],cbounds(L.map(i=>cs[i])),1,0,0)}info()},
+show=()=>{if(!mode){paintPrev(cvs,cs[ci],cbounds([cs[ci]]),zm,px,py)}else{const L=rng();fr=Math.min(fr,L.length-1);paintPrev(cvs,cs[L[fr]],cbounds(L.map(i=>cs[i])),zm,px,py)}$$('pzv').textContent=Math.round(zm*100)+'%';info()},
 stop=()=>{clearTimeout(tm_);play=0},tick_=()=>{if(!play)return;const L=rng();if(fr+1<L.length)fr++;else if($$('plp').checked)fr=0;else{play=0;show();return}show();tm_=setTimeout(tick_,Math.max(20,+$$('pms').value||200))},
-setM=m=>{mode=m;stop();$$('pm0').classList.toggle('on',!m);$$('pm1').classList.toggle('on',!!m);$$('pa').hidden=!m;$$('pz').hidden=!!m;show()};
+setM=m=>{mode=m;stop();$$('pm0').classList.toggle('on',!m);$$('pm1').classList.toggle('on',!!m);$$('pa').hidden=!m;show()};
 $$('pm0').onclick=()=>setM(0);$$('pm1').onclick=()=>setM(1);
 $$('pzi').onclick=()=>{zm=Math.min(16,zm*1.4);show()};$$('pzo').onclick=()=>{zm=Math.max(.2,zm/1.4);show()};$$('pzf').onclick=()=>{zm=1;px=py=0;show()};
-cvs.onwheel=e=>{if(mode)return;e.preventDefault();zm=Math.min(16,Math.max(.2,zm*(e.deltaY<0?1.15:1/1.15)));show()};
-let dg=null;cvs.onpointerdown=e=>{if(!mode){dg=[e.clientX,e.clientY,px,py];cvs.setPointerCapture(e.pointerId)}};cvs.onpointermove=e=>{if(dg){px=dg[2]+e.clientX-dg[0];py=dg[3]+e.clientY-dg[1];show()}};cvs.onpointerup=()=>dg=null;
+cvs.onwheel=e=>{e.preventDefault();zm=Math.min(16,Math.max(.2,zm*(e.deltaY<0?1.15:1/1.15)));show()};
+/* ドラッグで移動、2本指でピンチ拡大縮小(全体表示・アニメーション共通) */
+const PT=new Map();let dg=null,pn=null;const pinS=()=>{const a=[...PT.values()];return[Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1])||1,(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2]};
+cvs.onpointerdown=e=>{PT.set(e.pointerId,[e.clientX,e.clientY]);cvs.setPointerCapture(e.pointerId);if(PT.size==1){dg=[e.clientX,e.clientY,px,py];pn=null}else if(PT.size==2){dg=null;pn={s:pinS(),zm,px,py}}};
+cvs.onpointermove=e=>{if(!PT.has(e.pointerId))return;PT.set(e.pointerId,[e.clientX,e.clientY]);
+if(PT.size>=2&&pn){const s=pinS(),r=cvs.getBoundingClientRect(),k=Math.min(16,Math.max(.2,pn.zm*s[0]/pn.s[0])),f=k/pn.zm,cx=pn.s[1]-r.left-r.width/2,cy=pn.s[2]-r.top-r.height/2;zm=k;px=(s[1]-pn.s[1])+cx*(1-f)+pn.px*f;py=(s[2]-pn.s[2])+cy*(1-f)+pn.py*f;show()}
+else if(dg){px=dg[2]+e.clientX-dg[0];py=dg[3]+e.clientY-dg[1];show()}};
+cvs.onpointerup=cvs.onpointercancel=e=>{PT.delete(e.pointerId);pn=null;dg=PT.size==1?(a=>[a[0],a[1],px,py])([...PT.values()][0]):null};
 $$('ppl').onclick=()=>{stop();play=1;if(!rng().length)return;tm_=setTimeout(tick_,Math.max(20,+$$('pms').value||200));show()};$$('ppa').onclick=()=>{stop();show()};$$('pst').onclick=()=>{stop();fr=0;show()};
 $$('ppre').onchange=e=>{if(e.target.value){$$('pms').value=e.target.value;show()}};['pas','pae','pms','plp'].forEach(i=>$$(i).onchange=()=>{if(i=='pas'||i=='pae')fr=0;show()});
 D.querySelector('[data-x]').onclick=()=>{stop();removeEventListener('resize',show);D.remove()};addEventListener('resize',show);show()}
