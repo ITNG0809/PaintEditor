@@ -292,7 +292,7 @@ const WEBF=[['Archivo','Archivo'],['Archivo Black','Archivo Black'],['Playful(�
 const baseFL=()=>FL0.concat(WEBF.map(w=>({n:w[0],fam:w[1],css:`"${w[1]}",sans-serif`,web:1})));let FL=baseFL();let pal={recent:[],custom:[]};try{Object.assign(pal,JSON.parse(localStorage.getItem('ced_pal')||'{}'))}catch(e){}
 const fillFonts=()=>{const e=$('#fn'),v=e.value||'0';buildFpop();e.value=FL[+v]?v:'0'};
 async function regFont(f){if(f.data){try{const ff=new FontFace(f.n,`url(${f.data})`);await ff.load();document.fonts.add(ff)}catch(e){badFont.add(f.n);alert('フォントを読み込めませんでした: '+f.n)}}
-if(!FL.some(x=>x.n==f.n||x.fam==f.n))FL.push({n:f.n,css:`"${f.n}",${f.fb||'sans-serif'}`});fillFonts();cs.forEach(c=>c.sh.forEach(s=>s.t=='txt'&&tm(s)));thumbs();draw()}
+if(!FL.some(x=>x.n==f.n||x.fam==f.n))FL.push({n:f.n,css:`"${f.n}",${f.fb||'sans-serif'}`});fillFonts();cs.forEach(c=>c.sh.forEach(s=>s.t=='txt'&&tm(s)));thumbs(true);draw()}
 const webLoaded=new Set(),webFail=new Set(),webPrev=new Set(),webOk=new Set(),badFont=new Set();
 async function ensureWeb(f){if(!f.web||webLoaded.has(f.fam)||fonts.some(x=>x.n==f.fam))return;webLoaded.add(f.fam);
 try{const css=await(await fetch('https://fonts.googleapis.com/css2?family='+encodeURIComponent(f.fam).replace(/%20/g,'+')+'&display=swap')).text();
@@ -397,7 +397,9 @@ function zoomAt(x,y,n){n=Math.min(32,Math.max(.1,n));ox=x-(x-ox)*n/z;oy=y-(y-oy)
 // ===== 履歴 =====
 function st(c){return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c)}}
 function rs(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;c.res=+t.res>0?+t.res:1;if(c.k=='b'){c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}
-function hist(){HC++;const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[]}
+function hist(){HC++;const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[];trimHist()}
+function trimHist(){const B=200e6,sz=a=>a.bm?a.bm.data.length:0,cu=C();let tot=0;for(const c of cs){for(const a of c.u)tot+=sz(a);for(const a of c.r)tot+=sz(a)}
+while(tot>B){let best=null,bn=0;for(const c of cs){if(c===cu)continue;const n=c.u.length+c.r.length;if(n>bn){bn=n;best=c}}if(!best)break;tot-=sz(best.r.length?best.r.shift():best.u.shift())}}
 function undo(){if(TE)teEnd();pvClear();SPA.a=[];bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
 function redo(){if(TE)teEnd();pvClear();SPA.a=[];bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
 function nnStamp(x,b){const src=b.cvs,sw=src.width,sh=src.height;if(!sw||!sh)return;const fx=b.fx||1,fy=b.fy||1,c=Math.cos(b.r),s=Math.sin(b.r),hw=b.w/2,hh=b.h/2,ex=Math.abs(c)*hw+Math.abs(s)*hh,ey=Math.abs(s)*hw+Math.abs(c)*hh,
@@ -734,7 +736,8 @@ if(!n){alert('半透明のピクセルはありません');return}hist();x.putIm
 $('#bclean').onclick=cleanAlpha;
 function flood(c,px,py,col){const im=floodCalc(c,px,py,col);if(im)c.bc.getContext('2d').putImageData(im,0,0)}
 // ===== UI =====
-function fin(){ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(()=>{try{localStorage.setItem('ced_bk',ser())}catch(e){}},1200)}
+function fin(){ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(bkRun,1200)}
+function bkRun(){const t0=performance.now();for(const c of cs){if(c.k=='b'&&c!==C()&&!c._fu){c._fu=flatURL(c);if(performance.now()-t0>14){fin.t=setTimeout(bkRun,40);return}}}let n=0;for(const c of cs)if(c._fu)n+=c._fu.length;if(n>4.2e6)return;try{localStorage.setItem('ced_bk',ser())}catch(e){}}
 const TS={sel:'選択',rsh:'点編集',brush:'ブラシ',pen:'ペン',eras:'消しゴム',fill:'塗り',txt:'文字',line:'線',ell:'楕円',rect:'四角',poly:'多角形',shp:'図形',arw:'矢印',cut:'分割',hand:'移動',ctr:'中心',pick:'抽出',brect:'四角',bell:'楕円',bline:'線',bsel:'範囲'},TK={sel:'V',rsh:'A',brush:'B',pen:'P',eras:'E',txt:'T'},TG={rsh:1,txt:1,arw:1,bsel:1,pick:1,bline:1};
 function tools(){const c=C();pvClear();$('#tools').innerHTML='';(c.k=='v'?TV:TB).forEach(k=>{const b=document.createElement('button');setB(b,k,TN[k]+(TK[k]?' ['+TK[k]+']':''),TS[k]);b.setAttribute('aria-pressed',k==tool);b.className=k==tool?'on':'';b.onclick=()=>{if(C().k=='b')bcommit();tool=k;swNorm();selPt=-1;if(k!='sel'&&k!='rsh'&&k!='bsel')sel=[];tools();sync();draw()};$('#tools').append(b);if(TG[k])$('#tools').insertAdjacentHTML('beforeend','<i class="tsep"></i>')})}
 const dis=(i,v)=>{$('#'+i).disabled=!!v};
@@ -761,19 +764,24 @@ $('#fn').onchange=()=>{const l=sel.filter(s=>s.t=='txt');if(!l.length)return;his
 $('#addf').onclick=()=>$('#ff').click();
 $('#ff').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const n=prompt('フォント名',f.name.replace(/\.[^.]+$/,''));if(!n)return;const fb=prompt('バックアップフォント(読み込み失敗時に使用)','sans-serif')||'sans-serif';const o={n,data:r.result,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};r.readAsDataURL(f);e.target.value=''};
 $('#sysf').onclick=async()=>{const n=prompt('システムにあるフォント名');if(!n)return;const fb=prompt('バックアップフォント','sans-serif')||'sans-serif',o={n,data:null,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};
-function list(){const L=$('#list');L.innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i>${i+1}</i><canvas width=72 height=54></canvas><input class="cn" maxlength="60" spellcheck="false" autocomplete="off"><div class="cb"><button class="cdup"></button><button class="cdel"></button></div>`;
+function list(){const L=$('#list');if(TIO)TIO.disconnect();VIS.clear();list.n=cs.length;L.innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i>${i+1}</i><canvas width=72 height=54></canvas><input class="cn" maxlength="60" spellcheck="false" autocomplete="off"><div class="cb"><button class="cdup"></button><button class="cdel"></button></div>`;
 const nm=d.querySelector('.cn'),b1=d.querySelector('.cdup'),b2=d.querySelector('.cdel');nm.value=c.n;nm.setAttribute('aria-label','コスチューム'+(i+1)+'の名前(タップして編集)');nm.title='名前をタップして編集(Enterで確定)';
 setB(b1,'dup','コスチューム'+(i+1)+'を複製','複製');setB(b2,'del','コスチューム'+(i+1)+'を削除','削除');b2.disabled=cs.length<2;
 if(c.k=='b')d.title=`${c.w}×${c.h}px / 解像度${RS(c)} → 論理${+(c.w/RS(c)).toFixed(2)}×${+(c.h/RS(c)).toFixed(2)}`;
 d.onclick=e=>{if(e.target.closest('button')||i==ci)return;const edit=e.target.classList.contains('cn');go(i);if(edit){const n=$('#list').children[i].querySelector('.cn');n.focus();n.select()}};
 b1.onclick=e=>{e.stopPropagation();dupAt(i)};b2.onclick=e=>{e.stopPropagation();delAt(i)};
 nm.onchange=()=>renAt(i,nm);nm.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();nm.blur()}else if(e.key=='Escape'){nm.value=cs[i].n;nm.blur()}};
-L.append(d)});lvnApply();thumbs()}
+L.append(d);const tc=d.querySelector('canvas');tc._ix=i;tc._st=1;if(TIO)TIO.observe(tc);else drawThumb(tc)});lvnApply()}
+function listSel(){const L=$('#list'),p=L.querySelector('.ci.on'),n=L.children[ci];if(p)p.classList.remove('on');if(n)n.classList.add('on');lvnApply();thumbs()}
 function renAt(i,inp){const v=inp.value.trim();if(!v){inp.value=cs[i].n;inp.classList.add('err');setTimeout(()=>inp.classList.remove('err'),600);return}cs[i].n=v;inp.value=v}
 function dupAt(i){bcommit();const c=cs[i],n=mk(c.k,c.n+'のコピー');rs(n,st(c));cs.splice(i+1,0,n);go(i+1)}
 function delAt(i){if(cs.length<2)return alert('最後のコスチュームは削除できません');if(!confirm('コスチューム「'+cs[i].n+'」を削除しますか?'))return;if(i!=ci)bcommit();cs.splice(i,1);if(i<ci)ci--;else if(i==ci)ci=Math.min(ci,cs.length-1);sel=[];go(ci)}
-function thumbs(){document.querySelectorAll('#list canvas').forEach((t,i)=>{const c=cs[i],x=t.getContext('2d');x.clearRect(0,0,72,54);const k=Math.min(72/c.w,54/c.h);x.save();x.translate((72-c.w*k)/2,(54-c.h*k)/2);x.scale(k,k);dc(x,c);x.restore()})}
-function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();list();sync();const c=C();{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
+const VIS=new Set(),TIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{const t=e.target;if(e.isIntersecting){VIS.add(t);if(t._st)drawThumb(t)}else VIS.delete(t)}),{rootMargin:'300px'}):null;
+function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const k=Math.min(72/c.w,54/c.h);x.save();x.translate((72-c.w*k)/2,(54-c.h*k)/2);x.scale(k,k);dc(x,c);x.restore()}
+// thumbs(): 既定は編集中の1枚だけ更新。thumbs(true)は全コスチューム(見えているものだけ即時、残りはスクロールで表示された時に描画)
+function thumbs(all){document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
+function thumbAt(c){const i=cs.indexOf(c),t=i<0?null:$('#list').children[i]&&$('#list').children[i].querySelector('canvas');if(!t)return;t._ix=i;t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}
+function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&$('#list').children.length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
 function grow(c,W,H){if(c.k=='v'||W<=c.w&&H<=c.h)return;W=Math.max(W,c.w);H=Math.max(H,c.h);if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);c.bc.width=W;c.bc.height=H;c.bc.getContext('2d').drawImage(o,0,0)}c.w=W;c.h=H}
 $('#addv').onclick=()=>add('v');$('#addb').onclick=()=>add('b');
@@ -797,10 +805,10 @@ $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.type=='image/
 if(c.k=='b')c.bc.getContext('2d').drawImage(im,Math.round((c.w-im.naturalWidth)/2),Math.round((c.h-im.naturalHeight)/2));
 else{const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:im.naturalWidth,h:im.naturalHeight,src:r.result};ld(s);c.sh.push(s);sel=[s]}fin()};im.src=r.result};r.readAsDataURL(f);e.target.value=''};
 // ===== 保存・出力 =====
-function ser(){return JSON.stringify({v:3,ci,fonts,pal,cur:curState(),cs:cs.map(c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?flatURL(c):0}))},rep)}
-function load(t){const o=JSON.parse(t);FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
+function ser(){return JSON.stringify({v:3,ci,fonts,pal,cur:curState(),cs:cs.map(c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?(c===C()?flatURL(c):(c._fu||(c._fu=flatURL(c)))):0}))},rep)}
+function load(t){list.force=1;const o=JSON.parse(t);FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
 cs=o.cs.map(q=>{const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh,res:+q.res>0?+q.res:1});c.sh.forEach(s=>s.src&&ld(s));
-if(q.k=='b'){c.bc.width=q.w;c.bc.height=q.h;if(q.bm){const im=new Image;im.onload=()=>{c.bc.getContext('2d').drawImage(im,0,0);thumbs();draw()};im.src=q.bm}}return c});go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync()}
+if(q.k=='b'){c.bc.width=q.w;c.bc.height=q.h;if(q.bm){const im=new Image;im.onload=()=>{c.bc.getContext('2d').drawImage(im,0,0);c._fu=null;thumbAt(c);draw()};im.src=q.bm}}return c});go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync()}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
 $('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.json');
 $('#ld').onclick=()=>$('#lf').click();$('#lf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{load(r.result)}catch(x){alert('読み込みに失敗しました')}};r.readAsText(f);e.target.value=''};
@@ -1473,8 +1481,8 @@ D.innerHTML=`<div role="dialog" aria-label="プレビュー" style="width:min(76
 <label>ループ再生<input type="checkbox" id="plp" checked></label><span class="grp"><button id="ppl" class="on">▶ 再生</button><button id="ppa">⏸ 一時停止</button><button id="pst">■ 停止</button></span></div><small id="pin"></small></div>`;
 document.body.append(D);const $$=i=>D.querySelector('#'+i),cvs=$$('pc'),rng=()=>{let a=+$$('pas').value,b=+$$('pae').value;dir=a<=b?1:-1;const L=[];for(let i=a;i!=b+dir;i+=dir)L.push(i);return L};
 $$('pas').value=ci;$$('pae').value=Math.min(cs.length-1,ci+Math.max(0,Math.min(cs.length-1,4)));
-const info=()=>{if(!mode){$$('pin').textContent=`${ci+1}/${cs.length}: ${cs[ci].n}(編集中の内容を表示。点線は${+(cs[ci].w/RS(cs[ci])).toFixed(1)}×${+(cs[ci].h/RS(cs[ci])).toFixed(1)}の枠)`;return}const L=rng();$$('pin').textContent=`${fr+1}/${L.length}枚目 — コスチューム${L[fr]+1}「${cs[L[fr]].n}」 / ${(+$$('pms').value/1000).toFixed(2)}秒/枚${dir<0?' / 逆順再生':''}${play?' / 再生中':''}`},
-show=()=>{if(!mode){paintPrev(cvs,cs[ci],cbounds([cs[ci]]),zm,px,py)}else{const L=rng();fr=Math.min(fr,L.length-1);paintPrev(cvs,cs[L[fr]],cbounds(L.map(i=>cs[i])),zm,px,py)}$$('pzv').textContent=Math.round(zm*100)+'%';info()},
+const bc_={k:''},bnd=L=>{const k=L.join(',')+'|'+ONG+'|'+cs.length;if(bc_.k!=k){bc_.k=k;bc_.v=cbounds(L.map(i=>cs[i]))}return bc_.v},info=()=>{if(!mode){$$('pin').textContent=`${ci+1}/${cs.length}: ${cs[ci].n}(編集中の内容を表示。点線は${+(cs[ci].w/RS(cs[ci])).toFixed(1)}×${+(cs[ci].h/RS(cs[ci])).toFixed(1)}の枠)`;return}const L=rng();$$('pin').textContent=`${fr+1}/${L.length}枚目 — コスチューム${L[fr]+1}「${cs[L[fr]].n}」 / ${(+$$('pms').value/1000).toFixed(2)}秒/枚${dir<0?' / 逆順再生':''}${play?' / 再生中':''}`},
+show=()=>{if(!mode){paintPrev(cvs,cs[ci],cbounds([cs[ci]]),zm,px,py)}else{const L=rng();fr=Math.min(fr,L.length-1);paintPrev(cvs,cs[L[fr]],bnd(L),zm,px,py)}$$('pzv').textContent=Math.round(zm*100)+'%';info()},
 stop=()=>{clearTimeout(tm_);play=0},tick_=()=>{if(!play)return;const L=rng();if(fr+1<L.length)fr++;else if($$('plp').checked)fr=0;else{play=0;show();return}show();tm_=setTimeout(tick_,Math.max(20,+$$('pms').value||200))},
 setM=m=>{mode=m;stop();$$('pm0').classList.toggle('on',!m);$$('pm1').classList.toggle('on',!!m);$$('pa').hidden=!m;show()};
 $$('pm0').onclick=()=>setM(0);$$('pm1').onclick=()=>setM(1);
