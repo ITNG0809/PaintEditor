@@ -166,7 +166,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="te" data-i="edit" data-t="選択した文字を編集"></button><button id="t2p" data-i="outline" data-t="選択した文字をベクターパス(図形)に変換" data-l="図形化"></button><button id="p2t" data-i="totext" data-t="図形化した文字を元のテキストに戻す" data-l="文字へ"></button><label id="tovl" data-t="ON:文字を確定すると自動で図形化 / OFF:従来どおりテキスト"><input type="checkbox" id="tov">自動図形化</label></span>
 <span class="grp" id="g_rsh"><button id="pth" data-i="pathop" data-t="ポイント整列・水平化/垂直化・点の結合・パス操作" data-l="パス操作"></button><button id="delpt" data-i="delpt" data-t="選択した点を削除(線の上をタップすると点を追加)"></button><button id="ptm" data-i="ptmode" data-t="選択した点を滑らか/角に切り替え"></button><button id="symb" data-i="sym" data-l="対称" data-t="対称編集モード: ONの間(またはShiftを押している間)は、ドラッグしたハンドルと反対側のハンドルを同一直線・正反対・同じ長さで連動。OFFでは左右のハンドルを独立して編集"></button></span>
 <span class="grp" id="g_bo"><button id="bcp" data-i="copy" data-t="選択範囲をコピー"></button><button id="bct" data-i="scissors" data-t="選択範囲を切り取り"></button><button id="bps" data-i="paste" data-t="貼り付け"></button><button id="bdel" data-i="del" data-t="選択範囲を削除"></button><button id="bfh" data-i="bfh" data-t="選択範囲を左右反転"></button><button id="bfv" data-i="bfv" data-t="選択範囲を上下反転"></button></span>
-<span class="grp" id="g_bpen"><label class="tg"><input type="checkbox" id="aa"><span data-i="aa" data-t="アンチエイリアス ON/OFF(OFFでくっきりしたドット)"></span></label><span class="grp" id="g_pk"></span></span>
+<span class="grp" id="g_bpen"><button id="bclean" data-i="clean" data-t="画像全体の半透明ピクセルをなくす(アルファ50%未満は透明、以上は不透明にします。Undo可)" data-l="半透明除去"></button><label class="tg"><input type="checkbox" id="aa"><span data-i="aa" data-t="アンチエイリアス ON/OFF(OFFでくっきりしたドット)"></span></label><span class="grp" id="g_pk"></span></span>
 <span class="grp" id="g_nd"><button id="nl" data-i="arrL" data-t="選択範囲を左へ1px移動(長押しで連続・矢印キー対応)"></button><button id="nu" data-i="arrU" data-t="選択範囲を上へ1px移動"></button><button id="nd" data-i="arrD" data-t="選択範囲を下へ1px移動"></button><button id="nr" data-i="arrR" data-t="選択範囲を右へ1px移動"></button><span id="bsinfo" aria-live="polite"></span></span>
 <span class="grp" id="g_fall"><label class="tg"><input type="checkbox" id="fall"><span data-i="fall" data-t="同じ色を一括で塗る(Ctrl/⌘を押しながらクリックでも同じ動作)"></span></label></span>
 <span class="grp" id="g_bf"><label class="tg"><input type="checkbox" id="bf" checked><span data-i="filled" data-t="図形を塗りつぶす/枠のみ"></span></label></span>
@@ -261,6 +261,7 @@ ptmode:'<circle cx="12" cy="12" r="3"/><path d="M3 15c3 0 5-3 9-3s6 3 9 3"/>',bs
 paste:'<rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2"/>',bfh:'<path d="M12 3v18" stroke-dasharray="2 2"/><path d="M8 7L3 12l5 5zM16 7l5 5-5 5z"/>',bfv:'<path d="M3 12h18" stroke-dasharray="2 2"/><path d="M7 8l5-5 5 5zM7 16l5 5 5-5z"/>',
 _:'<rect x="5" y="5" width="14" height="14" rx="2" stroke-dasharray="3 2"/>'};
 IC.fall='<rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor" fill-opacity=".35"/><rect x="14" y="14" width="7" height="7" rx="1"/>';
+IC.clean='<rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 2"/><path d="M8 16l8-8M8 12l4-4M12 16l4-4"/>';
 IC.brect=IC.rect;IC.bell=IC.ell;IC.bline=IC.line;IC.copy=IC.dup;IC.gsolid=IC.fillon;IC.eyedrop=IC.pick;
 Object.assign(IC,{joinm:'<path d="M7 21V7h14" stroke-width="6" stroke-linejoin="miter" stroke-linecap="butt"/>',joinr:'<path d="M7 21V7h14" stroke-width="6" stroke-linejoin="round" stroke-linecap="butt"/>'});
 Object.assign(IC,{plus:'<path d="M12 5v14M5 12h14"/>',close:'<path d="M6 6l12 12M18 6L6 18"/>',nofill:'<rect x="5" y="5" width="14" height="14" rx="2"/><path d="M4 20L20 4" stroke="#e33"/>',
@@ -370,7 +371,7 @@ ox=Math.round(ox*d)/d;oy=Math.round(oy*d)/d;
 g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,W,H);g.fillStyle='#cfd8e3';g.fillRect(0,0,W,H);
 const X0=Math.round(ox*d),Y0=Math.round(oy*d),X1=Math.round((ox+c.w*z)*d),Y1=Math.round((oy+c.h*z)*d);
 drawChecker(c,d,X0,Y0,X1,Y1);g.setTransform(d,0,0,d,0,0);
-g.save();g.translate(ox,oy);g.scale(z,z);g.imageSmoothingEnabled=(c.k=='b'&&!$('#aa').checked)?z<1:z<2;
+g.save();g.translate(ox,oy);g.scale(z,z);g.imageSmoothingEnabled=(c.k=='b'&&!$('#aa').checked)?false:z<2;
 if(ON.on){g.save();g.beginPath();g.rect(0,0,c.w,c.h);g.clip();onionDraw(c);g.restore()}
 if(c.k=='v'&&c.sh.length){const u=ubox(pvList(c).filter(s=>!s.hid));if(u[0]<0||u[1]<0||u[2]>c.w||u[3]>c.h){g.save();g.globalAlpha=.3;dcv(g,c);g.restore()}}g.save();g.beginPath();g.rect(0,0,c.w,c.h);g.clip();dcv(g,c);if(tmp)dsh(g,tmp);g.restore();g.restore();
 g.setTransform(1,0,0,1,0,0);g.strokeStyle='#855cd6';g.lineWidth=1;g.strokeRect(X0-.5,Y0-.5,X1-X0+1,Y1-Y0+1);g.setTransform(d,0,0,d,0,0);
@@ -664,7 +665,7 @@ else if(t=='eras'){PRV.cur=[p[0],p[1],swv()/2];if(typeof paper!='undefined'){con
 else PRV.dot=[p[0],p[1],swv()/2,t=='brush'?col('fc'):col('sc')]})}
 // ビットマップのペン・消しゴム・図形: 描画はプレビュー用キャンバス(d.pv)。確定時だけ履歴に積んで本体へ書き戻す
 function bBegin(c,d){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);d.pv=o;PRV.bm=o}
-function bCommit(c,d){const o=d.pv;pvClear();if(!o||!d.db)return;hist();const x=c.bc.getContext('2d');x.save();x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='copy';x.drawImage(o,0,0);x.restore()}
+function bCommit(c,d){const o=d.pv;pvClear();if(!o||!d.db)return;hist();const x=c.bc.getContext('2d'),[a,b,e,f]=d.db;x.save();x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.imageSmoothingEnabled=false;x.beginPath();x.rect(a,b,e-a,f-b);x.clip();x.globalCompositeOperation='copy';x.drawImage(o,0,0);x.restore()}
 addEventListener('keydown',e=>{if(e.key=='Escape'&&drag&&!TE){e.preventDefault();cancelOp()}});/* Escapeで操作を取り消し(プレビューだけ破棄) */
 // ===== ビットマップ =====
 const PENL=[['round','丸ペン'],['square','四角ペン(ドット)'],['marker','マーカー(半透明)'],['calli','カリグラフィ'],['spray','スプレー'],['dot','点線']];let penK='round';
@@ -727,6 +728,10 @@ if(all){for(let i=0;i<D.length;i+=4)if(D[i]==t[0]&&D[i+1]==t[1]&&D[i+2]==t[2]&&D
 const seen=new Uint8Array(W*H),S=[py*W+px];
 while(S.length){const q=S.pop();if(seen[q])continue;const i=q*4;if(Math.abs(D[i]-t[0])+Math.abs(D[i+1]-t[1])+Math.abs(D[i+2]-t[2])+Math.abs(D[i+3]-t[3])>40)continue;seen[q]=1;D[i]=n[0];D[i+1]=n[1];D[i+2]=n[2];D[i+3]=n[3];const X=q%W;if(X>0)S.push(q-1);if(X<W-1)S.push(q+1);if(q>=W)S.push(q-W);if(q+W<W*H)S.push(q+W)}
 return im}
+function cleanAlpha(){const c=C();if(!c||c.k!='b')return;bcommit();const x=c.bc.getContext('2d'),im=x.getImageData(0,0,c.w,c.h),d=im.data;let n=0;
+for(let i=3;i<d.length;i+=4){const a=d[i];if(a>0&&a<255){n++;if(a>=128)d[i]=255;else{d[i]=0;d[i-1]=d[i-2]=d[i-3]=0}}}
+if(!n){alert('半透明のピクセルはありません');return}hist();x.putImageData(im,0,0);fin();alert(n+'個の半透明ピクセルを整理しました')}
+$('#bclean').onclick=cleanAlpha;
 function flood(c,px,py,col){const im=floodCalc(c,px,py,col);if(im)c.bc.getContext('2d').putImageData(im,0,0)}
 // ===== UI =====
 function fin(){ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(()=>{try{localStorage.setItem('ced_bk',ser())}catch(e){}},1200)}
@@ -1456,7 +1461,7 @@ function cbounds(cl){let a=0,b=0,e=1,f=1;cl.forEach((c,i)=>{let x0=0,y0=0,x1=c.w
 if(!i){a=x0;b=y0;e=x1;f=y1}else{a=Math.min(a,x0);b=Math.min(b,y0);e=Math.max(e,x1);f=Math.max(f,y1)}});return[a,b,e,f]}
 function paintPrev(cvs,c,B,zm,px,py){const d=devicePixelRatio||1,W=cvs.clientWidth,H=cvs.clientHeight;if(cvs.width!=Math.round(W*d)||cvs.height!=Math.round(H*d)){cvs.width=Math.round(W*d);cvs.height=Math.round(H*d)}
 const x=cvs.getContext('2d'),bw=B[2]-B[0],bh=B[3]-B[1],k=Math.min(W/bw,H/bh)*.94*zm;x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,W,H);x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle='#e3e8ef';const q=12;for(let i=0;i*q<W;i++)for(let j=0;j*q<H;j++)if((i+j)&1)x.fillRect(i*q,j*q,q,q);
-x.save();x.translate(W/2+px,H/2+py);x.scale(k,k);x.translate(-(B[0]+bw/2),-(B[1]+bh/2));{const R=RS(c);x.imageSmoothingEnabled=k/R<2;x.scale(1/R,1/R)}dc(x,c);x.restore();
+x.save();x.translate(W/2+px,H/2+py);x.scale(k,k);x.translate(-(B[0]+bw/2),-(B[1]+bh/2));{const R=RS(c);x.imageSmoothingEnabled=(c.k=='b'&&!$('#aa').checked)?false:k/R<2;x.scale(1/R,1/R)}dc(x,c);x.restore();
 x.strokeStyle='#855cd688';x.setLineDash([4,3]);x.strokeRect(W/2+px+(0-(B[0]+bw/2))*k,H/2+py+(0-(B[1]+bh/2))*k,c.w/RS(c)*k,c.h/RS(c)*k)}
 function openPrev(){if(cs[ci].k=='b')bcommit();const D=document.createElement('div');D.className='dlg';let mode=0,zm=1,px=0,py=0,fr=0,tm_=0,play=0,dir=1;
 const opt=cs.map((c,i)=>`<option value="${i}">${i+1}: ${esc(c.n)}</option>`).join('');
