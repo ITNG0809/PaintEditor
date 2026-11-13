@@ -1277,7 +1277,7 @@ if(Math.abs(cr)<1e-5&&dt>0){R.push([(A[0]+Bp[0])/2,(A[1]+Bp[1])/2]);continue}
 const uturn=dt<-1+1e-9,gap=uturn?(d>0):((d>0)?cr>0:cr<0);// 外へ動かす側が開く頂点(Uターンは線の端点=キャップ)
 if(!gap){R.push(A,[v[0],v[1]],Bp);continue}
 let jj=join;if(join=='orig')jj=(uturn||!(sharp?sharp(v):Math.abs(Math.atan2(cr,dt))>.35))?'round':'miter';/* 元の角を維持: 角ばった頂点はマイター、丸い(なめらかな)頂点は丸のまま */
-if(jj=='round'){const a0=Math.atan2(n1[1],n1[0]),a1=Math.atan2(n2[1],n2[0]);let da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;if(uturn)da=Math.PI;const k=Math.max(1,Math.ceil(Math.abs(da)/(Math.PI/18)));R.push(A);for(let s=1;s<k;s++){const a=a0+da*s/k;R.push([v[0]+Math.cos(a)*ad,v[1]+Math.sin(a)*ad])}R.push(Bp)}
+if(jj=='round'){const a0=Math.atan2(n1[1],n1[0]),a1=Math.atan2(n2[1],n2[0]);let da=a1-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;if(uturn)da=Math.PI;const stp=Math.min(Math.PI/18,2*Math.acos(Math.max(0,1-.008/ad))||Math.PI/18),k=Math.max(1,Math.ceil(Math.abs(da)/Math.max(stp,.02)));R.push(A);for(let s=1;s<k;s++){const a=a0+da*s/k;R.push([v[0]+Math.cos(a)*ad,v[1]+Math.sin(a)*ad])}R.push(Bp)}
 else if(jj=='miter'){const k=1+(n1[0]*n2[0]+n1[1]*n2[1])/(ad*ad);if(k>1e-9&&1/Math.sqrt((k)/2)<=miter){R.push([v[0]+(n1[0]+n2[0])/k,v[1]+(n1[1]+n2[1])/k])}else R.push(A,Bp)}
 else R.push(A,Bp)}
 out.push(R)}
@@ -1295,8 +1295,23 @@ function fitCub(P,t1,t2,err,depth){depth=depth||0;if(P.length==2){const d=V.len(
 let u=chordU(P),b=genBez(P,u,t1,t2),[m,sp]=maxErr(P,b,u);if(m<err*err)return[b];
 if(m<err*err*16)for(let k=0;k<4;k++){u=u.map((t,i)=>{const d=V.sub(bzAt(b,t),P[i]),d1=bz1(b,t),d2=bz2(b,t),den=V.dot(d1,d1)+V.dot(d,d2);return Math.abs(den)<1e-12?t:Math.max(0,Math.min(1,t-V.dot(d,d1)/den))});b=genBez(P,u,t1,t2);[m,sp]=maxErr(P,b,u);if(m<err*err)return[b]}
 if(depth>40)return[b];let tc=V.norm(V.sub(P[sp-1],P[sp+1]));if(!V.len(tc))tc=V.norm(V.sub(P[sp-1],P[sp]));return fitCub(P.slice(0,sp+1),t1,tc,err,depth+1).concat(fitCub(P.slice(sp),V.mul(tc,-1),t2,err,depth+1))}
+// 1本の三次ベジェで許容誤差内に収まるか(分割はしない)。収まらなければ null
+function fitOne(P,t1,t2,err){if(P.length==2){const d=V.len(V.sub(P[1],P[0]))/3;return[P[0],V.add(P[0],V.mul(t1,d)),V.add(P[1],V.mul(t2,d)),P[1]]}
+let u=chordU(P),b=genBez(P,u,t1,t2),[m]=maxErr(P,b,u);if(m<err*err)return b;if(m>=err*err*64)return null;
+for(let k=0;k<4;k++){u=u.map((t,i)=>{const d=V.sub(bzAt(b,t),P[i]),d1=bz1(b,t),d2=bz2(b,t),den=V.dot(d1,d1)+V.dot(d,d2);return Math.abs(den)<1e-12?t:Math.max(0,Math.min(1,t-V.dot(d,d1)/den))});b=genBez(P,u,t1,t2);[m]=maxErr(P,b,u);if(m<err*err)return b}return null}
+const dsegV=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;let t=L2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2:0;t=t<0?0:t>1?1:t;return hyp(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
+// 標本点の間でベジェがふくらんでいないか(曲線上を細かくとって折れ線Qまでの距離を確認)
+function bezNear(b,Q,lim){const mq=Q.length,u=chordU(Q),ns=Math.min(600,mq*3);let k=0;for(let s=1;s<ns;s++){const t=s/ns,p=bzAt(b,t);while(k<mq-2&&u[k+1]<t)k++;const lo=Math.max(0,k-30),hi=Math.min(mq-2,k+30);let d=1e18;for(let j=lo;j<=hi;j++){const dd=dsegV(p,Q[j],Q[j+1]);if(dd<d)d=dd}if(d>lim)return false}return true}
+// 区間 P を「できるだけ少ない本数」の三次ベジェで近似(各セグメントを二分探索で最長にする)。接線は前後の点から広めに推定してなめらかにつなぐ
+function fitSpan(P,t1,t2,err){const m=P.length;if(m<=4)return fitCub(P,t1,t2,err);
+const kw=Math.max(2,Math.min(6,Math.floor(m/60)+2)),tan=p=>V.norm(V.sub(P[Math.min(m-1,p+kw)],P[Math.max(0,p-kw)])),out=[];let i=0,ts=t1;
+while(i<m-1){const tj=j=>{const Q=P.slice(i,j+1),b=fitOne(Q,ts,j==m-1?t2:V.mul(tan(j),-1),err);if(!b)return null;if(Q.length>2){let pl=0;for(let q=1;q<Q.length;q++)pl+=hyp(Q[q][0]-Q[q-1][0],Q[q][1]-Q[q-1][1]);if(hyp(b[1][0]-b[0][0],b[1][1]-b[0][1])>pl*.9||hyp(b[2][0]-b[3][0],b[2][1]-b[3][1])>pl*.9||!bezNear(b,Q,err*1.5))return null}return b};
+let c=tj(m-1);if(c){out.push(c);break}
+let L=i+1,H=m-1;while(H-L>1){const mid=(L+H)>>1;if(tj(mid))L=mid;else H=mid}
+c=tj(L);if(!c)return fitCub(P,t1,t2,err);out.push(c);if(L>=m-1)break;ts=tan(L);if(!V.len(ts))return fitCub(P,t1,t2,err);i=L;if(out.length>m)return fitCub(P,t1,t2,err)}
+return out}
 // 閉ループ(多角形)を、角を保ったなめらかな三次ベジェ列へ。戻り値: アンカー配列 [{p,i:[dx,dy],o:[dx,dy],c:角か}]
-function fitLoop(P,tol,cornerDeg,win){const n0=P.length;let Q=[];for(const p of P){const q=Q[Q.length-1];if(!q||hyp(p[0]-q[0],p[1]-q[1])>1e-9)Q.push(p)}if(Q.length>1&&hyp(Q[0][0]-Q[Q.length-1][0],Q[0][1]-Q[Q.length-1][1])<1e-9)Q.pop();const n=Q.length;if(n<3)return null;
+function fitLoop(P,tol,cornerDeg,win,greedy){const n0=P.length;let Q=[];for(const p of P){const q=Q[Q.length-1];if(!q||hyp(p[0]-q[0],p[1]-q[1])>1e-9)Q.push(p)}if(Q.length>1&&hyp(Q[0][0]-Q[Q.length-1][0],Q[0][1]-Q[Q.length-1][1])<1e-9)Q.pop();const n=Q.length;if(n<3)return null;
 const cs=Math.cos((cornerDeg||35)*Math.PI/180);win=win||tol*3;
 // 弧長の累積
 const cum=[0];for(let i=1;i<=n;i++)cum.push(cum[i-1]+hyp(Q[i%n][0]-Q[i-1][0],Q[i%n][1]-Q[i-1][1]));const tot=cum[n];
@@ -1309,9 +1324,9 @@ const spanPts=(a,b)=>{const P2=[];let i=a;for(;;){P2.push(Q[i%n]);if(i%n==b%n&&P
 const m=br.length;for(let k=0;k<m;k++){const a=br[k],b=br[(k+1)%m],bb=m==1?a:b;const Pp=spanPts(a,b);if(Pp.length<2)continue;
 const isC1=cor.length>0,tdir=(p,q)=>V.norm(V.sub(q,p));
 let t1,t2;const nearF=at(a,win*.8),nearB=at(b,-win*.8);
-if(isC1){t1=V.norm(V.sub(nearF,Q[a]));t2=V.norm(V.sub(nearB,Q[b%n]))}else{t1=V.norm(V.sub(at(a,win),at(a,-win)));t2=V.mul(t1,-1)}
+if(isC1){t1=V.norm(V.sub(nearF,Q[a]));t2=V.norm(V.sub(nearB,Q[b%n]))}else if(greedy){const kk=Math.max(1,Math.min(4,Math.floor(n/8)));t1=V.norm(V.sub(Q[(a+kk)%n],Q[(a-kk+n)%n]));t2=V.mul(t1,-1)}else{t1=V.norm(V.sub(at(a,win),at(a,-win)));t2=V.mul(t1,-1)}
 if(!V.len(t1))t1=tdir(Pp[0],Pp[1]);if(!V.len(t2))t2=tdir(Pp[Pp.length-1],Pp[Pp.length-2]);
-const cv=fitCub(Pp,t1,t2,tol);cv.forEach((c,j)=>{if(j==0&&k==0)anchors.push({p:c[0],i:[0,0],o:V.sub(c[1],c[0]),c:isC1});else anchors[anchors.length-1].o=V.sub(c[1],c[0]);anchors.push({p:c[3],i:V.sub(c[2],c[3]),o:[0,0],c:false})});
+const cv=greedy?fitSpan(Pp,t1,t2,tol):fitCub(Pp,t1,t2,tol);cv.forEach((c,j)=>{if(j==0&&k==0)anchors.push({p:c[0],i:[0,0],o:V.sub(c[1],c[0]),c:isC1});else anchors[anchors.length-1].o=V.sub(c[1],c[0]);anchors.push({p:c[3],i:V.sub(c[2],c[3]),o:[0,0],c:false})});
 anchors[anchors.length-1].c=isC1}
 // 末尾の重複アンカー(始点と同一)を統合
 if(anchors.length>1){const f=anchors[0],l=anchors.pop();f.i=l.i}
@@ -1394,7 +1409,7 @@ const l1=Math.hypot(din[0],din[1]),l2=Math.hypot(dout[0],dout[1]);return!l1||!l2
 // オフセット後の頂点→もとの図形の同じ位置の頂点が「角」だったか。もとに無い頂点(交差でできた点)は角として扱う
 function sharpOracle(Ps,Fs){const cell=.05,M=new Map();Ps.forEach((P,k)=>P.forEach((p,i)=>{const kk=Math.floor(p[0]/cell)+','+Math.floor(p[1]/cell);let l=M.get(kk);if(!l)M.set(kk,l=[]);l.push([p[0],p[1],!!(Fs[k]&&Fs[k][i])])}));
 return v=>{const cx=Math.floor(v[0]/cell),cy=Math.floor(v[1]/cell);let best=null,bd=.02;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=M.get((cx+a)+','+(cy+b));if(l)for(const q of l){const d=Math.hypot(q[0]-v[0],q[1]-v[1]);if(d<bd){bd=d;best=q}}}return best?best[2]:true}}
-async function shapeGeom(s){const tol=.03;let t;
+async function shapeGeom(s){const tol=.01;let t;
 if(s.t=='txt'){let L=await textOutlines(s);const co=Math.cos(s.r),si=Math.sin(s.r),T=p=>[s.x+p[0]*co-p[1]*si,s.y+p[0]*si+p[1]*co];if(L){const PF=L.map(l=>anchorsPolyF(l,Math.max(tol,s.fs*.0005)));return{polys:PF.map(x=>x[0].map(T)),fl:PF.map(x=>x[1]),open:[],ofl:[],rule:'nonzero'}}L=rasterOutlines(s,'fill');{const PF=L.map(l=>anchorsPolyF(l,tol));return{polys:PF.map(x=>x[0].map(T)),fl:PF.map(x=>x[1]),open:[],ofl:[],rule:'nonzero'}}}
 if(!['rect','ell','path','pd','line'].includes(s.t))return null;
 if(s.t=='rect'&&s.rr>0){t={t:'pd',d:dOf(s),w0:s.w,h0:s.h,w:s.w,h:s.h,x:s.x,y:s.y,r:s.r};toBz(t)}else{t=clone2(s);if(!t.bz)toBz(t)}
@@ -1429,9 +1444,18 @@ const dseg=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;let t=L2?((p
 let ts=0;const sn=S.length;for(let i=0;i<sn;i++){const a=S[i],b=S[(i+1)%sn];ts+=Math.hypot(b[0]-a[0],b[1]-a[1])}const step=Math.max(.25,ts/40000);let worst=0;
 for(let i=0;i<sn;i++){const a=S[i],b=S[(i+1)%sn],L=Math.hypot(b[0]-a[0],b[1]-a[1]),m=Math.max(1,Math.ceil(L/step));for(let k=0;k<m;k++){const p=[a[0]+(b[0]-a[0])*k/m,a[1]+(b[1]-a[1])*k/m],l=G.get(K(Math.floor(p[0]/cell),Math.floor(p[1]/cell)));let d=1e18;if(l)for(const j of l){const dd=dseg(p,T[j],T[(j+1)%n]);if(dd<d)d=dd;if(d<=tol*.02)break}if(d>tol)return d;if(d>worst)worst=d}}return worst}
 function ofsSame(A,P,tol){const F=ofsFlat(A,tol*.1),d1=ofsDev(P,F,tol);if(d1>tol)return -1;const d2=ofsDev(F,P,tol);if(d2>tol)return -1;return Math.max(d1,d2)}
+function ofsCurved(a,b){return a.o[0]||a.o[1]||b.i[0]||b.i[1]}
+// なめらかな点を取り除いて、隣り合う2本の曲線を1本にまとめられるだけまとめる(パス数を減らす)
+function ofsMerge(A,tolM){let ch=true,guard=0;while(ch&&A.length>3&&guard++<2000){ch=false;for(let k=0;k<A.length&&A.length>3;k++){const n=A.length,a=A[(k+n-1)%n],m=A[k],b=A[(k+1)%n],l1=Math.hypot(m.i[0],m.i[1]),l2=Math.hypot(m.o[0],m.o[1]);
+if(!l1||!l2||Math.abs(m.i[0]*m.o[1]-m.i[1]*m.o[0])>1e-3*l1*l2||m.i[0]*m.o[0]+m.i[1]*m.o[1]>0||!ofsCurved(a,m)||!ofsCurved(m,b))continue;
+const T1=[],T2=[];GEO.flattenCubic(a.p,[a.p[0]+a.o[0],a.p[1]+a.o[1]],[m.p[0]+m.i[0],m.p[1]+m.i[1]],m.p,tolM*.2,T1);GEO.flattenCubic(m.p,[m.p[0]+m.o[0],m.p[1]+m.o[1]],[b.p[0]+b.i[0],b.p[1]+b.i[1]],b.p,tolM*.2,T2);
+const pts=T1.concat(T2.slice(1)),t1=GEO.V.norm(a.o),t2=GEO.V.norm(b.i);let r;try{r=GEO.fitCub(pts,t1,t2,tolM)}catch(e){continue}if(!r||r.length!=1)continue;const c=r[0];
+a.o=[c[1][0]-c[0][0],c[1][1]-c[0][1]];b.i=[c[2][0]-c[3][0],c[2][1]-c[3][1]];A.splice(k,1);ch=true;break}}return A}
+const ofsCopy=A=>A.map(a=>({p:[a.p[0],a.p[1]],i:[a.i[0],a.i[1]],o:[a.o[0],a.o[1]]}));
 function loopToAnchors(P0){const P=ofsClean(P0);if(P.length<3)return null;
-for(const[tol,deg]of[[OFS_TOL*.5,12],[OFS_TOL*.15,12],[OFS_TOL*.15,6]]){let A=null;try{A=GEO.fitLoop(P,tol,deg)}catch(e){A=null}
-if(!A||A.length<3||A.length>=P.length)continue;straighten(A,OFS_TOL*.1);const d=ofsSame(A,P,OFS_TOL);if(d>=0){OFS_REPORT.fit++;OFS_REPORT.maxDev=Math.max(OFS_REPORT.maxDev,d);return A}}
+/* 許容誤差の緩い順(=アンカー数が少ない順)に試す。どの段階も「元の輪郭から vt 以内」であることを検証して採用 */
+for(const[tol,vt,deg]of[[.06,.12,12],[.03,.06,12],[.015,.03,12],[.015,.03,6],[.12,.24,12]]){let A=null;try{A=GEO.fitLoop(P,tol,deg,undefined,true)}catch(e){A=null}
+if(!A||A.length<3||A.length>=P.length)continue;straighten(A,vt*.1);{const B=ofsMerge(ofsCopy(A),vt*.3);straighten(B,vt*.1);const d2=ofsSame(B,P,vt);if(d2>=0){OFS_REPORT.fit++;OFS_REPORT.maxDev=Math.max(OFS_REPORT.maxDev,d2);return B}}const d=ofsSame(A,P,vt);if(d>=0){OFS_REPORT.fit++;OFS_REPORT.maxDev=Math.max(OFS_REPORT.maxDev,d);return A}}
 OFS_REPORT.poly++;return P.map(p=>({p,i:[0,0],o:[0,0]}))}
 function loopsToShape(loops,src){const pts=[];OFS_REPORT.fit=0;OFS_REPORT.poly=0;OFS_REPORT.maxDev=0;loops.forEach(P=>{const A=loopToAnchors(P);if(!A||A.length<3)return;A.forEach((a,j)=>{const m=Math.hypot(a.i[0],a.i[1])*Math.hypot(a.o[0],a.o[1]),sm=m>0&&Math.abs(a.i[0]*a.o[1]-a.i[1]*a.o[0])<1e-3*m&&a.i[0]*a.o[0]+a.i[1]*a.o[1]<0?1:0;pts.push([a.p[0],a.p[1],a.i[0],a.i[1],a.o[0],a.o[1],sm,j==0?1:0])})});if(!pts.length)return null;
 const o={t:'path',bz:1,cmp:1,cl:1,x:0,y:0,r:0,w:1,h:1,pts,f:src.t=='line'?src.s:(src.f==null?null:src.f),s:src.s||null,sw:src.sw||1,fr:'nonzero',...(src.sj?{sj:src.sj}:{})};if(src.t=='line'||(src.t=='path'&&!src.cl&&!src.f))o.f=src.s;if(src.g)o.g=src.g;renorm(o);return o}
