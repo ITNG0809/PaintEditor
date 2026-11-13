@@ -359,7 +359,7 @@ function dc(x,c){if(c.k=='b'){x.drawImage(c.bc,0,0);const f=c==C()&&sel[0]&&sel[
 // ===== 描画 =====
 // 表示専用の透明チェッカー: マスは作品座標で8×8、マスの角をキャンバス中心(幅/2,高さ/2)に合わせる。ズーム・移動に連動し、画像データには含めない(エクスポートはdcのみ使用)
 function bgAlt(f=1){const q=parseC(BG.c)||{r:255,g:255,b:255},l=(.299*q.r+.587*q.g+.114*q.b)/255,t=l>.5?0:255,k=(l>.5?.11:.16)*f;return'#'+[q.r,q.g,q.b].map(v=>h2(v+(t-v)*k)).join('')}
-function drawChecker(c,d,X0,Y0,X1,Y1){g.setTransform(1,0,0,1,0,0);g.fillStyle=BG.c;g.fillRect(X0,Y0,X1-X0,Y1-Y0);if(!BG.chk)return;const R8=8*RS(c),cw=R8*z*d;
+function drawChecker(c,d,X0,Y0,X1,Y1){g.setTransform(1,0,0,1,0,0);g.fillStyle=BG.c;g.fillRect(X0,Y0,X1-X0,Y1-Y0);if(!BG.chk)return;const R8=4*RS(c),cw=R8*z*d;
 if(cw<3){g.fillStyle=bgAlt(.5);g.fillRect(X0,Y0,X1-X0,Y1-Y0);return}
 g.fillStyle=bgAlt();const W=cv.width,H=cv.height,hx=c.w/2,hy=c.h/2,Xc=X0+hx*z*d,Yc=Y0+hy*z*d,
 i0=Math.max(Math.floor(-hx/R8),Math.floor(-Xc/cw)),i1=Math.min(Math.ceil(hx/R8)-1,Math.floor((W-Xc)/cw)),j0=Math.max(Math.floor(-hy/R8),Math.floor(-Yc/cw)),j1=Math.min(Math.ceil(hy/R8)-1,Math.floor((H-Yc)/cw));
@@ -806,9 +806,29 @@ if(c.k=='b')c.bc.getContext('2d').drawImage(im,Math.round((c.w-im.naturalWidth)/
 else{const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:im.naturalWidth,h:im.naturalHeight,src:r.result};ld(s);c.sh.push(s);sel=[s]}fin()};im.src=r.result};r.readAsDataURL(f);e.target.value=''};
 // ===== 保存・出力 =====
 function ser(){return JSON.stringify({v:3,ci,fonts,pal,cur:curState(),cs:cs.map(c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?(c===C()?flatURL(c):(c._fu||(c._fu=flatURL(c)))):0}))},rep)}
-function load(t){list.force=1;const o=JSON.parse(t);FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
-cs=o.cs.map(q=>{const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh,res:+q.res>0?+q.res:1});c.sh.forEach(s=>s.src&&ld(s));
-if(q.k=='b'){c.bc.width=q.w;c.bc.height=q.h;if(q.bm){const im=new Image;im.onload=()=>{c.bc.getContext('2d').drawImage(im,0,0);c._fu=null;thumbAt(c);draw()};im.src=q.bm}}return c});go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync()}
+/* ===== 読み込み進捗オーバーレイ / 時間分割 ===== */
+const PG={el:null};
+function progBegin(msg){if(PG.el)return progSet(0,msg);const e=document.createElement('div');e.id='pgov';e.setAttribute('role','alertdialog');e.setAttribute('aria-live','polite');
+e.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(20,24,40,.45);display:flex;align-items:center;justify-content:center;touch-action:none';
+e.innerHTML='<div style="background:#fff;color:#222;border-radius:14px;padding:18px 22px;width:min(340px,86vw);box-shadow:0 8px 30px rgba(0,0,0,.35);font-size:14px"><div id="pgt" style="font-weight:600;margin-bottom:10px;word-break:break-all"></div><div style="height:12px;background:#e4e8f0;border-radius:6px;overflow:hidden"><div id="pgb" style="height:100%;width:0;background:#855cd6;transition:width .12s"></div></div><div id="pgp" style="margin-top:8px;text-align:right;font-variant-numeric:tabular-nums"></div></div>';
+document.body.append(e);PG.el=e;progSet(0,msg)}
+function progSet(v,msg){if(!PG.el)return;v=Math.max(0,Math.min(1,v));PG.el.querySelector('#pgt').textContent=msg||'';PG.el.querySelector('#pgb').style.width=(v*100).toFixed(1)+'%';PG.el.querySelector('#pgp').textContent=Math.round(v*100)+'%'}
+function progEnd(){if(PG.el){PG.el.remove();PG.el=null}}
+const yieldUI=()=>new Promise(r=>setTimeout(r,0));let SL_T0=0;
+async function slice(){if(performance.now()-SL_T0>14){await yieldUI();SL_T0=performance.now()}}
+let LOADING=0;
+async function loadAsync(t){if(LOADING)return;LOADING=1;progBegin('ファイルを解析中…');
+try{await yieldUI();const o=JSON.parse(t);if(!o||!Array.isArray(o.cs)||!o.cs.length)throw Error('コスチュームがありません');
+FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
+const N=o.cs.length,out=[];
+for(let i=0;i<N;i++){const q=o.cs[i];progSet(i/N,'コスチュームを読み込み中 '+(i+1)+' / '+N);await slice();
+const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh||[],res:+q.res>0?+q.res:1});c.sh.forEach(s=>s.src&&ld(s));
+if(q.k=='b'){c.bc.width=q.w;c.bc.height=q.h;if(q.bm){await new Promise(r=>{const im=new Image;im.onload=()=>{try{c.bc.getContext('2d').drawImage(im,0,0)}catch(e){}r()};im.onerror=()=>r();im.src=q.bm});c._fu=q.bm}}
+out.push(c)}
+progSet(1,'仕上げ中…');await yieldUI();
+list.force=1;cs=out;go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync()}
+finally{LOADING=0;progEnd()}}
+function load(t){return loadAsync(t).catch(x=>{alert('読み込みに失敗しました')})}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
 $('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.json');
 $('#ld').onclick=()=>$('#lf').click();$('#lf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{load(r.result)}catch(x){alert('読み込みに失敗しました')}};r.readAsText(f);e.target.value=''};
@@ -1049,8 +1069,8 @@ const CT=(()=>{const t=[];for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c
 function zipMake(F){const ch=[],cd=[];let off=0;F.forEach(([nm,d])=>{const n=te(nm),c=crc32(d),h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x800,true);h.setUint16(12,0x21,true);h.setUint32(14,c,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,n.length,true);
 ch.push(new Uint8Array(h.buffer),n,d);const e=new DataView(new ArrayBuffer(46));e.setUint32(0,0x02014b50,true);e.setUint16(4,20,true);e.setUint16(6,20,true);e.setUint16(8,0x800,true);e.setUint16(14,0x21,true);e.setUint32(16,c,true);e.setUint32(20,d.length,true);e.setUint32(24,d.length,true);e.setUint16(28,n.length,true);e.setUint32(42,off,true);cd.push(new Uint8Array(e.buffer),n);off+=30+n.length+d.length});
 const sz=cd.reduce((a,x)=>a+x.length,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,F.length,true);z.setUint16(10,F.length,true);z.setUint32(12,sz,true);z.setUint32(16,off,true);return new Blob([...ch,...cd,new Uint8Array(z.buffer)],{type:'application/zip'})}
-async function unzip(buf){const u=new Uint8Array(buf),v=new DataView(buf);let e=u.length-22;while(e>=0&&v.getUint32(e,true)!=0x06054b50)e--;if(e<0)throw Error('ZIPファイルではありません');const n=v.getUint16(e+10,true);let p=v.getUint32(e+16,true);const R={};
-for(let i=0;i<n;i++){if(v.getUint32(p,true)!=0x02014b50)throw Error('ZIPの構造が不正です');const m=v.getUint16(p+10,true),cz=v.getUint32(p+20,true),nl=v.getUint16(p+28,true),xl=v.getUint16(p+30,true),kl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true),nm=td(u.subarray(p+46,p+46+nl));p+=46+nl+xl+kl;
+async function unzip(buf,onp){const u=new Uint8Array(buf),v=new DataView(buf);let e=u.length-22;while(e>=0&&v.getUint32(e,true)!=0x06054b50)e--;if(e<0)throw Error('ZIPファイルではありません');const n=v.getUint16(e+10,true);let p=v.getUint32(e+16,true);const R={};
+for(let i=0;i<n;i++){if(onp){onp(i,n);await slice()}if(v.getUint32(p,true)!=0x02014b50)throw Error('ZIPの構造が不正です');const m=v.getUint16(p+10,true),cz=v.getUint32(p+20,true),nl=v.getUint16(p+28,true),xl=v.getUint16(p+30,true),kl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true),nm=td(u.subarray(p+46,p+46+nl));p+=46+nl+xl+kl;
 const ds=lo+30+v.getUint16(lo+26,true)+v.getUint16(lo+28,true),raw=u.subarray(ds,ds+cz);if(nm.endsWith('/'))continue;const key=nm.split('/').pop();
 if(m==0)R[key]=raw;else if(m==8){if(typeof DecompressionStream=='undefined')throw Error('このブラウザは圧縮ZIPの展開に未対応です');R[key]=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}else throw Error('未対応のZIP圧縮方式('+m+')')}return R}
 
@@ -1061,8 +1081,8 @@ const id=md5(d),fn=id+'.'+ext;costumes.push({name:c.n,bitmapResolution:res,dataF
 const j={isStage:false,name,variables:{},lists:{},broadcasts:{},blocks:{},comments:{},currentCostume:ci,costumes,sounds:[],volume:100,layerOrder:1,visible:true,x:0,y:0,size:100,direction:90,draggable:false,rotationStyle:'all around'};
 dl(zipMake([['sprite.json',te(JSON.stringify(j))],...files]),name+'.sprite3')}catch(x){alert('.sprite3の書き出しに失敗しました: '+x.message)}}
 // 読み込み: すべて解析できてから現在のスプライトへ追加(失敗時は現在のデータを変更しない)
-async function s3in(file){const keep=ci,n0=cs.length,W=[],I=[];svgImport.q=1;svgImport.w=W;try{const Z=await unzip(await file.arrayBuffer());if(!Z['sprite.json'])throw Error('sprite.jsonがありません(.sprite3ではない可能性)');const j=JSON.parse(td(Z['sprite.json']));if(!Array.isArray(j.costumes)||!j.costumes.length)throw Error('コスチュームがありません');if(j.sounds&&j.sounds.length)W.push('サウンド/ブロックは読み込まれません(コスチュームのみ)');
-for(const q of j.costumes){const d=Z[q.md5ext||q.assetId+'.'+q.dataFormat];if(!d){W.push(q.name+': 画像ファイルが見つかりません');continue}const rx=+q.rotationCenterX||0,ry=+q.rotationCenterY||0;
+async function s3in(file){const keep=ci,n0=cs.length,W=[],I=[];svgImport.q=1;svgImport.w=W;try{progBegin('ファイルを読み込み中…');const Z=await unzip(await file.arrayBuffer(),(i,n)=>progSet(.4*i/n,'ファイルを展開中 '+(i+1)+' / '+n));if(!Z['sprite.json'])throw Error('sprite.jsonがありません(.sprite3ではない可能性)');const j=JSON.parse(td(Z['sprite.json']));if(!Array.isArray(j.costumes)||!j.costumes.length)throw Error('コスチュームがありません');if(j.sounds&&j.sounds.length)W.push('サウンド/ブロックは読み込まれません(コスチュームのみ)');
+let kk=0;for(const q of j.costumes){progSet(.4+.6*kk/j.costumes.length,'コスチュームを読み込み中 '+(kk+1)+' / '+j.costumes.length);kk++;await slice();const d=Z[q.md5ext||q.assetId+'.'+q.dataFormat];if(!d){W.push(q.name+': 画像ファイルが見つかりません');continue}const rx=+q.rotationCenterX||0,ry=+q.rotationCenterY||0;
 if(q.dataFormat=='svg'){const t=td(d),R=new DOMParser().parseFromString(t,'image/svg+xml').documentElement;if(R.nodeName!='svg'){W.push(q.name+': SVGを解析できません');continue}
 const vb=(R.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number),ok=vb.length==4&&vb.every(isFinite)&&vb[2]>0&&vb[3]>0,vw=ok?vb[2]:parseFloat(R.getAttribute('width'))||480,vh=ok?vb[3]:parseFloat(R.getAttribute('height'))||360,k=Math.min(1,4096/Math.max(vw,vh)),c=mk('v',q.name);
 c.w=Math.max(1,Math.round(vw*k));c.h=Math.max(1,Math.round(vh*k));c.cx=rx*k;c.cy=ry*k;cs.push(c);ci=cs.length-1;sel=[];svgImport(t);c.u=[];c.r=[];
@@ -1070,9 +1090,9 @@ if(!c.sh.length&&R.querySelector('path,rect,circle,ellipse,line,polygon,polyline
 else if(q.dataFormat=='png'||q.dataFormat=='jpg'||q.dataFormat=='jpeg'){const im=await new Promise((ok,ng)=>{const i=new Image;i.onload=()=>ok(i);i.onerror=()=>ng(Error(q.name+': 画像を読み込めません'));i.src=URL.createObjectURL(new Blob([d],{type:'image/'+(q.dataFormat=='png'?'png':'jpeg')}))}),c=mk('b',q.name);
 const R=+q.bitmapResolution>0?+q.bitmapResolution:1;c.res=R;{const iw=im.naturalWidth,ih=im.naturalHeight,cX=isFinite(parseFloat(q.rotationCenterX))?+q.rotationCenterX:iw/2,cY=isFinite(parseFloat(q.rotationCenterY))?+q.rotationCenterY:ih/2,hx=Math.max(240*R,cX,iw-cX),hy=Math.max(180*R,cY,ih-cY),offX=Math.round(hx-cX),offY=Math.round(hy-cY);c.w=c.bc.width=Math.max(Math.ceil(hx*2),offX+iw);c.h=c.bc.height=Math.max(Math.ceil(hy*2),offY+ih);c.bc.getContext('2d').drawImage(im,offX,offY);c.cx=cX+offX;c.cy=cY+offY;I.push(`${q.name}: ${iw}×${ih}px / 解像度${R} → 論理${+(iw/R).toFixed(2)}×${+(ih/R).toFixed(2)}`)}cs.push(c);URL.revokeObjectURL(im.src)}
 else W.push(q.name+': 未対応の形式('+q.dataFormat+')')}
-if(cs.length==n0)throw Error('読み込めるコスチュームがありませんでした');ci=keep;go(n0);list();sync();
+if(cs.length==n0)throw Error('読み込めるコスチュームがありませんでした');progSet(1,'仕上げ中…');await yieldUI();ci=keep;go(n0);list();sync();progEnd();
 alert(`.sprite3から${cs.length-n0}個のコスチュームを追加しました。\nSVGは図形ごとに編集できます(未対応要素は除く)。PNGはビットマップです。`+(I.length?'\n\n画像サイズ(実ピクセル → 論理サイズ):\n・'+I.join('\n・'):'')+(W.length?'\n\n注意:\n・'+[...new Set(W)].join('\n・'):''))}
-catch(x){cs.length=n0;ci=keep;sel=[];alert('.sprite3の読み込みに失敗しました。現在のデータは変更されていません。\n'+x.message)}finally{svgImport.q=0;go(Math.min(ci,cs.length-1));list()}}
+catch(x){progEnd();cs.length=n0;ci=keep;sel=[];alert('.sprite3の読み込みに失敗しました。現在のデータは変更されていません。\n'+x.message)}finally{progEnd();svgImport.q=0;go(Math.min(ci,cs.length-1));list()}}
 $('#s3o').onclick=s3out;$('#s3i').onclick=()=>$('#s3f').click();$('#s3f').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)s3in(f)};
 
 // ===== 輪郭トレース(文字の図形化 / PNGベクター化 共通エンジン) =====
