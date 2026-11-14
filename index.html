@@ -134,7 +134,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <span class="sep"></span>
 <button id="sv" data-i="save" data-t="プロジェクトを保存(JSON)"></button>
 <button id="ld" data-i="load" data-t="プロジェクトを読み込む"></button><input type="file" id="lf" accept=".json" hidden>
-<button id="png" data-i="png" data-t="PNGで書き出し"></button><button id="svgb" data-i="svg" data-t="SVGで書き出し"></button>
+<button id="expb" data-i="png" data-t="このコスチュームを書き出す(ビットマップはPNG、ベクターはSVG)"></button>
 <button id="bk" data-i="bk" data-t="自動バックアップを復元"></button>
 <span class="sep"></span>
 <button id="pvw" data-i="prev" data-t="コスチュームのプレビュー・アニメーション再生"></button>
@@ -818,7 +818,7 @@ function cmOut(e){if(CM&&!CM.contains(e.target))cmClose()}
 function cmKey(e){if(!CM)return;const bs=[...CM.querySelectorAll('button:not(:disabled)')],i=bs.indexOf(document.activeElement);if(e.key=='Escape'){e.preventDefault();e.stopImmediatePropagation();cmClose()}else if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();e.stopImmediatePropagation();bs[(i+(e.key=='ArrowDown'?1:-1)+bs.length)%bs.length].focus()}else if(e.key=='Tab'){e.preventDefault();e.stopImmediatePropagation();bs[(i+(e.shiftKey?-1:1)+bs.length)%bs.length].focus()}else if(e.key=='Enter'||e.key==' ')e.stopImmediatePropagation()}
 function cmOpen(c,x,y){cmClose();const m=document.createElement('div');m.id='cmenu';m.setAttribute('role','menu');
 const add=(t,fn,dis,cls)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');b.textContent=t;b.disabled=!!dis;if(cls)b.className=cls;b.onclick=()=>{cmClose();fn()};m.append(b)};
-add('コピー(複製)',()=>{const i=cs.indexOf(c);if(i>=0)dupAt(i)});add('削除',()=>{const i=cs.indexOf(c);if(i>=0)delAt(i)},cs.length<2,'danger');
+add('コピー(複製)',()=>{const i=cs.indexOf(c);if(i>=0)dupAt(i)});add(c.k=='b'?'書き出し(PNG)':'書き出し(SVG)',()=>{if(cs.indexOf(c)>=0)exportCostume(c)});add('削除',()=>{const i=cs.indexOf(c);if(i>=0)delAt(i)},cs.length<2,'danger');
 document.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(4,Math.min(x,innerWidth-r.width-4))+'px';m.style.top=Math.max(4,Math.min(y,innerHeight-r.height-4))+'px';CM=m;
 setTimeout(()=>{if(CM!==m)return;addEventListener('pointerdown',cmOut,true);addEventListener('keydown',cmKey,true);addEventListener('resize',cmClose);$('#list').addEventListener('scroll',cmClose)},0);const f=m.querySelector('button:not(:disabled)');if(f)f.focus()}
 /* ===== コスチューム一覧: ドラッグで並べ替え =====
@@ -906,7 +906,9 @@ function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(
 $('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.json');
 $('#ld').onclick=()=>$('#lf').click();$('#lf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{load(r.result)}catch(x){alert('読み込みに失敗しました')}};r.readAsText(f);e.target.value=''};
 $('#bk').onclick=()=>{const t=localStorage.getItem('ced_bk');if(!t)return alert('バックアップがありません');if(confirm('自動バックアップを復元しますか?(現在の内容は置き換わります)'))load(t)};
-$('#png').onclick=()=>{const c=C(),o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);o.toBlob(b=>dl(b,c.n+'.png'))};
+/* 書き出し: ビットマップはPNG、ベクターはSVG */
+function exportCostume(c){c=c||C();if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);o.toBlob(b=>{if(b)dl(b,c.n+'.png')})}else dl(new Blob([svg(c)],{type:'image/svg+xml'}),c.n+'.svg')}
+$('#expb').onclick=()=>exportCostume();
 const ca=(a,c)=>{if(!c)return`${a}="none"`;const q=typeof c=='string'&&parseC(c);return q&&q.a<.999?`${a}="#${h2(q.r)}${h2(q.g)}${h2(q.b)}" ${a}-opacity="${+q.a.toFixed(3)}"`:`${a}="${c}"`};
 const stp=(c,o)=>{const q=parseC(c)||{r:0,g:0,b:0,a:1};return`<stop offset="${o}" stop-color="#${h2(q.r)}${h2(q.g)}${h2(q.b)}" stop-opacity="${+q.a.toFixed(3)}"/>`};
 function svg(c){const df=[];const fl=(s,f)=>{if(!f)return'none';if(typeof f=='string')return f;const id='g'+df.length,w=(s.t=='pd'?s.w0:s.w)/2,h=(s.t=='pd'?s.h0:s.h)/2,st=stp(f.c1,0)+stp(f.c2,1);
@@ -917,7 +919,7 @@ else if(s.t=='txt')b+=`<text ${t} font-family="${esc(s.fn||'sans-serif')}" font-
 else{const pd=s.t=='pd';b+=`<path transform="translate(${s.x} ${s.y}) rotate(${s.r*180/Math.PI})${pd?` scale(${s.w/s.w0} ${s.h/s.h0})`:''}"${pd?' vector-effect="non-scaling-stroke"':''} d="${dOf(s)}" ${ca('fill',fl(s,s.f))} fill-rule="${s.fr||'evenodd'}" ${ca('stroke',s.s)} stroke-width="${s.sw}" stroke-linecap="round" stroke-linejoin="${jn(s)}" stroke-miterlimit="10"/>`}});
 const ff=fonts.filter(f=>f.data).map(f=>`@font-face{font-family:"${f.n}";src:url(${f.data})}`).join(''),dd=df.join('')+(ff?`<style>${ff}</style>`:'');
 return`<svg xmlns="http://www.w3.org/2000/svg" width="${c.w}" height="${c.h}" viewBox="0 0 ${c.w} ${c.h}">${dd?`<defs>${dd}</defs>`:''}${b}</svg>`}
-$('#svgb').onclick=()=>dl(new Blob([svg(C())],{type:'image/svg+xml'}),C().n+'.svg');
+
 /* キー処理は拡張ブロックの共通ショートカット管理(SC)に統合 */
 addEventListener('resize',draw);new ResizeObserver(draw).observe(cv);
 ['gs:s','gh:h','gv:v','gr:r'].forEach(x=>{const[i,m]=x.split(':');$('#'+i).onclick=()=>{gm=m;ap();dirty=0;sync()}});
@@ -1621,13 +1623,13 @@ $('#pvw').onclick=openPrev;
 (()=>{const T=$('#top'),M=$('#mbar'),mkG=(ids,id)=>{const g=document.createElement('span');g.className='grp';if(id)g.id=id;ids.forEach(i=>{const e=$('#'+i);g.append(e);const n=e.nextElementSibling;if(n&&n.tagName=='INPUT'&&n.type=='file')g.append(n)});return g};
 try{const u=JSON.parse(localStorage.getItem('ced_ui')||'null');if(u){if(u.bg&&typeof u.bg.c=='string')BG={c:u.bg.c,chk:u.bg.chk!==false};if('snap'in u)SNAP=!!u.snap;if(u.lvn>=1)LVN=Math.min(12,Math.max(1,Math.round(u.lvn)));if(u.on&&typeof u.on=='object')ON={...ON,...u.on,op:Math.min(.8,Math.max(.1,+u.on.op||ON.op))}}}catch(e){}
 window.uiSave=()=>{try{localStorage.setItem('ced_ui',JSON.stringify({bg:BG,snap:SNAP,on:ON,lvn:LVN}))}catch(e){}};
-const lh=$('#lhead');[['addv','ベクター'],['addb','ビット']].forEach(([i,l])=>{const e=$('#'+i);e.dataset.l=l;lh.append(e)});
+const lh=$('#lhead');[['addv','ベクター'],['addb','ビット'],['expb','書き出し']].forEach(([i,l])=>{const e=$('#'+i);e.dataset.l=l;lh.append(e)});
 const lab={undo:'戻す',redo:'進む',tp:'パネル',pvw:'確認',flt:'補正',v2b:'ビット化',bcp:'コピー',bct:'切取',bps:'貼付',dp:'複製',dl:'削除',bdel:'削除',mu:'複数選択',fr:'前面',bkb:'背面',gp:'グループ',ug:'解除',arr:'配置'};Object.keys(lab).forEach(i=>$('#'+i).dataset.l=lab[i]);
 // --- メニューバー
 M.innerHTML='<b class="mt">コスチュームエディター</b>';const menus=[],closeM=()=>menus.forEach(([b,p])=>{p.hidden=true;b.classList.remove('on');b.setAttribute('aria-expanded','false')});
 function addMenu(id,label,build){const w=document.createElement('span');w.className='mw';const b=document.createElement('button');b.className='mbtn';b.id=id;b.setAttribute('aria-haspopup','true');b.setAttribute('aria-expanded','false');b.textContent=label+' ▾';const p=document.createElement('div');p.className='mpop';p.id=id+'_p';p.hidden=true;p.setAttribute('role','menu');w.append(b,p);M.append(w);build(p);
 b.onclick=e=>{e.stopPropagation();const open=p.hidden;closeM();if(open){p.hidden=false;b.classList.add('on');b.setAttribute('aria-expanded','true')}};p.addEventListener('click',e=>{if(e.target.closest('button.mi'))closeM()});menus.push([b,p])}
-const FM=[[['sv','プロジェクトを保存(JSON)'],['ld','プロジェクトを読み込む'],['bk','自動バックアップを復元']],[['impb','画像を読み込む(原寸)'],['svi','SVGを図形として読み込む'],['s3i','.sprite3を読み込む(Scratch)']],[['s3o','.sprite3で書き出す(Scratch)'],['png','PNGで書き出す'],['svgb','SVGで書き出す']]];
+const FM=[[['sv','プロジェクトを保存(JSON)'],['ld','プロジェクトを読み込む'],['bk','自動バックアップを復元']],[['impb','画像を読み込む(原寸)'],['svi','SVGを図形として読み込む'],['s3i','.sprite3を読み込む(Scratch)']],[['s3o','.sprite3で書き出す(Scratch)']]];
 addMenu('m_file','ファイル',p=>{FM.forEach((grp,k)=>{if(k)p.append(document.createElement('hr'));grp.forEach(([i,l])=>{const e=$('#'+i);e.classList.add('mi');e.dataset.l=l;p.append(e);const n=e.nextElementSibling;if(n&&n.tagName=='INPUT'&&n.type=='file')p.append(n)})})});
 const SW=[['#ffffff','白'],['#f0f0f0','明るい灰色'],['#bdbdbd','灰色'],['#424242','濃い灰色'],['#000000','黒'],['#fff4c2','クリーム'],['#cfe8ff','空色'],['#d4f5d4','うす緑'],['#ffd6e7','ピンク']];
 addMenu('m_view','表示',p=>{p.innerHTML='<div class="mh">編集画面の背景色(書き出しには影響しません)</div><div class="sws" id="sws"></div><label class="mrow">自由な色<input type="color" id="bgc" aria-label="背景色を選ぶ"></label><label class="mrow"><input type="checkbox" id="bgk">市松模様で透明部分を示す</label><button class="mi" id="bgr" style="padding:0 10px"><small>背景を初期状態(白+市松模様)に戻す</small></button>';
