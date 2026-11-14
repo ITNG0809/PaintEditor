@@ -850,11 +850,17 @@ function renAt(i,inp){const v=inp.value.trim();if(!v){inp.value=cs[i].n;inp.clas
 function dupAt(i){bcommit();const c=cs[i],n=mk(c.k,c.n+'のコピー');rs(n,st(c));cs.splice(i+1,0,n);go(i+1)}
 async function delAt(i){const c0=cs[i];if(!c0)return;if(cs.length<2){await uiAlert('最後のコスチュームは削除できません');return}if(!await uiConfirm('コスチューム「'+c0.n+'」を削除しますか?\n(削除後に「戻す」で復元することはできません)'))return;i=cs.indexOf(c0);if(i<0||cs.length<2)return;if(i!=ci)bcommit();cs.splice(i,1);if(i<ci)ci--;else if(i==ci)ci=Math.min(ci,cs.length-1);sel=[];go(ci)}
 const VIS=new Set(),TIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{const t=e.target;if(e.isIntersecting){VIS.add(t);if(t._st)drawThumb(t)}else VIS.delete(t)}),{rootMargin:'300px'}):null;
-function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const k=Math.min(72/c.w,54/c.h);x.save();x.translate((72-c.w*k)/2,(54-c.h*k)/2);x.scale(k,k);dc(x,c);x.restore()}
+/* 画像のうち「透明度1以上(アルファ>0)」のピクセルがある範囲 [x0,y0,x1,y1](x1,y1は含まない)。何も描かれていなければ null */
+function bmBBox(src){const w=src.width,h=src.height;if(!w||!h)return null;const D=src.getContext('2d').getImageData(0,0,w,h).data;let x0=w,y0=h,x1=-1,y1=-1;
+for(let y=0;y<h;y++){const o=y*w*4+3;let l=-1,r=-1;for(let x=0;x<w;x++)if(D[o+x*4]>0){if(l<0)l=x;r=x}if(l>=0){if(l<x0)x0=l;if(r>x1)x1=r;if(y<y0)y0=y;y1=y}}
+return x1<0?null:[x0,y0,x1+1,y1+1]}
+// 一覧のサムネイル用(ビットマップのみ)。編集中のコスチュームは選択中の持ち上げも含めて毎回計算、それ以外は結果を使い回す
+function thumbBox(c){if(c.k!='b')return null;if(c===C()){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);return bmBBox(o)}if(c._bb===undefined)c._bb=bmBBox(c.bc);return c._bb}
+function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const bb=thumbBox(c),bx=bb?bb[0]:0,by=bb?bb[1]:0,bw=bb?bb[2]-bb[0]:c.w,bh=bb?bb[3]-bb[1]:c.h,k=Math.min(72/bw,54/bh);x.save();x.imageSmoothingEnabled=!(bb&&k>=1);x.translate((72-bw*k)/2,(54-bh*k)/2);x.scale(k,k);x.translate(-bx,-by);dc(x,c);x.restore()}
 // thumbs(): 既定は編集中の1枚だけ更新。thumbs(true)は全コスチューム(見えているものだけ即時、残りはスクロールで表示された時に描画)
 function thumbs(all){document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
 function thumbAt(c){const i=cs.indexOf(c),t=i<0?null:$('#list').children[i]&&$('#list').children[i].querySelector('canvas');if(!t)return;t._ix=i;t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}
-function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&$('#list').children.length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
+function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&$('#list').children.length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;cs[ci]._bb=undefined;{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
 function grow(c,W,H){if(c.k=='v'||W<=c.w&&H<=c.h)return;W=Math.max(W,c.w);H=Math.max(H,c.h);if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);c.bc.width=W;c.bc.height=H;c.bc.getContext('2d').drawImage(o,0,0)}c.w=W;c.h=H}
 $('#addv').onclick=()=>add('v');$('#addb').onclick=()=>add('b');
@@ -1151,8 +1157,11 @@ if(m==0)R[key]=raw;else if(m==8){if(typeof DecompressionStream=='undefined')thro
 
 // 書き出し: 全コスチュームをScratch形式(sprite.json + svg/png)でZIP化
 async function s3out(){try{const name=prompt('スプライト名(Scratchで表示される名前)','スプライト1');if(name==null)return;if(C().k=='b')bcommit();const files=[],costumes=[],seen=new Set();
-for(const c of cs){let d,ext,res=1;if(c.k=='v'){d=te(svg(c)+`<!--rotationCenter:${c.cx}:${c.cy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);const b=await new Promise(r=>o.toBlob(r,'image/png'));if(!b)throw Error('PNG変換に失敗しました');d=new Uint8Array(await b.arrayBuffer());ext='png';res=RS(c);if(o.width!=c.w||o.height!=c.h)throw Error(c.n+': 画像サイズの不整合')}
-const id=md5(d),fn=id+'.'+ext;costumes.push({name:c.n,bitmapResolution:res,dataFormat:ext,assetId:id,md5ext:fn,rotationCenterX:c.cx,rotationCenterY:c.cy});if(!seen.has(fn)){seen.add(fn);files.push([fn,d])}}
+for(const c of cs){let d,ext,res=1,rcx=c.cx,rcy=c.cy;if(c.k=='v'){d=te(svg(c)+`<!--rotationCenter:${c.cx}:${c.cy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);
+/* 透明度1以上のピクセルがある範囲ぴったりに切り出す(何も描かれていない場合は元のサイズのまま)。回転中心は同じ位置を指すよう切り出し分だけずらす */
+const bb=bmBBox(o);let oo=o,ew=c.w,eh=c.h;if(bb){ew=bb[2]-bb[0];eh=bb[3]-bb[1];oo=document.createElement('canvas');oo.width=ew;oo.height=eh;oo.getContext('2d').drawImage(o,-bb[0],-bb[1]);rcx=c.cx-bb[0];rcy=c.cy-bb[1]}
+const b=await new Promise(r=>oo.toBlob(r,'image/png'));if(!b)throw Error('PNG変換に失敗しました');d=new Uint8Array(await b.arrayBuffer());ext='png';res=RS(c);if(oo.width!=ew||oo.height!=eh)throw Error(c.n+': 画像サイズの不整合')}
+const id=md5(d),fn=id+'.'+ext;costumes.push({name:c.n,bitmapResolution:res,dataFormat:ext,assetId:id,md5ext:fn,rotationCenterX:rcx,rotationCenterY:rcy});if(!seen.has(fn)){seen.add(fn);files.push([fn,d])}}
 const j={isStage:false,name,variables:{},lists:{},broadcasts:{},blocks:{},comments:{},currentCostume:ci,costumes,sounds:[],volume:100,layerOrder:1,visible:true,x:0,y:0,size:100,direction:90,draggable:false,rotationStyle:'all around'};
 dl(zipMake([['sprite.json',te(JSON.stringify(j))],...files]),name+'.sprite3')}catch(x){alert('.sprite3の書き出しに失敗しました: '+x.message)}}
 // 読み込み: すべて解析できてから現在のスプライトへ追加(失敗時は現在のデータを変更しない)
