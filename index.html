@@ -108,10 +108,22 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #onion{position:static;margin-left:auto;display:flex;gap:3px;align-items:center;background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;max-width:none;flex-wrap:wrap;justify-content:flex-end}
 #onion .onl{display:flex;flex-direction:column;align-items:stretch;gap:0;font-size:11px;min-width:80px}#onion input[type=range]{width:84px;min-height:28px}
 #g_sj{gap:2px}#g_sj button{flex-direction:row;gap:3px;min-width:52px;padding:0 6px}#g_sj button small{font-size:12px}
+.ci{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.ci .cn{-webkit-user-select:text;user-select:text}
+.ci i.grip{cursor:grab;touch-action:none;padding:3px 6px;border-radius:6px;background:rgba(133,92,214,.14);z-index:2;min-width:20px;min-height:20px;box-sizing:border-box;line-height:14px}.ci i.grip::before{content:'⠿ ';opacity:.65}
+.ci.dragging{opacity:.4}body.cdragging,body.cdragging *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
+#cdrop{position:fixed;z-index:99990;background:#855cd6;border-radius:3px;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.7)}
+#cmenu{position:fixed;z-index:99991;background:#fff;color:#222;border:1px solid #b8c0cc;border-radius:10px;box-shadow:0 6px 22px rgba(0,0,0,.3);padding:4px;display:flex;flex-direction:column;min-width:160px}
+#cmenu button{min-height:44px;text-align:left;padding:0 14px;border:0;background:transparent;border-radius:6px;font:inherit;font-size:14px;color:inherit}#cmenu button:hover:not(:disabled),#cmenu button:focus-visible{background:#eef1f8;outline:0}#cmenu button:disabled{opacity:.4}#cmenu button.danger{color:#c92a2a}
+#uidlg{position:fixed;inset:0;z-index:99998;background:rgba(20,24,40,.45);display:flex;align-items:center;justify-content:center;padding:12px}
+.uibox{background:#fff;color:#222;border-radius:14px;padding:18px 20px;width:min(380px,92vw);box-shadow:0 8px 30px rgba(0,0,0,.35)}.uimsg{font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;margin-bottom:14px}
+.uibtns{display:flex;gap:8px;justify-content:flex-end}.uibtns button{min-width:92px;min-height:44px;border-radius:8px;border:1px solid #b8c0cc;background:#f4f6fa;font:inherit;font-size:14px;color:inherit}.uibtns button.danger{background:#c92a2a;border-color:#c92a2a;color:#fff}.uibtns button:focus-visible{outline:2px solid #855cd6;outline-offset:2px}
+#cname{flex:none;width:150px;min-width:0;min-height:36px;box-sizing:border-box;padding:0 8px;border:1px solid #c9d0d9;border-radius:6px;font:inherit;font-size:13px;text-overflow:ellipsis;background:#fff;color:inherit}#cname:focus{border-color:#855cd6;outline:0;text-overflow:clip}#cname.err{border-color:#e33;background:#ffecec}
+.ci .cl{flex:none;display:block;min-height:18px;margin-top:2px;padding:0 4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
 <div id="top">
+<input id="cname" type="text" maxlength="60" spellcheck="false" autocomplete="off" aria-label="コスチュームの名前(Enterで確定)" title="コスチュームの名前を変更(Enterで確定、Escで元に戻す)">
 <button id="addv" data-i="addv" data-t="ベクターのコスチュームを追加" data-l="ベクター"></button>
 <button id="addb" data-i="addb" data-t="ビットマップのコスチュームを追加" data-l="ビット"></button>
 <button id="impb" data-i="imp" data-t="画像を読み込む(原寸)"></button><input type="file" id="imp" accept="image/*" hidden>
@@ -759,7 +771,7 @@ function bkRun(){const t0=performance.now();for(const c of cs){if(c.k=='b'&&c!==
 const TS={sel:'選択',rsh:'点編集',brush:'ブラシ',pen:'ペン',eras:'消しゴム',fill:'塗り',txt:'文字',line:'線',ell:'楕円',rect:'四角',poly:'多角形',shp:'図形',arw:'矢印',cut:'分割',hand:'移動',ctr:'中心',pick:'抽出',brect:'四角',bell:'楕円',bline:'線',bsel:'範囲'},TK={sel:'V',rsh:'A',brush:'B',pen:'P',eras:'E',txt:'T'},TG={rsh:1,txt:1,arw:1,bsel:1,pick:1,bline:1};
 function tools(){const c=C();pvClear();$('#tools').innerHTML='';(c.k=='v'?TV:TB).forEach(k=>{const b=document.createElement('button');setB(b,k,TN[k]+(TK[k]?' ['+TK[k]+']':''),TS[k]);b.setAttribute('aria-pressed',k==tool);b.className=k==tool?'on':'';b.onclick=()=>{if(C().k=='b')bcommit();tool=k;swNorm();selPt=-1;if(k!='sel'&&k!='rsh'&&k!='bsel')sel=[];tools();sync();draw()};$('#tools').append(b);if(TG[k])$('#tools').insertAdjacentHTML('beforeend','<i class="tsep"></i>')})}
 const dis=(i,v)=>{$('#'+i).disabled=!!v};
-function sync(){const c=C(),v=c.k=='v',s0=sel[0];
+function sync(){cnameSync();const c=C(),v=c.k=='v',s0=sel[0];
 ['dp','dl','mu','fr','bkb','gp','ug','arr'].forEach(i=>$('#'+i).hidden=!v);$('#bdel').hidden=v;$('#snapb').className=SNAP?'on':'';$('#snapb').setAttribute('aria-pressed',!!SNAP);$('#l_fc').hidden=$('#fo').parentNode.hidden=$('#l_so').hidden=$('#g_sj').hidden=!v;
 $('#g_rr').hidden=!(v&&(tool=='rect'||(s0&&s0.t=='rect')));$('#g_pg').hidden=!(v&&tool=='poly');
 $('#g_ft').hidden=!(v&&(tool=='txt'||(s0&&(s0.t=='txt'||s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot)))));$('#g_bf').hidden=!(!v&&(tool=='brect'||tool=='bell'));$('#g_fall').hidden=tool!='fill';
@@ -782,18 +794,61 @@ $('#fn').onchange=()=>{const l=sel.filter(s=>s.t=='txt');if(!l.length)return;his
 $('#addf').onclick=()=>$('#ff').click();
 $('#ff').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const n=prompt('フォント名',f.name.replace(/\.[^.]+$/,''));if(!n)return;const fb=prompt('バックアップフォント(読み込み失敗時に使用)','sans-serif')||'sans-serif';const o={n,data:r.result,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};r.readAsDataURL(f);e.target.value=''};
 $('#sysf').onclick=async()=>{const n=prompt('システムにあるフォント名');if(!n)return;const fb=prompt('バックアップフォント','sans-serif')||'sans-serif',o={n,data:null,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};
-function list(){const L=$('#list');if(TIO)TIO.disconnect();VIS.clear();list.n=cs.length;L.innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i>${i+1}</i><canvas width=72 height=54></canvas><input class="cn" maxlength="60" spellcheck="false" autocomplete="off"><div class="cb"><button class="cdup"></button><button class="cdel"></button></div>`;
-const nm=d.querySelector('.cn'),b1=d.querySelector('.cdup'),b2=d.querySelector('.cdel');nm.value=c.n;nm.setAttribute('aria-label','コスチューム'+(i+1)+'の名前(タップして編集)');nm.title='名前をタップして編集(Enterで確定)';
-setB(b1,'dup','コスチューム'+(i+1)+'を複製','複製');setB(b2,'del','コスチューム'+(i+1)+'を削除','削除');b2.disabled=cs.length<2;
-if(c.k=='b')d.title=`${c.w}×${c.h}px / 解像度${RS(c)} → 論理${+(c.w/RS(c)).toFixed(2)}×${+(c.h/RS(c)).toFixed(2)}`;
-d.onclick=e=>{if(e.target.closest('button')||i==ci)return;const edit=e.target.classList.contains('cn');go(i);if(edit){const n=$('#list').children[i].querySelector('.cn');n.focus();n.select()}};
-b1.onclick=e=>{e.stopPropagation();dupAt(i)};b2.onclick=e=>{e.stopPropagation();delAt(i)};
-nm.onchange=()=>renAt(i,nm);nm.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();nm.blur()}else if(e.key=='Escape'){nm.value=cs[i].n;nm.blur()}};
-L.append(d);const tc=d.querySelector('canvas');tc._ix=i;tc._st=1;if(TIO)TIO.observe(tc);else drawThumb(tc)});lvnApply()}
+function relabel(d,i){const c=cs[i],g=d.querySelector('i'),l=d.querySelector('.cl');g.textContent=i+1;d.querySelector('canvas')._ix=i;l.textContent=c.n;l.title=c.n;if(c.k=='b')d.title=`${c.w}×${c.h}px / 解像度${RS(c)} → 論理${+(c.w/RS(c)).toFixed(2)}×${+(c.h/RS(c)).toFixed(2)}`}
+function nameLabel(c){const d=$('#list').children[cs.indexOf(c)];if(!d)return;const l=d.querySelector('.cl');if(l){l.textContent=c.n;l.title=c.n}}
+function list(){const L=$('#list');if(TIO)TIO.disconnect();VIS.clear();list.n=cs.length;L.innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i class="grip" title="ドラッグで並べ替え"></i><canvas width=72 height=54></canvas><span class="cl"></span>`;
+const ix=()=>cs.indexOf(c);
+d.onclick=e=>{if(RD.sup){RD.sup=0;return}const i=ix();if(i==ci)return;go(i)};
+L.append(d);relabel(d,i);const tc=d.querySelector('canvas');tc._st=1;if(TIO)TIO.observe(tc);else drawThumb(tc)});lvnApply()}
 function listSel(){const L=$('#list'),p=L.querySelector('.ci.on'),n=L.children[ci];if(p)p.classList.remove('on');if(n)n.classList.add('on');lvnApply();thumbs()}
+/* ===== 独自ダイアログ(alert/confirm の代わり) ===== */
+function uiDlg(msg,btns,opt){opt=opt||{};return new Promise(res=>{const prev=document.activeElement,ov=document.createElement('div'),box=document.createElement('div'),p=document.createElement('div'),row=document.createElement('div');
+ov.id='uidlg';ov.setAttribute('role','alertdialog');ov.setAttribute('aria-modal','true');box.className='uibox';p.className='uimsg';p.textContent=msg;row.className='uibtns';let done=false;
+const close=v=>{if(done)return;done=true;removeEventListener('keydown',kd,true);removeEventListener('keyup',ku,true);ov.remove();try{prev&&prev.focus&&prev.focus()}catch(e){}res(v)};
+btns.forEach(b=>{const e=document.createElement('button');e.type='button';e.textContent=b.t;if(b.danger)e.className='danger';e.onclick=()=>close(b.v);row.append(e)});
+const kd=e=>{e.stopImmediatePropagation();if(e.key=='Escape'){e.preventDefault();close(opt.esc!==undefined?opt.esc:false)}else if(e.key=='Tab'){const bs=[...row.children],i=bs.indexOf(document.activeElement);e.preventDefault();bs[(i+(e.shiftKey?-1:1)+bs.length)%bs.length].focus()}};
+const ku=e=>e.stopImmediatePropagation();addEventListener('keydown',kd,true);addEventListener('keyup',ku,true);
+ov.addEventListener('pointerdown',e=>{if(e.target===ov)close(opt.esc!==undefined?opt.esc:false)});box.append(p,row);ov.append(box);document.body.append(ov);(row.children[opt.focus||0]||row.lastChild).focus()})}
+const uiAlert=msg=>uiDlg(msg,[{t:'OK',v:true}],{esc:true});
+const uiConfirm=(msg,ok,no)=>uiDlg(msg,[{t:no||'キャンセル',v:false},{t:ok||'削除する',v:true,danger:1}],{esc:false,focus:0});
+/* ===== コスチューム一覧: 右クリック/長押しメニュー ===== */
+let CM=null;const RD={d:null,go:0,sup:0,lp:0};
+function cmClose(){if(!CM)return;CM.remove();CM=null;removeEventListener('pointerdown',cmOut,true);removeEventListener('keydown',cmKey,true);removeEventListener('resize',cmClose);$('#list').removeEventListener('scroll',cmClose)}
+function cmOut(e){if(CM&&!CM.contains(e.target))cmClose()}
+function cmKey(e){if(!CM)return;const bs=[...CM.querySelectorAll('button:not(:disabled)')],i=bs.indexOf(document.activeElement);if(e.key=='Escape'){e.preventDefault();e.stopImmediatePropagation();cmClose()}else if(e.key=='ArrowDown'||e.key=='ArrowUp'){e.preventDefault();e.stopImmediatePropagation();bs[(i+(e.key=='ArrowDown'?1:-1)+bs.length)%bs.length].focus()}else if(e.key=='Tab'){e.preventDefault();e.stopImmediatePropagation();bs[(i+(e.shiftKey?-1:1)+bs.length)%bs.length].focus()}else if(e.key=='Enter'||e.key==' ')e.stopImmediatePropagation()}
+function cmOpen(c,x,y){cmClose();const m=document.createElement('div');m.id='cmenu';m.setAttribute('role','menu');
+const add=(t,fn,dis,cls)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');b.textContent=t;b.disabled=!!dis;if(cls)b.className=cls;b.onclick=()=>{cmClose();fn()};m.append(b)};
+add('コピー(複製)',()=>{const i=cs.indexOf(c);if(i>=0)dupAt(i)});add('削除',()=>{const i=cs.indexOf(c);if(i>=0)delAt(i)},cs.length<2,'danger');
+document.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(4,Math.min(x,innerWidth-r.width-4))+'px';m.style.top=Math.max(4,Math.min(y,innerHeight-r.height-4))+'px';CM=m;
+setTimeout(()=>{if(CM!==m)return;addEventListener('pointerdown',cmOut,true);addEventListener('keydown',cmKey,true);addEventListener('resize',cmClose);$('#list').addEventListener('scroll',cmClose)},0);const f=m.querySelector('button:not(:disabled)');if(f)f.focus()}
+/* ===== コスチューム一覧: ドラッグで並べ替え =====
+   マウス/ペン: 項目のどこでもドラッグ。タッチ: 左上の「⠿ 番号」のつまみをドラッグ(それ以外は一覧のスクロール、長押しでメニュー) */
+{const L=$('#list'),ixOf=d=>[...L.children].indexOf(d);
+const target=(x,y)=>{const horiz=getComputedStyle(L).flexDirection.startsWith('row'),others=[...L.children].filter(c=>c!==RD.d),pos=horiz?x:y;let k=0;for(const c of others){const r=c.getBoundingClientRect(),mid=horiz?(r.left+r.right)/2:(r.top+r.bottom)/2;if(pos>mid)k++;else break}return{k,others,horiz}};
+const showDrop=(x,y)=>{const {k,others,horiz}=target(x,y);RD.k=k;let el=$('#cdrop');if(!el){el=document.createElement('div');el.id='cdrop';document.body.append(el)}if(!others.length){el.style.display='none';return}
+const ref=others[Math.min(k,others.length-1)].getBoundingClientRect(),after=k>=others.length;el.style.display='block';
+if(horiz){el.style.left=(after?ref.right+1:ref.left-4)+'px';el.style.top=ref.top+'px';el.style.width='4px';el.style.height=ref.height+'px'}else{el.style.top=(after?ref.bottom+1:ref.top-4)+'px';el.style.left=ref.left+'px';el.style.height='4px';el.style.width=ref.width+'px'}};
+const edge=()=>{if(!RD.go)return;const r=L.getBoundingClientRect(),horiz=getComputedStyle(L).flexDirection.startsWith('row'),M=34,s=14;if(horiz){if(RD.px<r.left+M)L.scrollLeft-=s;else if(RD.px>r.right-M)L.scrollLeft+=s}else{if(RD.py<r.top+M)L.scrollTop-=s;else if(RD.py>r.bottom-M)L.scrollTop+=s}showDrop(RD.px,RD.py)};
+const end=ok=>{clearTimeout(RD.lp);if(RD.go){clearInterval(RD.iv);const d=RD.d,el=$('#cdrop');if(el)el.remove();d.classList.remove('dragging');document.body.classList.remove('cdragging');try{d.releasePointerCapture(RD.id)}catch(e){}
+ if(ok){const from=ixOf(d),{k,others}=target(RD.px,RD.py);if(from>=0&&k!=from){const cur=cs[ci],[m]=cs.splice(from,1);cs.splice(k,0,m);ci=cs.indexOf(cur);L.insertBefore(d,others[k]||null);[...L.children].forEach((e,j)=>relabel(e,j));fin()}}
+ RD.sup=1;setTimeout(()=>{RD.sup=0},60)}RD.d=null;RD.go=0};
+L.addEventListener('pointerdown',e=>{if(e.pointerType=='mouse'&&e.button>0)return;const d=e.target.closest('.ci');if(!d||e.target.closest('input,button'))return;cmClose();RD.d=d;RD.id=e.pointerId;RD.x=RD.px=e.clientX;RD.y=RD.py=e.clientY;RD.grip=!!e.target.closest('.grip');RD.touch=e.pointerType=='touch';RD.go=0;clearTimeout(RD.lp);
+ if(RD.touch&&!RD.grip)RD.lp=setTimeout(()=>{const c=cs[ixOf(d)];RD.d=null;RD.sup=1;setTimeout(()=>{RD.sup=0},700);if(c)cmOpen(c,RD.x,RD.y)},520)});
+addEventListener('pointermove',e=>{if(!RD.d||e.pointerId!=RD.id)return;RD.px=e.clientX;RD.py=e.clientY;const dist=Math.hypot(e.clientX-RD.x,e.clientY-RD.y);
+ if(!RD.go){if(RD.touch&&!RD.grip){if(dist>8){clearTimeout(RD.lp);RD.d=null}return}if(dist<(RD.touch?3:6))return;clearTimeout(RD.lp);RD.go=1;RD.d.classList.add('dragging');document.body.classList.add('cdragging');try{RD.d.setPointerCapture(RD.id)}catch(x){}RD.iv=setInterval(edge,40)}
+ e.preventDefault();showDrop(e.clientX,e.clientY)},{passive:false});
+addEventListener('pointerup',e=>{if(RD.d&&e.pointerId==RD.id){RD.px=e.clientX;RD.py=e.clientY;end(true)}});
+addEventListener('pointercancel',e=>{if(RD.d&&e.pointerId==RD.id)end(false)});
+addEventListener('keydown',e=>{if(RD.go&&e.key=='Escape'){e.preventDefault();e.stopImmediatePropagation();end(false)}},true);
+L.addEventListener('contextmenu',e=>{const d=e.target.closest('.ci');if(!d||e.target.closest('input'))return;e.preventDefault();clearTimeout(RD.lp);if(RD.go)return;RD.d=null;const c=cs[ixOf(d)];if(c)cmOpen(c,e.clientX,e.clientY)})}
+/* 上ツール左端のコスチューム名: 現在のコスチュームの名前を表示・変更(幅は固定で、長い名前は欄内で省略/スクロール) */
+function cnameSync(){const n=$('#cname');if(n&&document.activeElement!==n)n.value=C().n}
+{const nm=$('#cname');nm.onfocus=()=>{nm._c=C()};
+nm.onchange=()=>{const c=nm._c||C(),i=cs.indexOf(c);if(i<0)return;renAt(i,nm);nameLabel(c);if(c!==C())nm.value=C().n};
+nm.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();nm.blur()}else if(e.key=='Escape'){e.preventDefault();nm.value=(nm._c||C()).n;nm.blur()}};nm.onkeyup=e=>e.stopPropagation()}
 function renAt(i,inp){const v=inp.value.trim();if(!v){inp.value=cs[i].n;inp.classList.add('err');setTimeout(()=>inp.classList.remove('err'),600);return}cs[i].n=v;inp.value=v}
 function dupAt(i){bcommit();const c=cs[i],n=mk(c.k,c.n+'のコピー');rs(n,st(c));cs.splice(i+1,0,n);go(i+1)}
-function delAt(i){if(cs.length<2)return alert('最後のコスチュームは削除できません');if(!confirm('コスチューム「'+cs[i].n+'」を削除しますか?'))return;if(i!=ci)bcommit();cs.splice(i,1);if(i<ci)ci--;else if(i==ci)ci=Math.min(ci,cs.length-1);sel=[];go(ci)}
+async function delAt(i){const c0=cs[i];if(!c0)return;if(cs.length<2){await uiAlert('最後のコスチュームは削除できません');return}if(!await uiConfirm('コスチューム「'+c0.n+'」を削除しますか?\n(削除後に「戻す」で復元することはできません)'))return;i=cs.indexOf(c0);if(i<0||cs.length<2)return;if(i!=ci)bcommit();cs.splice(i,1);if(i<ci)ci--;else if(i==ci)ci=Math.min(ci,cs.length-1);sel=[];go(ci)}
 const VIS=new Set(),TIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{const t=e.target;if(e.isIntersecting){VIS.add(t);if(t._st)drawThumb(t)}else VIS.delete(t)}),{rootMargin:'300px'}):null;
 function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const k=Math.min(72/c.w,54/c.h);x.save();x.translate((72-c.w*k)/2,(54-c.h*k)/2);x.scale(k,k);dc(x,c);x.restore()}
 // thumbs(): 既定は編集中の1枚だけ更新。thumbs(true)は全コスチューム(見えているものだけ即時、残りはスクロールで表示された時に描画)
