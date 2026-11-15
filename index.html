@@ -365,6 +365,23 @@ if(s.t=='img'){if(s.im&&s.im.complete)x.drawImage(s.im,-s.w/2,-s.h/2,s.w,s.h)}
 else if(s.t=='txt'){x.font=`${s.fs}px ${s.fn||'sans-serif'}`;x.textBaseline='middle';x.textAlign='center';if(s.f){x.fillStyle=fsty(x,s,s.f);x.fillText(s.tx,0,0)}if(s.s){x.strokeStyle=s.s;x.lineWidth=s.sw;x.lineJoin=jn(s);x.miterLimit=10;x.strokeText(s.tx,0,0)}}
 else{const p=p2d(s);if(s.f){x.fillStyle=fsty(x,s,s.f);x.fill(p,s.fr||'evenodd')}if(s.s){x.strokeStyle=s.s;x.lineWidth=s.sw;x.lineCap='round';x.lineJoin=jn(s);x.miterLimit=10;x.stroke(p)}}
 x.restore()}
+/* ===== ベクター → ビットマップ(アンチエイリアス ON/OFF 対応) =====
+   ON : 通常のCanvas描画(従来どおり)
+   OFF: 図形ごと・塗りと線ごとに単独で描き、カバー率50%以上のピクセルだけを「その色そのもの」で置く(縁の混色・半透明なし)。
+        色のアルファ(半透明色)は指定どおり重ねる。グラデーションは中心の色を使い、画像は補間なしで二値化 */
+function aoCompose(out,W,H,D,rx,ry,rw,rh,col,a0){for(let y=0;y<rh;y++){const Y=ry+y;if(Y<0||Y>=H)continue;for(let x=0;x<rw;x++){const j=(y*rw+x)*4;if(D[j+3]<128)continue;const X=rx+x;if(X<0||X>=W)continue;const i=(Y*W+X)*4,r=col?col[0]:D[j],g=col?col[1]:D[j+1],b=col?col[2]:D[j+2];
+if(a0>=1){out[i]=r;out[i+1]=g;out[i+2]=b;out[i+3]=255}else{const da=out[i+3]/255,ra=a0+da*(1-a0);if(ra<=0)continue;out[i]=Math.round((r*a0+out[i]*da*(1-a0))/ra);out[i+1]=Math.round((g*a0+out[i+1]*da*(1-a0))/ra);out[i+2]=Math.round((b*a0+out[i+2]*da*(1-a0))/ra);out[i+3]=Math.round(ra*255)}}}}
+function rasterVecOff(W,H,shapes,k,ox,oy){const out=new Uint8ClampedArray(W*H*4),solid=v=>typeof v=='string'?parseC(v):null;
+for(const s of shapes){if(s.hid)continue;const L=[];
+if(s.t=='img')L.push({sh:s,col:null,a0:1,sm:false});
+else{if(s.f){const q=solid(s.f);L.push({sh:{...s,s:null,f:q?toStr({...q,a:1}):s.f},col:q?[q.r,q.g,q.b]:null,a0:q?q.a:1})}
+if(s.s&&s.sw>0){const q=solid(s.s);L.push({sh:{...s,f:null,s:q?toStr({...q,a:1}):s.s},col:q?[q.r,q.g,q.b]:null,a0:q?q.a:1})}}
+if(!L.length)continue;const[bx0,by0,bx1,by1]=ubox([s]),m=(s.sw||0)*6+4,rx0=Math.max(0,Math.floor((bx0-m-ox)*k)),ry0=Math.max(0,Math.floor((by0-m-oy)*k)),rx1=Math.min(W,Math.ceil((bx1+m-ox)*k)),ry1=Math.min(H,Math.ceil((by1+m-oy)*k)),rw=rx1-rx0,rh=ry1-ry0;if(rw<=0||rh<=0)continue;
+for(const l of L){const T=document.createElement('canvas');T.width=rw;T.height=rh;const x=T.getContext('2d',{willReadFrequently:true});x.setTransform(k,0,0,k,-ox*k-rx0,-oy*k-ry0);if(l.sm===false)x.imageSmoothingEnabled=false;dsh(x,l.sh);aoCompose(out,W,H,x.getImageData(0,0,rw,rh).data,rx0,ry0,rw,rh,l.col,l.a0)}}
+return out}
+// 図形列を canvas o に描く。出力座標 = (世界座標 - (ox,oy)) * k。アンチエイリアスの設定(#aa)に従う
+function rasterVec(o,shapes,k,ox,oy){const x=o.getContext('2d');if($('#aa').checked){x.save();x.setTransform(k,0,0,k,-ox*k,-oy*k);shapes.forEach(s=>s.hid||dsh(x,s));x.restore()}
+else{const im=x.createImageData(o.width,o.height);im.data.set(rasterVecOff(o.width,o.height,shapes,k,ox,oy));x.putImageData(im,0,0)}}
 function dcv(x,c){/* 表示専用: プレビュー(PRV)を反映して描く。書き出し・保存・サムネイルは dc() を使う */
 if(c.k=='b'){x.drawImage(PRV.bm||c.bc,0,0);const b=c==C()&&sel[0]&&sel[0].t=='bs'?vs(sel[0]):0;if(b&&b.cvs)stampSel(x,b);return}
 pvList(c).forEach(s=>s.hid||dsh(x,s))}
@@ -792,7 +809,7 @@ $('#g_bpen').hidden=v||!['brush','eras','brect','bell','bline','bsel'].includes(
 if(v&&s0){if(s0.t!='img')SJ=jn(s0);if(s0.t!='txt'){$('#fo').checked=!!s0.f;$('#so').checked=!!s0.s||s0.sw===0}if(s0.f){if(typeof s0.f=='string'){gm='s';setCol('fc',s0.f)}else{gm=s0.f.g;setCol('fc',s0.f.c1);setCol('fc2',s0.f.c2)}}if(s0.s)setCol('sc',s0.s);$('#sw').value=s0.sw!=null?s0.sw:4;if(s0.t=='rect')$('#rr').value=s0.rr||0;
 if(s0.t=='txt'){const i=FL.findIndex(f=>f.css==s0.fn);if(i>=0)$('#fn').value=i}}
 $('#sjm').className=SJ=='miter'?'on':'';$('#sjr').className=SJ=='miter'?'':'on';$('#sjm').setAttribute('aria-pressed',SJ=='miter');$('#sjr').setAttribute('aria-pressed',SJ!='miter');dis('undo',!c.u.length);dis('redo',!c.r.length);
-['fr','bkb','dp','dl','ug','al'].forEach(i=>dis(i,!sel.length));dis('gp',sel.length<2);['bmg','bmk','bsb','bft'].forEach(i=>dis(i,sel.length<2));dis('te',!(s0&&s0.t=='txt'));dis('t2p',!(s0&&s0.t=='txt'));dis('p2t',!(s0&&(s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot))));dis('delpt',!(s0&&s0.bz&&selPt>=0));dis('ptm',!(s0&&s0.bz&&selPt>=0));const hb=s0&&s0.t=='bs'&&bsPx(s0)>0;['bcp','bct','bdel','bfh','bfv','nl','nu','nd','nr'].forEach(i=>dis(i,!hb));dis('bps',!clip);if(v){dis('bcp',!sel.length);dis('bct',!sel.length);dis('bps',!vclip);dis('bfh',!sel.some(s=>!s.lk));dis('bfv',!sel.some(s=>!s.lk))}swSync();lySync();onSync();$('#symb').className=SYM?'on':'';$('#symb').setAttribute('aria-pressed',!!SYM);if(document.activeElement!==$('#sw'))swNorm();{const go=$('#g_ofs');if(go){go.hidden=!v;$('#ofb').disabled=!sel.length}if(OFS.open){if(!v)ofsClose();else ofsSoon()}const gb=$('#g_bool');if(gb)gb.hidden=!v;const f1=$('#g_ftt');if(f1)f1.hidden=$('#g_ft').hidden;const f2=$('#g_ndt');if(f2)f2.hidden=$('#g_nd').hidden}}
+['fr','bkb','dp','dl','ug','al'].forEach(i=>dis(i,!sel.length));dis('gp',sel.length<2);['bmg','bmk','bsb','bft'].forEach(i=>dis(i,sel.length<2));dis('te',!(s0&&s0.t=='txt'));dis('t2p',!(s0&&s0.t=='txt'));dis('p2t',!(s0&&(s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot))));dis('delpt',!(s0&&s0.bz&&selPt>=0));dis('ptm',!(s0&&s0.bz&&selPt>=0));const hb=s0&&s0.t=='bs'&&bsPx(s0)>0;['bcp','bct','bdel','bfh','bfv','nl','nu','nd','nr'].forEach(i=>dis(i,!hb));dis('bps',!(clip||vclip));if(v){dis('bcp',!sel.length);dis('bct',!sel.length);dis('bps',!vclip);dis('bfh',!sel.some(s=>!s.lk));dis('bfv',!sel.some(s=>!s.lk))}swSync();lySync();onSync();$('#symb').className=SYM?'on':'';$('#symb').setAttribute('aria-pressed',!!SYM);if(document.activeElement!==$('#sw'))swNorm();{const go=$('#g_ofs');if(go){go.hidden=!v;$('#ofb').disabled=!sel.length}if(OFS.open){if(!v)ofsClose();else ofsSoon()}const gb=$('#g_bool');if(gb)gb.hidden=!v;const f1=$('#g_ftt');if(f1)f1.hidden=$('#g_ft').hidden;const f2=$('#g_ndt');if(f2)f2.hidden=$('#g_nd').hidden}}
 function ap(){const c=C();if(c.k!='v'||!sel.length)return;if(!dirty){hist();dirty=1;dis('undo',0);dis('redo',1)}sel.forEach(s=>{const y=sty();if(s.t=='txt'){s.f=fv();s.s=y.s;s.sw=Math.max(1,y.sw/2)}else if(s.t=='img'){}else{s.f=s.t=='line'?null:y.f;s.s=y.s||(s.t=='line'?col('fc'):null);s.sw=s.t=='line'&&!(y.sw>0)?1:y.sw}});draw();thumbs()}
 ['fc','fc2','sc','fo','so'].forEach(i=>{$('#'+i).addEventListener('input',ap);$('#'+i).addEventListener('change',()=>{ap();dirty=0})});
 {const e=$('#sw');e.addEventListener('input',ap);e.addEventListener('change',()=>{swNorm();ap();dirty=0})}
@@ -1073,8 +1090,8 @@ $('#lyu').onclick=()=>mvL(1);$('#lyd').onclick=()=>mvL(-1);
 $('#tp').onclick=()=>{$('#side').hidden=!$('#side').hidden;lySync.k=0;sync()};
 // --- E. 共通ショートカット管理 [キー,Ctrl/Cmd,Shift,説明,処理]。一覧(?)はこの表から自動生成
 const tl=(v,b)=>()=>{const t=isV()?v:b;if(!t)return;if(!isV())bcommit();tool=t;selPt=-1;if(!['sel','rsh','bsel'].includes(t))sel=[];tools();sync();draw()};
-let vclip=null;const AR={t:0};
-function vcopy(){if(sel.length)vclip=JSON.stringify(sel,rep)}
+let vclip=null,VCI=null,LASTCLIP='';const AR={t:0};
+function vcopy(){if(sel.length){vclip=JSON.stringify(sel,rep);const c=C();VCI={res:RS(c),w:c.w,h:c.h};LASTCLIP='v'}}
 function vpaste(){if(!vclip)return;const c=C(),G={};hist();const n=JSON.parse(vclip).map(q=>{if(q.g)q.g=G[q.g]||(G[q.g]=++gid+Date.now());if(q.src)ld(q);return q});c.sh.push(...n);sel=n;tool='sel';tools();fin()}
 function selAll(){const c=C();if(isV()){sel=c.sh.filter(s=>!s.hid&&!s.lk);if(tool!='sel'&&tool!='rsh'){tool='sel';tools()}}else{bcommit();tool='bsel';sel=[{t:'bs',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:[0,0,c.w,c.h],cvs:null}];tools()}sync();draw()}
 const del_=()=>(isV()?$('#dl'):$('#bdel')).click();
@@ -1120,7 +1137,7 @@ $('#flt').onclick=openFlt;
 // --- F. ベクター→ビットマップ(等倍。サイズ・中心点・透明度を維持。Undoで形式ごと復元)
 $('#v2b').onclick=()=>{const c=C();if(c.k!='v')return alert('このコスチュームはすでにビットマップです。\nビットマップ→ベクターのトレース変換は未実装です。');
 if(!confirm('ベクターをビットマップに変換します。\n・変換後は図形単位の編集(移動・変形・点の編集・レイヤー)ができなくなります\n・解像度は現在のコスチュームサイズ(等倍)で、サイズと中心点は維持されます\n・「元に戻す」で変換前に戻せます'))return;
-hist();const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);c.bc=o;c.k='b';c.res=1;c.sh=[];sel=[];tmp=null;fin()};
+hist();const o=document.createElement('canvas');o.width=c.w;o.height=c.h;rasterVec(o,c.sh,1,0,0);c.bc=o;c.k='b';c.res=1;c.sh=[];sel=[];tmp=null;fin()};
 // --- A. SVGをベクター図形へ変換(画像として置くだけの既存「画像を読み込む」とは別機能)
 function svgImport(t){const c=C();if(c.k!='v')return alert('ベクターのコスチュームを選択してください');
 const doc=new DOMParser().parseFromString(t,'image/svg+xml'),R=doc.documentElement,W=new Set(),out=[];if(R.nodeName!='svg'||doc.querySelector('parsererror'))return alert('SVGとして解析できませんでした');
@@ -1743,7 +1760,17 @@ const A={grid:gridObj,d_xe:()=>distObj('x','e'),d_ye:()=>distObj('y','e'),d_xc:(
 D.onclick=e=>{const b=e.target.closest('button[data-a]');if(b)A[b.dataset.a]();if(e.target.closest('[data-s]'))D.style.justifyContent=D.style.justifyContent=='flex-start'?'flex-end':'flex-start';if(e.target.closest('[data-x]')){clearInterval(iv);D.remove()}};
 const iv=setInterval(()=>{if(!D.isConnected)return clearInterval(iv);const c=C();$('#a_st').textContent=c.k!='v'?'ベクターのコスチュームで使えます':`図形${sel.length}個選択 / 点${selPts().length}個選択`},250)}
 $('#arr').onclick=()=>openArr(0);$('#pth').onclick=()=>openArr(3);
-{const o1=$('#bcp').onclick,o2=$('#bct').onclick,o3=$('#bps').onclick;$('#bcp').onclick=()=>{if(isV()){vcopy();sync()}else o1()};$('#bct').onclick=()=>{if(isV()){if(!sel.length)return;vcopy();$('#dl').click();sync()}else o2()};$('#bps').onclick=()=>{if(isV())vpaste();else o3()}}
+{const o1=$('#bcp').onclick,o2=$('#bct').onclick,o3=$('#bps').onclick;
+/* ベクターでコピーした図形をビットマップに貼る: 現在のアンチエイリアス設定でラスタライズし、浮動選択として置く(位置はコスチュームの中心基準、サイズは解像度に合わせて等倍) */
+async function vpasteToBitmap(){const c=C();if(!vclip||!VCI||c.k!='b')return;const shapes=JSON.parse(vclip);
+await Promise.all(shapes.map(q=>{if(q.src){ld(q);if(q.im&&!q.im.complete)return new Promise(r=>{q.im.addEventListener('load',r);q.im.addEventListener('error',r)})}}));
+const kt=RS(c)/VCI.res,sw=VCI.w,sh=VCI.h,m=Math.max(...shapes.map(s=>(s.sw||0)*6+4));let[x0,y0,x1,y1]=ubox(shapes);x0-=m;y0-=m;x1+=m;y1+=m;
+const tx0=Math.max(0,Math.floor(c.w/2+(x0-sw/2)*kt)),ty0=Math.max(0,Math.floor(c.h/2+(y0-sh/2)*kt)),tx1=Math.min(c.w,Math.ceil(c.w/2+(x1-sw/2)*kt)),ty1=Math.min(c.h,Math.ceil(c.h/2+(y1-sh/2)*kt)),W=tx1-tx0,H=ty1-ty0;
+if(W<=0||H<=0){await uiAlert('貼り付ける図形が、ビットマップの範囲の外です');return}
+const o=document.createElement('canvas');o.width=W;o.height=H;rasterVec(o,shapes,kt,(sw/2*kt+tx0-c.w/2)/kt,(sh/2*kt+ty0-c.h/2)/kt);
+if(!opaqueN(o)){await uiAlert('貼り付ける内容が空です');return}
+o.pi=[tx0+W/2,ty0+H/2,RS(c)];const keep=clip;clip=o;try{o3()}finally{clip=keep}}
+$('#bcp').onclick=()=>{if(isV()){vcopy();sync()}else{const b=clip;o1();if(clip!==b)LASTCLIP='b'}};$('#bct').onclick=()=>{if(isV()){if(!sel.length)return;vcopy();$('#dl').click();sync()}else o2()};$('#bps').onclick=()=>{if(isV())vpaste();else if(vclip&&(LASTCLIP=='v'||!clip))vpasteToBitmap();else o3()}}
 // ===== オニオンスキン(編集画面だけの表示レイヤー。編集データ・保存・書き出しには一切触れない) =====
 Object.assign(IC,{onion:'<circle cx="9" cy="12" r="6" stroke-dasharray="3 2"/><circle cx="15" cy="12" r="6"/>',onprev:'<circle cx="15" cy="12" r="5" stroke-dasharray="3 2"/><path d="M8 7l-5 5 5 5M3 12h8"/>',onnext:'<circle cx="9" cy="12" r="5" stroke-dasharray="3 2"/><path d="M16 7l5 5-5 5M21 12h-8"/>',oncol:'<circle cx="9" cy="12" r="5.5" fill="#ff4d4d" fill-opacity=".55" stroke="#ff4d4d"/><circle cx="15" cy="12" r="5.5" fill="#2f7bff" fill-opacity=".55" stroke="#2f7bff"/>',sym:'<path d="M12 3v18" stroke-dasharray="2 2.5"/><path d="M3 17C5 7 9 7 12 12M21 17C19 7 15 7 12 12"/>'});
 const OC=new WeakMap();
