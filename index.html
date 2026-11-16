@@ -539,7 +539,7 @@ function cancelOp(){const d=drag;drag=null;tmp=null;band=null;snapG=null;pvClear
 if(c.k=='b'){const x=c.bc.getContext('2d');if(d.snap){x.putImageData(d.snap,0,0);ch=1}if(HC>d.h0&&c.u.length){if(!d.snap){rs(c,c.u.pop());sel=[]}else c.u.pop();c.r=d.r0;ch=1}else if(d.m=='bnew'){sel=[];ch=1}}
 else if(HC>d.h0&&c.u.length){const ix=sel.map(q=>c.sh.indexOf(q));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);c.r=d.r0;ch=1}
 if(ch){ONG++;thumbs()}sync();draw()}
-function beginOp(e){down(e);OPPID=e.pointerId;OP=!drag?'idle':(drag.h?'move':(DRAWT.includes(tool)?'draw':'move'))}
+function beginOp(e){{const a=document.activeElement;if(a&&a!==document.body&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)&&!(typeof TE!=='undefined'&&TE))a.blur()}down(e);OPPID=e.pointerId;OP=!drag?'idle':(drag.h?'move':(DRAWT.includes(tool)?'draw':'move'))}
 function firePD(){if(!PD)return;const p=PD;PD=null;clearTimeout(p.t);if(OP!='pending')return;beginOp(p.e)}
 cv.addEventListener('pointerdown',e=>{e.preventDefault();{const a=document.activeElement;if(a&&a.id!=='te_in'&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))a.blur()}
 if(e.pointerType=='touch'&&PENS.size)return;/* スタイラス使用中の手のひら(タッチ)は無視 */
@@ -1099,13 +1099,14 @@ let vclip=null,VCI=null,LASTCLIP='';const AR={t:0};
 function vcopy(){if(sel.length){vclip=JSON.stringify(sel,rep);const c=C();VCI={res:RS(c),w:c.w,h:c.h};LASTCLIP='v'}}
 function vpaste(){if(!vclip)return;const c=C(),G={};hist();const n=JSON.parse(vclip).map(q=>{if(q.g)q.g=G[q.g]||(G[q.g]=++gid+Date.now());if(q.src)ld(q);return q});c.sh.push(...n);sel=n;tool='sel';tools();fin()}
 function selAll(){const c=C();if(isV()){sel=c.sh.filter(s=>!s.hid&&!s.lk);if(tool!='sel'&&tool!='rsh'){tool='sel';tools()}}else{bcommit();tool='bsel';sel=[{t:'bs',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:[0,0,c.w,c.h],cvs:null}];tools()}sync();draw()}
-const del_=()=>(isV()?$('#dl'):$('#bdel')).click();
+const del_=()=>{if(isV()){if(sel.length)$('#dl').onclick()}else $('#bdel').click()};
 const SC=[['v',0,0,'選択ツール',tl('sel','bsel')],['a',0,0,'リシェイプ(ベクターのみ)',tl('rsh',0)],['p',0,0,'ペン(ビットマップではブラシ)',tl('pen','brush')],['b',0,0,'ブラシ',tl('brush','brush')],['e',0,0,'消しゴム',tl('eras','eras')],['t',0,0,'文字(ベクターのみ)',tl('txt',0)],
 ['z',1,0,'元に戻す',undo],['z',1,1,'やり直し',redo],['y',1,0,'やり直し',redo],['Delete',0,0,'削除',del_],['Backspace',0,0,'',del_],
 ['d',1,0,'複製(ベクター)',()=>isV()&&$('#dp').click()],['a',1,0,'全選択',selAll],['s',1,0,'保存(JSON)',()=>$('#sv').click()],['o',1,0,'読み込み(JSON)',()=>$('#ld').click()],
-['c',1,0,'コピー',()=>isV()?vcopy():$('#bcp').click()],['x',1,0,'切り取り',()=>{if(isV()){vcopy();$('#dl').click()}else $('#bct').click()}],['v',1,0,'貼り付け',()=>isV()?vpaste():$('#bps').click()],
+['c',1,0,'コピー',()=>isV()?vcopy():$('#bcp').click()],['x',1,0,'切り取り',()=>{if(isV()){if(sel.length){vcopy();$('#dl').onclick()}}else $('#bct').click()}],['v',1,0,'貼り付け',()=>isV()?vpaste():$('#bps').click()],
 ['g',1,0,'グループ化(ベクター)',()=>$('#gp').click()],['g',1,1,'グループ解除(ベクター)',()=>$('#ug').click()],[']',1,0,'前面へ(ベクター)',()=>$('#fr').click()],['[',1,0,'背面へ(ベクター)',()=>$('#bkb').click()],['?',0,1,'ショートカット一覧',()=>help()]];
-addEventListener('keydown',e=>{const T=e.target;if(/INPUT|SELECT|TEXTAREA/.test(T.tagName)||T.isContentEditable||document.querySelector('.dlg:not(#arrd)')||CP.open||pickMode||e.altKey||!C())return;
+addEventListener('keydown',e=>{const T=e.target,del=e.key=='Delete'||e.key=='Backspace',typ=(T.type||'').toLowerCase(),txt=T.tagName=='TEXTAREA'||T.tagName=='SELECT'||(T.tagName=='INPUT'&&!['range','checkbox','radio','button','color'].includes(typ));
+if(txt||(T.tagName=='INPUT'&&!del)||T.isContentEditable||document.querySelector('.dlg:not(#arrd)')||(CP.open&&(!del||$('#cp').contains(T)))||pickMode||e.altKey||!C())return;
 const m=e.ctrlKey||e.metaKey,k=e.key.length==1?e.key.toLowerCase():e.key,h=SC.find(x=>x[0]==k&&!!x[1]==m&&!!x[2]==e.shiftKey);if(h){e.preventDefault();h[4]();return}
 if(!m&&k.startsWith('Arrow')&&isV()){const n=e.shiftKey?10:.1,dx={ArrowLeft:-n,ArrowRight:n}[k]||0,dy={ArrowUp:-n,ArrowDown:n}[k]||0,rd=v=>Math.round(v*1e6)/1e6,s0=sel[0],I=tool=='rsh'&&s0&&s0.bz&&!s0.lk?selPts():[];
 if(I.length){/* 点編集: 選択中の点(複数可)を移動。1点のときは重なっている他パスの点も一緒に動かす(ドラッグと同じ) */e.preventDefault();const LK=I.length==1?links(s0,I[0]):[],P=I.map(i=>W_(s0,i)),Q=LK.map(([o,j])=>W_(o,j));if(!AR.t)hist();clearTimeout(AR.t);AR.t=setTimeout(()=>AR.t=0,700);
@@ -1775,7 +1776,7 @@ if(W<=0||H<=0){await uiAlert('貼り付ける図形が、ビットマップの�
 const o=document.createElement('canvas');o.width=W;o.height=H;rasterVec(o,shapes,kt,(sw/2*kt+tx0-c.w/2)/kt,(sh/2*kt+ty0-c.h/2)/kt);
 if(!opaqueN(o)){await uiAlert('貼り付ける内容が空です');return}
 o.pi=[tx0+W/2,ty0+H/2,RS(c)];const keep=clip;clip=o;try{o3()}finally{clip=keep}}
-$('#bcp').onclick=()=>{if(isV()){vcopy();sync()}else{const b=clip;o1();if(clip!==b)LASTCLIP='b'}};$('#bct').onclick=()=>{if(isV()){if(!sel.length)return;vcopy();$('#dl').click();sync()}else o2()};$('#bps').onclick=()=>{if(isV())vpaste();else if(vclip&&(LASTCLIP=='v'||!clip))vpasteToBitmap();else o3()}}
+$('#bcp').onclick=()=>{if(isV()){vcopy();sync()}else{const b=clip;o1();if(clip!==b)LASTCLIP='b'}};$('#bct').onclick=()=>{if(isV()){if(!sel.length)return;vcopy();$('#dl').onclick();sync()}else o2()};$('#bps').onclick=()=>{if(isV())vpaste();else if(vclip&&(LASTCLIP=='v'||!clip))vpasteToBitmap();else o3()}}
 // ===== オニオンスキン(編集画面だけの表示レイヤー。編集データ・保存・書き出しには一切触れない) =====
 Object.assign(IC,{onion:'<circle cx="9" cy="12" r="6" stroke-dasharray="3 2"/><circle cx="15" cy="12" r="6"/>',onprev:'<circle cx="15" cy="12" r="5" stroke-dasharray="3 2"/><path d="M8 7l-5 5 5 5M3 12h8"/>',onnext:'<circle cx="9" cy="12" r="5" stroke-dasharray="3 2"/><path d="M16 7l5 5-5 5M21 12h-8"/>',oncol:'<circle cx="9" cy="12" r="5.5" fill="#ff4d4d" fill-opacity=".55" stroke="#ff4d4d"/><circle cx="15" cy="12" r="5.5" fill="#2f7bff" fill-opacity=".55" stroke="#2f7bff"/>',sym:'<path d="M12 3v18" stroke-dasharray="2 2.5"/><path d="M3 17C5 7 9 7 12 12M21 17C19 7 15 7 12 12"/>'});
 const OC=new WeakMap();
