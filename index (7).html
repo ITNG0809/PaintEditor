@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>コスチュームエディター</title>
+<link rel="icon" type="image/png" href="icon.png">
+   <title>コスチュームエディター</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
@@ -135,7 +136,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="zf" data-i="fit" data-t="全体表示"></button><button id="z1" data-i="z1" data-t="等倍(100%)"></button>
 <span class="sep"></span>
 <button id="sv" data-i="save" data-t="プロジェクトを保存(JSON)"></button>
-<button id="ld" data-i="load" data-t="プロジェクトを読み込む"></button><input type="file" id="lf" accept=".json" hidden>
+<button id="ld" data-i="load" data-t="プロジェクトを読み込む"></button><input type="file" id="lf" accept=".json,costume" hidden>
 <button id="expb" data-i="png" data-t="このコスチュームを書き出す(ビットマップはPNG、ベクターはSVG)"></button>
 <button id="bk" data-i="bk" data-t="自動バックアップを復元"></button>
 <span class="sep"></span>
@@ -942,7 +943,7 @@ list.force=1;cs=out;go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFon
 finally{LOADING=0;progEnd()}}
 function load(t){return loadAsync(t).catch(x=>{alert('読み込みに失敗しました')})}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
-$('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.json');
+$('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.costume');
 $('#ld').onclick=()=>$('#lf').click();$('#lf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{load(r.result)}catch(x){alert('読み込みに失敗しました')}};r.readAsText(f);e.target.value=''};
 $('#bk').onclick=()=>{const t=localStorage.getItem('ced_bk');if(!t)return alert('バックアップがありません');if(confirm('自動バックアップを復元しますか?(現在の内容は置き換わります)'))load(t)};
 /* 書き出し: ビットマップはPNG、ベクターはSVG */
