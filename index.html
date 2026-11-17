@@ -137,7 +137,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <span class="sep"></span>
 <button id="sv" data-i="save" data-t="プロジェクトを保存(JSON)"></button>
 <button id="ld" data-i="load" data-t="プロジェクトを読み込む"></button><input type="file" id="lf" accept=".json,.costume" hidden>
-<button id="expb" data-i="png" data-t="このコスチュームを書き出す(ビットマップはPNG、ベクターはSVG)"></button>
+<button id="expb" data-i="png" data-t="このコスチュームを書き出す(ビットマップはPNG、ベクターはSVG)。キャンバスサイズか画像サイズか選べます"></button>
 <button id="bk" data-i="bk" data-t="自動バックアップを復元"></button>
 <span class="sep"></span>
 <button id="pvw" data-i="prev" data-t="コスチュームのプレビュー・アニメーション再生"></button>
@@ -309,7 +309,7 @@ const WEBF=[['Archivo','Archivo'],['Archivo Black','Archivo Black'],['Playful(�
 const baseFL=()=>FL0.concat(WEBF.map(w=>({n:w[0],fam:w[1],css:`"${w[1]}",sans-serif`,web:1})));let FL=baseFL();let pal={recent:[],custom:[]};try{Object.assign(pal,JSON.parse(localStorage.getItem('ced_pal')||'{}'))}catch(e){}
 const fillFonts=()=>{const e=$('#fn'),v=e.value||'0';buildFpop();e.value=FL[+v]?v:'0'};
 async function regFont(f){if(f.data){try{const ff=new FontFace(f.n,`url(${f.data})`);await ff.load();document.fonts.add(ff)}catch(e){badFont.add(f.n);alert('フォントを読み込めませんでした: '+f.n)}}
-if(!FL.some(x=>x.n==f.n||x.fam==f.n))FL.push({n:f.n,css:`"${f.n}",${f.fb||'sans-serif'}`});fillFonts();cs.forEach(c=>c.sh.forEach(s=>s.t=='txt'&&tm(s)));thumbs(true);draw()}
+if(!FL.some(x=>x.n==f.n||x.fam==f.n))FL.push({n:f.n,css:`"${f.n}",${f.fb||'sans-serif'}`});fillFonts();cs.forEach(c=>{c._bb=undefined;c.sh.forEach(s=>s.t=='txt'&&tm(s))});thumbs(true);draw()}
 const webLoaded=new Set(),webFail=new Set(),webPrev=new Set(),webOk=new Set(),badFont=new Set();
 async function ensureWeb(f){if(!f.web||webLoaded.has(f.fam)||fonts.some(x=>x.n==f.fam))return;webLoaded.add(f.fam);
 try{const css=await(await fetch('https://fonts.googleapis.com/css2?family='+encodeURIComponent(f.fam).replace(/%20/g,'+')+'&display=swap')).text();
@@ -889,8 +889,28 @@ function bmBBox(src){const w=src.width,h=src.height;if(!w||!h)return null;const 
 for(let y=0;y<h;y++){const o=y*w*4+3;let l=-1,r=-1;for(let x=0;x<w;x++)if(D[o+x*4]>0){if(l<0)l=x;r=x}if(l>=0){if(l<x0)x0=l;if(r>x1)x1=r;if(y<y0)y0=y;y1=y}}
 return x1<0?null:[x0,y0,x1+1,y1+1]}
 // 一覧のサムネイル用(ビットマップのみ)。編集中のコスチュームは選択中の持ち上げも含めて毎回計算、それ以外は結果を使い回す
-function thumbBox(c){if(c.k!='b')return null;if(c===C()){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);return bmBBox(o)}if(c._bb===undefined)c._bb=bmBBox(c.bc);return c._bb}
-function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const bb=thumbBox(c),bx=bb?bb[0]:0,by=bb?bb[1]:0,bw=bb?bb[2]-bb[0]:c.w,bh=bb?bb[3]-bb[1]:c.h,k=Math.min(72/bw,54/bh);x.save();x.imageSmoothingEnabled=!(bb&&k>=1);x.translate((72-bw*k)/2,(54-bh*k)/2);x.scale(k,k);x.translate(-bx,-by);dc(x,c);x.restore()}
+/* ベクターの「実際に描かれる範囲」(縁・文字・画像を含む。キャンバスからはみ出した分も含む)。世界座標の整数矩形 [x0,y0,x1,y1](x1,y1は含まない)。何も描かれていなければ null。
+   1) 図形ごとの外接矩形+縁の余白で広めの範囲を出す 2) その範囲だけ実際に描き、alpha>0のピクセルがある範囲に絞る(縁の角・丸め・回転・反転も正確) */
+let VBS=null;
+function vgeo(s){/* 図形ローカル座標での外接矩形(縁なし) */
+if(s.t=='img'||s.t=='txt')return[-s.w/2,-s.h/2,s.w/2,s.h/2];
+try{if(!VBS){VBS=document.createElementNS('http://www.w3.org/2000/svg','svg');VBS.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden;visibility:hidden;pointer-events:none');VBS.setAttribute('aria-hidden','true');VBS.appendChild(document.createElementNS('http://www.w3.org/2000/svg','path'));document.body.appendChild(VBS)}
+const p=VBS.firstChild;p.setAttribute('d',dOf(s));const q=p.getBBox();
+if(q.width||q.height){const kx=s.t=='pd'&&s.w0?s.w/s.w0:1,ky=s.t=='pd'&&s.h0?s.h/s.h0:1,a=q.x*kx,b=q.y*ky,e=(q.x+q.width)*kx,f=(q.y+q.height)*ky;return[Math.min(a,e),Math.min(b,f),Math.max(a,e),Math.max(b,f)]}}catch(e){}
+return[-s.w/2,-s.h/2,s.w/2,s.h/2]}
+function vecShown(s){return !s.hid&&(s.t!='img'||(s.im&&s.im.complete))}
+function vecBBox(c){const L=c.sh.filter(vecShown);if(!L.length)return null;
+let X0=1e9,Y0=1e9,X1=-1e9,Y1=-1e9;
+for(const s of L){const q=vgeo(s),sw=s.t=='img'||!s.s?0:(+s.sw||0),m=sw*(s.sj=='miter'?5:.5)+(s.t=='txt'?(+s.fs||0)*.5:0)+2,co=Math.cos(s.r||0),si=Math.sin(s.r||0);
+for(const[px0,py] of[[q[0]-m,q[1]-m],[q[2]+m,q[1]-m],[q[0]-m,q[3]+m],[q[2]+m,q[3]+m]]){const px=s.mx?-px0:px0,wx=s.x+px*co-py*si,wy=s.y+px*si+py*co;X0=Math.min(X0,wx);X1=Math.max(X1,wx);Y0=Math.min(Y0,wy);Y1=Math.max(Y1,wy)}}
+const W0=X1-X0,H0=Y1-Y0;if(!isFinite(W0+H0)||!(W0>0&&H0>0))return null;
+const k=Math.min(1,2048/Math.max(W0,H0)),ox=Math.floor(X0),oy=Math.floor(Y0),o=document.createElement('canvas');o.width=Math.max(1,Math.ceil((X1-ox)*k));o.height=Math.max(1,Math.ceil((Y1-oy)*k));
+const x=o.getContext('2d',{willReadFrequently:true});x.setTransform(k,0,0,k,-ox*k,-oy*k);L.forEach(s=>dsh(x,s));
+const bb=bmBBox(o);if(!bb)return null;return[Math.floor(ox+bb[0]/k),Math.floor(oy+bb[1]/k),Math.ceil(ox+bb[2]/k),Math.ceil(oy+bb[3]/k)]}
+// 一覧のサムネイル用。編集中のコスチュームは毎回計算(選択中の持ち上げも含む)、それ以外は結果を使い回す(画像が未読込の間は使い回さない)
+function thumbBox(c){if(c.k=='v'){if(c===C())return vecBBox(c);if(c._bb===undefined){const r=vecBBox(c);if(c.sh.some(s=>s.t=='img'&&!s.hid&&!(s.im&&s.im.complete)))return r;c._bb=r}return c._bb}
+if(c.k!='b')return null;if(c===C()){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);return bmBBox(o)}if(c._bb===undefined)c._bb=bmBBox(c.bc);return c._bb}
+function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const bb=thumbBox(c),bx=bb?bb[0]:0,by=bb?bb[1]:0,bw=bb?bb[2]-bb[0]:c.w,bh=bb?bb[3]-bb[1]:c.h,k=Math.min(72/bw,54/bh);x.save();x.imageSmoothingEnabled=!(bb&&k>=1&&c.k=='b');x.translate((72-bw*k)/2,(54-bh*k)/2);x.scale(k,k);x.translate(-bx,-by);dc(x,c);x.restore()}
 // thumbs(): 既定は編集中の1枚だけ更新。thumbs(true)は全コスチューム(見えているものだけ即時、残りはスクロールで表示された時に描画)
 function thumbs(all){document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
 function thumbAt(c){const i=cs.indexOf(c),t=i<0?null:$('#list').children[i]&&$('#list').children[i].querySelector('canvas');if(!t)return;t._ix=i;t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}
@@ -947,18 +967,23 @@ $('#sv').onclick=()=>dl(new Blob([ser()],{type:'application/json'}),'costumes.co
 $('#ld').onclick=()=>$('#lf').click();$('#lf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{load(r.result)}catch(x){alert('読み込みに失敗しました')}};r.readAsText(f);e.target.value=''};
 $('#bk').onclick=()=>{const t=localStorage.getItem('ced_bk');if(!t)return alert('バックアップがありません');if(confirm('自動バックアップを復元しますか?(現在の内容は置き換わります)'))load(t)};
 /* 書き出し: ビットマップはPNG、ベクターはSVG */
-function exportCostume(c){c=c||C();if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);o.toBlob(b=>{if(b)dl(b,c.n+'.png')})}else dl(new Blob([svg(c)],{type:'image/svg+xml'}),c.n+'.svg')}
+/* 書き出し(1枚ずつ)。サイズを選べる: 今のキャンバスサイズ / 画像サイズ(描かれている範囲ぴったり。ベクターは縁を含み、キャンバスからはみ出した分も含む) */
+async function exportCostume(c){c=c||C();const m=await uiDlg('書き出すサイズを選んでください',[{t:'キャンセル',v:null},{t:'今のキャンバスサイズ',v:'canvas'},{t:'画像サイズ(図形ぴったり)',v:'fit'}],{esc:null,focus:1});if(!m||cs.indexOf(c)<0)return;
+if(c.k=='b'){let o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);
+if(m=='fit'){const bb=bmBBox(o);if(bb){const q=document.createElement('canvas');q.width=bb[2]-bb[0];q.height=bb[3]-bb[1];q.getContext('2d').drawImage(o,-bb[0],-bb[1]);o=q}}
+o.toBlob(b=>{if(b)dl(b,c.n+'.png')})}
+else dl(new Blob([svg(c,m=='fit'?vecBBox(c):null)],{type:'image/svg+xml'}),c.n+'.svg')}
 $('#expb').onclick=()=>exportCostume();
 const ca=(a,c)=>{if(!c)return`${a}="none"`;const q=typeof c=='string'&&parseC(c);return q&&q.a<.999?`${a}="#${h2(q.r)}${h2(q.g)}${h2(q.b)}" ${a}-opacity="${+q.a.toFixed(3)}"`:`${a}="${c}"`};
 const stp=(c,o)=>{const q=parseC(c)||{r:0,g:0,b:0,a:1};return`<stop offset="${o}" stop-color="#${h2(q.r)}${h2(q.g)}${h2(q.b)}" stop-opacity="${+q.a.toFixed(3)}"/>`};
-function svg(c){const df=[];const fl=(s,f)=>{if(!f)return'none';if(typeof f=='string')return f;const id='g'+df.length,w=(s.t=='pd'?s.w0:s.w)/2,h=(s.t=='pd'?s.h0:s.h)/2,st=stp(f.c1,0)+stp(f.c2,1);
+function svg(c,bb){const df=[],ox=bb?bb[0]:0,oy=bb?bb[1]:0,SW=bb?bb[2]-bb[0]:c.w,SH=bb?bb[3]-bb[1]:c.h,nx=v=>bb?+(v-ox).toFixed(4):v,ny=v=>bb?+(v-oy).toFixed(4):v;const fl=(s,f)=>{if(!f)return'none';if(typeof f=='string')return f;const id='g'+df.length,w=(s.t=='pd'?s.w0:s.w)/2,h=(s.t=='pd'?s.h0:s.h)/2,st=stp(f.c1,0)+stp(f.c2,1);
 df.push(f.g=='r'?`<radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="${Math.hypot(w,h)}">${st}</radialGradient>`:`<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${f.g=='h'?-w:0}" y1="${f.g=='v'?-h:0}" x2="${f.g=='h'?w:0}" y2="${f.g=='v'?h:0}">${st}</linearGradient>`);return`url(#${id})`};
-let b='';if(c.k=='b')b=`<image href="${flatURL(c)}" width="${c.w}" height="${c.h}"/>`;else c.sh.forEach(s=>{if(s.hid)return;const t=`transform="translate(${s.x} ${s.y}) rotate(${s.r*180/Math.PI})${s.mx?' scale(-1 1)':''}"`;
+let b='';if(c.k=='b')b=`<image href="${flatURL(c)}" width="${c.w}" height="${c.h}"/>`;else c.sh.forEach(s=>{if(s.hid)return;const t=`transform="translate(${nx(s.x)} ${ny(s.y)}) rotate(${s.r*180/Math.PI})${s.mx?' scale(-1 1)':''}"`;
 if(s.t=='img')b+=`<image ${t} href="${s.src}" x="${-s.w/2}" y="${-s.h/2}" width="${s.w}" height="${s.h}"/>`;
 else if(s.t=='txt')b+=`<text ${t} font-family="${esc(s.fn||'sans-serif')}" font-size="${s.fs}" text-anchor="middle" dominant-baseline="central" ${ca('fill',fl(s,s.f))} ${ca('stroke',s.s)} stroke-width="${s.sw}" stroke-linejoin="${jn(s)}" stroke-miterlimit="10">${esc(s.tx)}</text>`;
-else{const pd=s.t=='pd';b+=`<path transform="translate(${s.x} ${s.y}) rotate(${s.r*180/Math.PI})${pd?` scale(${s.w/s.w0} ${s.h/s.h0})`:''}"${pd?' vector-effect="non-scaling-stroke"':''} d="${dOf(s)}" ${ca('fill',fl(s,s.f))} fill-rule="${s.fr||'evenodd'}" ${ca('stroke',s.s)} stroke-width="${s.sw}" stroke-linecap="round" stroke-linejoin="${jn(s)}" stroke-miterlimit="10"/>`}});
+else{const pd=s.t=='pd';b+=`<path transform="translate(${nx(s.x)} ${ny(s.y)}) rotate(${s.r*180/Math.PI})${pd?` scale(${s.w/s.w0} ${s.h/s.h0})`:''}"${pd?' vector-effect="non-scaling-stroke"':''} d="${dOf(s)}" ${ca('fill',fl(s,s.f))} fill-rule="${s.fr||'evenodd'}" ${ca('stroke',s.s)} stroke-width="${s.sw}" stroke-linecap="round" stroke-linejoin="${jn(s)}" stroke-miterlimit="10"/>`}});
 const ff=fonts.filter(f=>f.data).map(f=>`@font-face{font-family:"${f.n}";src:url(${f.data})}`).join(''),dd=df.join('')+(ff?`<style>${ff}</style>`:'');
-return`<svg xmlns="http://www.w3.org/2000/svg" width="${c.w}" height="${c.h}" viewBox="0 0 ${c.w} ${c.h}">${dd?`<defs>${dd}</defs>`:''}${b}</svg>`}
+return`<svg xmlns="http://www.w3.org/2000/svg" width="${SW}" height="${SH}" viewBox="0 0 ${SW} ${SH}">${dd?`<defs>${dd}</defs>`:''}${b}</svg>`}
 
 /* キー処理は拡張ブロックの共通ショートカット管理(SC)に統合 */
 addEventListener('resize',draw);new ResizeObserver(draw).observe(cv);
@@ -1209,7 +1234,7 @@ if(m==0)R[key]=raw;else if(m==8){if(typeof DecompressionStream=='undefined')thro
 
 // 書き出し: 全コスチュームをScratch形式(sprite.json + svg/png)でZIP化
 async function s3out(){try{const name=prompt('スプライト名(Scratchで表示される名前)','スプライト1');if(name==null)return;if(C().k=='b')bcommit();const files=[],costumes=[],seen=new Set();
-for(const c of cs){let d,ext,res=1,rcx=c.cx,rcy=c.cy;if(c.k=='v'){d=te(svg(c)+`<!--rotationCenter:${c.cx}:${c.cy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);
+for(const c of cs){let d,ext,res=1,rcx=c.cx,rcy=c.cy;if(c.k=='v'){/* 縁を含む図形の範囲ぴったり(キャンバス外にはみ出した分も含む)に切り出し、回転中心は同じ位置を指すようずらす */const bb=vecBBox(c);if(bb){rcx=c.cx-bb[0];rcy=c.cy-bb[1]}d=te(svg(c,bb)+`<!--rotationCenter:${rcx}:${rcy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);
 /* 透明度1以上のピクセルがある範囲ぴったりに切り出す(何も描かれていない場合は元のサイズのまま)。回転中心は同じ位置を指すよう切り出し分だけずらす */
 const bb=bmBBox(o);let oo=o,ew=c.w,eh=c.h;if(bb){ew=bb[2]-bb[0];eh=bb[3]-bb[1];oo=document.createElement('canvas');oo.width=ew;oo.height=eh;oo.getContext('2d').drawImage(o,-bb[0],-bb[1]);rcx=c.cx-bb[0];rcy=c.cy-bb[1]}
 const b=await new Promise(r=>oo.toBlob(r,'image/png'));if(!b)throw Error('PNG変換に失敗しました');d=new Uint8Array(await b.arrayBuffer());ext='png';res=RS(c);if(oo.width!=ew||oo.height!=eh)throw Error(c.n+': 画像サイズの不整合')}
