@@ -128,6 +128,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #spl .sp.on{background:#855cd6;border-color:#855cd6;color:#fff;font-weight:bold}#spl .sp.stg{border-style:dashed}
 #spbar button:disabled{opacity:.4}
 #spname{flex:none;width:140px;min-width:0;min-height:36px;box-sizing:border-box;padding:0 8px;border:1px solid #c9d0d9;border-radius:6px;font:inherit;font-size:13px;text-overflow:ellipsis;background:#fff;color:inherit}#spname:focus{border-color:#855cd6;outline:0;text-overflow:clip}#spname:disabled{background:#eceef3}
+#spl .sp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 8px;min-width:64px}#spl .sp canvas{width:60px;height:45px;background:#fff;border-radius:4px;flex:none}#spl .sp span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.2}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
@@ -233,10 +234,14 @@ const BLANK_BD="<svg version=\"1.1\" width=\"2\" height=\"2\" viewBox=\"-1 -1 2 
 function spSave(){const s=SPS[SPI];if(s){s.cs=cs;s.ci=ci}}
 const AC=()=>{spSave();return SPS.flatMap(s=>s.cs||[])};
 const u2b=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)},b2u=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
-function spUnique(n,skip){const used=new Set(SPS.filter(s=>s!==skip).map(s=>s.n));const b=n.replace(/\d+$/,'')||n;let k=2;while(used.has(n)||n=='Stage')n=b+k++;return n}
+function cpName(n,used){used=used||new Set(cs.map(c=>c.n));const m=n.match(/^(.*?)(\d+)$/),b=m?m[1]:n;let k=m?+m[2]+1:2;while(used.has(b+k))k++;return b+k}
+function spUnique(n,skip){const used=new Set(SPS.filter(s=>s!==skip).map(s=>s.n));if(!used.has(n)&&n!='Stage')return n;const m=n.match(/^(.*?)(\d+)$/),b=m?m[1]:n;let k=m?+m[2]+1:2;while(used.has(b+k)||b+k=='Stage')k++;return b+k}
+/* スプライトタブのサムネイル(最後に開いていたコスチューム) */
+function spThumb(t,c){if(!t||!c)return;try{const x=t.getContext('2d');x.clearRect(0,0,72,54);const bb=thumbBox(c),bx=bb?bb[0]:0,by=bb?bb[1]:0,bw=bb?bb[2]-bb[0]:c.w,bh=bb?bb[3]-bb[1]:c.h,k=Math.min(72/bw,54/bh);x.save();x.imageSmoothingEnabled=!(bb&&k>=1&&c.k=='b');x.translate((72-bw*k)/2,(54-bh*k)/2);x.scale(k,k);x.translate(-bx,-by);dc(x,c);x.restore()}catch(e){}}
+function spThumbCur(){clearTimeout(spThumbCur.t);spThumbCur.t=setTimeout(()=>{const t=document.querySelector('#spl .sp.on canvas');if(t&&cs[ci])spThumb(t,cs[ci])},250)}
 function spLeave(){if(TE)teEnd();bcommit();sel=[];selPt=-1;pvClear()}
 function spSwitch(k){if(k==SPI||!SPS[k])return;spLeave();spSave();SPI=k;cs=SPS[k].cs;ci=Math.min(SPS[k].ci,cs.length-1);list.force=1;go(ci);spUI()}
-function spUI(){const L=$('#spl');if(!L)return;L.innerHTML='';SPS.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'');b.textContent=s.stage?'ステージ':s.n;b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>spSwitch(i);L.append(b)});
+function spUI(){const L=$('#spl');if(!L)return;L.innerHTML='';SPS.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'');b.innerHTML='<canvas width=72 height=54></canvas><span></span>';b.lastChild.textContent=s.stage?'ステージ':s.n;spThumb(b.firstChild,(i==SPI?cs:s.cs)[i==SPI?ci:s.ci]);b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>spSwitch(i);L.append(b)});
 const s=SPS[SPI],n=$('#spname');if(document.activeElement!==n)n.value=s.stage?'ステージ':s.n;n.disabled=!!s.stage;$('#spdup').disabled=!!s.stage;$('#spdel').disabled=!!s.stage||SPS.filter(x=>!x.stage).length<2;
 const on=L.querySelector('.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<L.scrollLeft)L.scrollLeft=Math.max(0,l-4);else if(r>L.scrollLeft+L.clientWidth)L.scrollLeft=r-L.clientWidth+4}}
 async function spAdd(){let stage=false;if(!SPS.some(s=>s.stage)){const m=await uiDlg('何を追加しますか?',[{t:'キャンセル',v:null},{t:'ステージ(背景)',v:'s'},{t:'スプライト',v:'p'}],{esc:null,focus:2});if(!m)return;stage=m=='s'}
@@ -912,7 +917,7 @@ function cnameSync(){const n=$('#cname');if(n&&document.activeElement!==n)n.valu
 nm.onchange=()=>{const c=nm._c||C(),i=cs.indexOf(c);if(i<0)return;renAt(i,nm);nameLabel(c);if(c!==C())nm.value=C().n};
 nm.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();nm.blur()}else if(e.key=='Escape'){e.preventDefault();nm.value=(nm._c||C()).n;nm.blur()}};nm.onkeyup=e=>e.stopPropagation()}
 function renAt(i,inp){const v=inp.value.trim();if(!v){inp.value=cs[i].n;inp.classList.add('err');setTimeout(()=>inp.classList.remove('err'),600);return}cs[i].n=v;inp.value=v}
-function dupAt(i){bcommit();const c=cs[i],n=mk(c.k,c.n+'のコピー');rs(n,st(c));cs.splice(i+1,0,n);go(i+1)}
+function dupAt(i){bcommit();const c=cs[i],n=mk(c.k,cpName(c.n));rs(n,st(c));cs.splice(i+1,0,n);go(i+1)}
 async function delAt(i){const c0=cs[i];if(!c0)return;if(cs.length<2){await uiAlert('最後のコスチュームは削除できません');return}if(!await uiConfirm('コスチューム「'+c0.n+'」を削除しますか?\n(削除後に「戻す」で復元することはできません)'))return;i=cs.indexOf(c0);if(i<0||cs.length<2)return;if(i!=ci)bcommit();cs.splice(i,1);if(i<ci)ci--;else if(i==ci)ci=Math.min(ci,cs.length-1);sel=[];go(ci)}
 const VIS=new Set(),TIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{const t=e.target;if(e.isIntersecting){VIS.add(t);if(t._st)drawThumb(t)}else VIS.delete(t)}),{rootMargin:'300px'}):null;
 /* 画像のうち「透明度1以上(アルファ>0)」のピクセルがある範囲 [x0,y0,x1,y1](x1,y1は含まない)。何も描かれていなければ null */
@@ -943,7 +948,7 @@ function thumbBox(c){if(c.k=='v'){if(c===C())return vecBBox(c);if(c._bb===undefi
 if(c.k!='b')return null;if(c===C()){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);return bmBBox(o)}if(c._bb===undefined)c._bb=bmBBox(c.bc);return c._bb}
 function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const bb=thumbBox(c),bx=bb?bb[0]:0,by=bb?bb[1]:0,bw=bb?bb[2]-bb[0]:c.w,bh=bb?bb[3]-bb[1]:c.h,k=Math.min(72/bw,54/bh);x.save();x.imageSmoothingEnabled=!(bb&&k>=1&&c.k=='b');x.translate((72-bw*k)/2,(54-bh*k)/2);x.scale(k,k);x.translate(-bx,-by);dc(x,c);x.restore()}
 // thumbs(): 既定は編集中の1枚だけ更新。thumbs(true)は全コスチューム(見えているものだけ即時、残りはスクロールで表示された時に描画)
-function thumbs(all){document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
+function thumbs(all){spThumbCur();document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
 function thumbAt(c){const i=cs.indexOf(c),t=i<0?null:$('#list').children[i]&&$('#list').children[i].querySelector('canvas');if(!t)return;t._ix=i;t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}
 function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&$('#list').children.length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;cs[ci]._bb=undefined;{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
