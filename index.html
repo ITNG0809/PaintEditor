@@ -7,7 +7,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;font:14px system-ui,sans-serif;background:#e9eef2;color:#575e75;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
-#app{display:grid;height:100%;grid-template:"menu menu menu" auto "top top top" auto "list tools main" 1fr "list prop prop" auto/100px 56px 1fr}
+#app{display:grid;height:100%;grid-template:"menu menu menu" auto "top top top" auto "sp sp sp" auto "list tools main" 1fr "list prop prop" auto/100px 56px 1fr}
 button,select,input[type=number]{min-height:44px;min-width:44px;border:1px solid #c9d0d9;background:#fff;border-radius:8px;font:inherit;color:inherit;padding:0 6px}
 button{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer}
 button small{font-size:9px;line-height:1}
@@ -37,7 +37,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 .tg,.cl{position:relative}.tg input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0}
 .tg span{display:flex;min-width:44px;min-height:44px;border:1px solid #c9d0d9;border-radius:8px;background:#fff;align-items:center;justify-content:center}
 .cl span{display:flex}
-@media(max-width:700px){#app{grid-template:"menu" auto "top" auto "list" auto "tools" auto "main" 1fr "prop" auto/1fr}
+@media(max-width:700px){#app{grid-template:"menu" auto "top" auto "sp" auto "list" auto "tools" auto "main" 1fr "prop" auto/1fr}
 #list{display:flex;gap:4px;padding:4px}.ci{min-width:72px;margin:0}#tools{flex-direction:row;border:0}#tools button{min-width:48px}}
 .ck{background:linear-gradient(var(--c,#000),var(--c,#000)),conic-gradient(#ccc 25%,#fff 0 50%,#ccc 0 75%,#fff 0) 0 0/10px 10px}
 .chip{display:block;position:relative;width:20px;height:20px;border-radius:5px;border:1px solid #0005;flex:none}
@@ -122,6 +122,12 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 .ci .cl{flex:none;display:block;min-height:18px;margin-top:2px;padding:0 4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:11px}
 .ftl{display:inline-flex;align-items:center;gap:4px}.ftl input[type=range]{width:96px;min-height:32px}.ftl output{min-width:2.2em;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
 #onion input[type=number]{width:64px;min-height:30px}.ftl input[type=number]{width:64px;min-height:32px}.dlg input[type=number]{width:76px;min-height:36px;text-align:right}#g_rr input[type=number],#g_pg input[type=number]{width:60px}
+#spbar{grid-area:sp;display:flex;align-items:center;gap:4px;padding:3px 4px;background:#e9e4fb;border-bottom:1px solid #c9d0d9;min-width:0}
+#spl{position:relative;display:flex;gap:4px;flex:1 1 auto;min-width:0;overflow-x:auto;padding:2px 0}
+#spl .sp{flex:0 0 auto;max-width:170px;min-height:36px;padding:0 12px;border:1px solid #b8c0cc;border-radius:8px;background:#fff;color:#2b2f42;font:inherit;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#spl .sp.on{background:#855cd6;border-color:#855cd6;color:#fff;font-weight:bold}#spl .sp.stg{border-style:dashed}
+#spbar button:disabled{opacity:.4}
+#spname{flex:none;width:140px;min-width:0;min-height:36px;box-sizing:border-box;padding:0 8px;border:1px solid #c9d0d9;border-radius:6px;font:inherit;font-size:13px;text-overflow:ellipsis;background:#fff;color:inherit}#spname:focus{border-color:#855cd6;outline:0;text-overflow:clip}#spname:disabled{background:#eceef3}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
@@ -143,11 +149,12 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="pvw" data-i="prev" data-t="コスチュームのプレビュー・アニメーション再生"></button>
 <button id="tp" data-i="layers" data-t="レイヤー・数値指定パネルの表示切替"></button>
 <button id="flt" data-i="adj" data-t="画像フィルター(ビットマップ用)"></button>
-<button id="s3o" data-i="pkgout" data-t=".sprite3で書き出し(全コスチューム・Scratch用)"></button><button id="s3i" data-i="pkgin" data-t=".sprite3を読み込み(コスチュームを追加)"></button><input type="file" id="s3f" accept=".sprite3,.zip" hidden>
+<button id="s3o" data-i="pkgout" data-t="現在のスプライトを.sprite3で書き出し(全コスチューム・Scratch用)"></button><button id="sb3o" data-i="pkgout" data-t="プロジェクト全体(全スプライト+ステージ)を.sb3で書き出し(Scratch用)"></button><button id="s3i" data-i="pkgin" data-t=".sprite3 / .sb3を読み込み(.sb3はプロジェクト全体を置き換え)"></button><input type="file" id="s3f" accept=".sprite3,.sb3,.zip" hidden>
 <button id="svi" data-i="svgin" data-t="SVGを編集可能なベクター図形として読み込む"></button><input type="file" id="svf" accept=".svg,image/svg+xml" hidden>
 <button id="v2b" data-i="conv" data-t="ベクター→ビットマップに変換"></button>
 <button id="hlp" data-i="help" data-t="ショートカット一覧(?)"></button>
 </div>
+<div id="spbar" role="toolbar" aria-label="スプライト"><input id="spname" type="text" maxlength="60" spellcheck="false" autocomplete="off" aria-label="スプライトの名前(Enterで確定)" title="スプライトの名前を変更(Enterで確定、Escで元に戻す)"><div id="spl" role="tablist" aria-label="スプライト一覧"></div><button id="spadd" data-i="spadd" data-l="追加" data-t="スプライトを追加(空のスプライトを新規作成)"></button><button id="spdup" data-i="dup" data-l="複製" data-t="現在のスプライトを複製(全コスチュームごと)"></button><button id="spdel" data-i="del" data-l="削除" data-t="現在のスプライトを削除"></button></div>
 <div id="lcol"><div id="lhead"></div><div id="lvn" role="group" aria-label="コスチュームの表示数" title="コスチュームの表示数(1画面に表示する数)"><span>表示数</span><button id="lvm" type="button" title="表示するコスチュームの数を減らす(大きく表示)" aria-label="表示数を減らす">−</button><b id="lvv" aria-live="polite">4</b><button id="lvp" type="button" title="表示するコスチュームの数を増やす(小さく表示)" aria-label="表示数を増やす">＋</button></div><div id="list"></div></div><div id="tools"></div>
 <div id="fpop" role="listbox" aria-label="フォント一覧" hidden></div>
 <div id="main"><canvas id="cv"></canvas><input id="te_in" type="text" hidden autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="文字を入力(Enterで確定)"><div id="shpp" hidden></div>
@@ -216,6 +223,30 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 const $=s=>document.querySelector(s),cv=$('#cv'),g=cv.getContext('2d');
 let cs=[],ci=0,tool='sel',sel=[],z=1,ox=0,oy=0,multi=0,tmp=null,drag=null,dirty=0,band=null,gid=1,curShape=0,fonts=[],selPt=-1,gm='s',clip=null;
 const C=()=>cs[ci],rep=(k,v)=>k=='im'?undefined:v,esc=s=>String(s).replace(/[&<>"]/g,m=>'&#'+m.charCodeAt(0)+';');
+
+/* ===== 複数スプライト =====
+   cs / ci は「いま編集中のスプライト」のコスチューム配列と番号(従来の編集処理はそのまま動く)。他のスプライトは SPS に退避する。
+   ex = Scratchのターゲット情報(ブロック・変数・サウンドの定義・位置など。読み込んだものをそのまま保持して書き出す)、snd = サウンドファイル */
+const SPD=()=>({variables:{},lists:{},broadcasts:{},blocks:{},comments:{},volume:100,layerOrder:1,visible:true,x:0,y:0,size:100,direction:90,draggable:false,rotationStyle:'all around'}),STD=()=>({variables:{},lists:{},broadcasts:{},blocks:{},comments:{},volume:100,layerOrder:0,tempo:60,videoTransparency:50,videoState:'on',textToSpeechLanguage:null});
+let SPS=[{n:'スプライト1',cs:null,ci:0,ex:SPD(),snd:{},stage:false}],SPI=0,PRJ={monitors:[],extensions:[]};
+const BLANK_BD="<svg version=\"1.1\" width=\"2\" height=\"2\" viewBox=\"-1 -1 2 2\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n  <!-- Exported by Scratch - http://scratch.mit.edu/ -->\n</svg>";
+function spSave(){const s=SPS[SPI];if(s){s.cs=cs;s.ci=ci}}
+const AC=()=>{spSave();return SPS.flatMap(s=>s.cs||[])};
+const u2b=u=>{let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)},b2u=b=>Uint8Array.from(atob(b),c=>c.charCodeAt(0));
+function spUnique(n,skip){const used=new Set(SPS.filter(s=>s!==skip).map(s=>s.n));const b=n.replace(/\d+$/,'')||n;let k=2;while(used.has(n)||n=='Stage')n=b+k++;return n}
+function spLeave(){if(TE)teEnd();bcommit();sel=[];selPt=-1;pvClear()}
+function spSwitch(k){if(k==SPI||!SPS[k])return;spLeave();spSave();SPI=k;cs=SPS[k].cs;ci=Math.min(SPS[k].ci,cs.length-1);list.force=1;go(ci);spUI()}
+function spUI(){const L=$('#spl');if(!L)return;L.innerHTML='';SPS.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'');b.textContent=s.stage?'ステージ':s.n;b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>spSwitch(i);L.append(b)});
+const s=SPS[SPI],n=$('#spname');if(document.activeElement!==n)n.value=s.stage?'ステージ':s.n;n.disabled=!!s.stage;$('#spdup').disabled=!!s.stage;$('#spdel').disabled=!!s.stage||SPS.filter(x=>!x.stage).length<2;
+const on=L.querySelector('.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<L.scrollLeft)L.scrollLeft=Math.max(0,l-4);else if(r>L.scrollLeft+L.clientWidth)L.scrollLeft=r-L.clientWidth+4}}
+async function spAdd(){let stage=false;if(!SPS.some(s=>s.stage)){const m=await uiDlg('何を追加しますか?',[{t:'キャンセル',v:null},{t:'ステージ(背景)',v:'s'},{t:'スプライト',v:'p'}],{esc:null,focus:2});if(!m)return;stage=m=='s'}
+spLeave();spSave();const c=mk('v',stage?'背景1':'コスチューム1'),s={n:stage?'Stage':spUnique('スプライト'+(SPS.filter(x=>!x.stage).length+1)),cs:[c],ci:0,ex:stage?STD():SPD(),snd:{},stage};if(stage){SPS.unshift(s);SPI++}else SPS.push(s);spSwitch(SPS.indexOf(s))}
+function spDup(){const s=SPS[SPI];if(!s||s.stage)return;spLeave();spSave();const n=s.cs.map(c=>{const d=mk(c.k,c.n);rs(d,st(c));return d});SPS.splice(SPI+1,0,{n:spUnique(s.n),cs:n,ci:s.ci,ex:JSON.parse(JSON.stringify(s.ex||SPD())),snd:Object.assign({},s.snd),stage:false});spSwitch(SPI+1)}
+async function spDel(){const s=SPS[SPI];if(!s)return;if(s.stage||SPS.filter(x=>!x.stage).length<2){await uiAlert(s.stage?'ステージは削除できません':'最後のスプライトは削除できません');return}
+if(!await uiConfirm('スプライト「'+s.n+'」を削除しますか?\n(コスチュームもすべて削除されます。元に戻せません)'))return;const k=SPS.indexOf(s);if(k<0)return;spLeave();spSave();SPS.splice(k,1);PRJ.monitors=(PRJ.monitors||[]).filter(m=>m.spriteName!==s.n);SPI=Math.min(k,SPS.length-1);if(SPS[SPI].stage&&SPS.length>1)SPI=Math.min(SPI+1,SPS.length-1);cs=SPS[SPI].cs;ci=Math.min(SPS[SPI].ci,cs.length-1);list.force=1;go(ci);spUI()}
+function spInit(){$('#spadd').onclick=spAdd;$('#spdup').onclick=spDup;$('#spdel').onclick=spDel;const n=$('#spname');
+n.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();n.blur()}else if(e.key=='Escape'){e.preventDefault();n.value=SPS[SPI].stage?'ステージ':SPS[SPI].n;n.blur()}};n.onkeyup=e=>e.stopPropagation();
+n.onchange=()=>{const s=SPS[SPI];if(!s||s.stage)return;const v=n.value.trim();if(!v){n.value=s.n;n.classList.add('err');setTimeout(()=>n.classList.remove('err'),600);return}const o=s.n;s.n=spUnique(v,s);(PRJ.monitors||[]).forEach(m=>{if(m.spriteName===o)m.spriteName=s.n});n.value=s.n;spUI()};spUI()}
 const K=[[-1,-1],[1,-1],[1,1],[-1,1]],EK=[[-1,0],[1,0],[0,-1],[0,1]];
 let LVN=4,OP='idle',OPPID=null,PD=null,HC=0,TE=null,TEH=null,TT=null,DT=null,snapG=null,SNAP=true,BG={c:'#ffffff',chk:true},ON={on:false,prev:true,next:true,col:true,op:.35,n:1},ONG=0,SYM=false;
 // ===== リアルタイムプレビュー管理(PRV) =====
@@ -801,7 +832,7 @@ $('#bclean').onclick=cleanAlpha;
 function flood(c,px,py,col){const im=floodCalc(c,px,py,col);if(im)c.bc.getContext('2d').putImageData(im,0,0)}
 // ===== UI =====
 function fin(){ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(bkRun,1200)}
-function bkRun(){const t0=performance.now();for(const c of cs){if(c.k=='b'&&c!==C()&&!c._fu){c._fu=flatURL(c);if(performance.now()-t0>14){fin.t=setTimeout(bkRun,40);return}}}let n=0;for(const c of cs)if(c._fu)n+=c._fu.length;if(n>4.2e6)return;try{localStorage.setItem('ced_bk',ser())}catch(e){}}
+function bkRun(){const t0=performance.now();for(const c of AC()){if(c.k=='b'&&c!==C()&&!c._fu){c._fu=flatURL(c);if(performance.now()-t0>14){fin.t=setTimeout(bkRun,40);return}}}let n=0;for(const c of AC())if(c._fu)n+=c._fu.length;if(n>4.2e6)return;try{localStorage.setItem('ced_bk',ser(1))}catch(e){}}
 const TS={sel:'選択',rsh:'点編集',brush:'ブラシ',pen:'ペン',eras:'消しゴム',fill:'塗り',txt:'文字',line:'線',ell:'楕円',rect:'四角',poly:'多角形',shp:'図形',arw:'矢印',cut:'分割',hand:'移動',ctr:'中心',pick:'抽出',brect:'四角',bell:'楕円',bline:'線',bsel:'範囲'},TK={sel:'V',rsh:'A',brush:'B',pen:'P',eras:'E',txt:'T'},TG={rsh:1,txt:1,arw:1,bsel:1,pick:1,bline:1};
 function tools(){const c=C();pvClear();$('#tools').innerHTML='';(c.k=='v'?TV:TB).forEach(k=>{const b=document.createElement('button');setB(b,k,TN[k]+(TK[k]?' ['+TK[k]+']':''),TS[k]);b.setAttribute('aria-pressed',k==tool);b.className=k==tool?'on':'';b.onclick=()=>{if(C().k=='b')bcommit();tool=k;swNorm();selPt=-1;if(k!='sel'&&k!='rsh'&&k!='bsel')sel=[];tools();sync();draw()};$('#tools').append(b);if(TG[k])$('#tools').insertAdjacentHTML('beforeend','<i class="tsep"></i>')})}
 const dis=(i,v)=>{$('#'+i).disabled=!!v};
@@ -938,7 +969,9 @@ $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.type=='image/
 if(c.k=='b')c.bc.getContext('2d').drawImage(im,Math.round((c.w-im.naturalWidth)/2),Math.round((c.h-im.naturalHeight)/2));
 else{const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:im.naturalWidth,h:im.naturalHeight,src:r.result};ld(s);c.sh.push(s);sel=[s]}fin()};im.src=r.result};r.readAsDataURL(f);e.target.value=''};
 // ===== 保存・出力 =====
-function ser(){return JSON.stringify({v:3,ci,fonts,pal,cur:curState(),cs:cs.map(c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?(c===C()?flatURL(c):(c._fu||(c._fu=flatURL(c)))):0}))},rep)}
+const serC=c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?(c===C()?flatURL(c):(c._fu||(c._fu=flatURL(c)))):0});
+/* v4: 複数スプライト(sp)。noSnd=1 のときはサウンドファイルを含めない(自動バックアップ用。読み込み時にファイルが無いサウンドは外す) */
+function ser(noSnd){spSave();return JSON.stringify({v:4,ci,fonts,pal,cur:curState(),spi:SPI,prj:PRJ,sp:SPS.map(s=>({n:s.n,st:s.stage?1:0,ci:s.ci,ex:s.ex,snd:noSnd?{}:Object.fromEntries(Object.entries(s.snd||{}).map(([k,v])=>[k,u2b(v)])),cs:s.cs.map(serC)}))},rep)}
 /* ===== 読み込み進捗オーバーレイ / 時間分割 ===== */
 const PG={el:null};
 function progBegin(msg){if(PG.el)return progSet(0,msg);const e=document.createElement('div');e.id='pgov';e.setAttribute('role','alertdialog');e.setAttribute('aria-live','polite');
@@ -951,15 +984,20 @@ const yieldUI=()=>new Promise(r=>setTimeout(r,0));let SL_T0=0;
 async function slice(){if(performance.now()-SL_T0>14){await yieldUI();SL_T0=performance.now()}}
 let LOADING=0;
 async function loadAsync(t){if(LOADING)return;LOADING=1;progBegin('ファイルを解析中…');
-try{await yieldUI();const o=JSON.parse(t);if(!o||!Array.isArray(o.cs)||!o.cs.length)throw Error('コスチュームがありません');
+try{await yieldUI();const o=JSON.parse(t);const src=Array.isArray(o.sp)&&o.sp.length?o.sp:(Array.isArray(o.cs)&&o.cs.length?[{n:'スプライト1',ci:o.ci,cs:o.cs}]:null);if(!src||src.some(s=>!Array.isArray(s.cs)||!s.cs.length))throw Error('コスチュームがありません');
 FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
-const N=o.cs.length,out=[];
-for(let i=0;i<N;i++){const q=o.cs[i];progSet(i/N,'コスチュームを読み込み中 '+(i+1)+' / '+N);await slice();
+const N=src.reduce((a,s)=>a+s.cs.length,0),outS=[];let K=0;
+for(const sq of src){const out=[];for(const q of sq.cs){progSet(K/N,'コスチュームを読み込み中 '+(K+1)+' / '+N);K++;await slice();
 const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh||[],res:+q.res>0?+q.res:1});c.sh.forEach(s=>s.src&&ld(s));
 if(q.k=='b'){c.bc.width=q.w;c.bc.height=q.h;if(q.bm){await new Promise(r=>{const im=new Image;im.onload=()=>{try{c.bc.getContext('2d').drawImage(im,0,0)}catch(e){}r()};im.onerror=()=>r();im.src=q.bm});c._fu=q.bm}}
 out.push(c)}
+const snd={};if(sq.snd)for(const k in sq.snd){try{snd[k]=b2u(sq.snd[k])}catch(e){}}
+const ex=sq.ex&&typeof sq.ex=='object'?sq.ex:(sq.st?STD():SPD());if(Array.isArray(ex.sounds))ex.sounds=ex.sounds.filter(x=>snd[x.md5ext]);
+outS.push({n:sq.st?'Stage':String(sq.n||'スプライト'),cs:out,ci:Math.min(Math.max(0,sq.ci|0),out.length-1),ex,snd,stage:!!sq.st})}
 progSet(1,'仕上げ中…');await yieldUI();
-list.force=1;cs=out;go(Math.min(o.ci||0,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync()}
+if(TE)teEnd();bcommit();sel=[];selPt=-1;
+PRJ=o.prj&&typeof o.prj=='object'?{monitors:o.prj.monitors||[],extensions:o.prj.extensions||[]}:{monitors:[],extensions:[]};
+SPS=outS;SPI=Math.min(Math.max(0,o.spi|0),SPS.length-1);cs=SPS[SPI].cs;list.force=1;go(Math.min(SPS[SPI].ci,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync();spUI()}
 finally{LOADING=0;progEnd()}}
 function load(t){return loadAsync(t).catch(x=>{alert('読み込みに失敗しました')})}
 function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
@@ -1232,29 +1270,70 @@ for(let i=0;i<n;i++){if(onp){onp(i,n);await slice()}if(v.getUint32(p,true)!=0x02
 const ds=lo+30+v.getUint16(lo+26,true)+v.getUint16(lo+28,true),raw=u.subarray(ds,ds+cz);if(nm.endsWith('/'))continue;const key=nm.split('/').pop();
 if(m==0)R[key]=raw;else if(m==8){if(typeof DecompressionStream=='undefined')throw Error('このブラウザは圧縮ZIPの展開に未対応です');R[key]=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}else throw Error('未対応のZIP圧縮方式('+m+')')}return R}
 
-// 書き出し: 全コスチュームをScratch形式(sprite.json + svg/png)でZIP化
-async function s3out(){try{const name=prompt('スプライト名(Scratchで表示される名前)','スプライト1');if(name==null)return;if(C().k=='b')bcommit();const files=[],costumes=[],seen=new Set();
-for(const c of cs){let d,ext,res=1,rcx=c.cx,rcy=c.cy;if(c.k=='v'){/* 縁を含む図形の範囲ぴったり(キャンバス外にはみ出した分も含む)に切り出し、回転中心は同じ位置を指すようずらす */const bb=vecBBox(c);if(bb){rcx=c.cx-bb[0];rcy=c.cy-bb[1]}d=te(svg(c,bb)+`<!--rotationCenter:${rcx}:${rcy}-->`);ext='svg'}else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);
+// ===== 書き出し(.sprite3 = 現在のスプライト / .sb3 = プロジェクト全体) =====
+// 1コスチューム分の画像データ(ベクター=図形ぴったりのSVG、ビットマップ=描かれた範囲ぴったりのPNG)と、Scratch用の定義を作る
+async function costAsset(c){let d,ext,res=1,rcx=c.cx,rcy=c.cy;
+if(c.k=='v'){/* 縁を含む図形の範囲ぴったり(キャンバス外にはみ出した分も含む)に切り出し、回転中心は同じ位置を指すようずらす */const bb=vecBBox(c);if(bb){rcx=c.cx-bb[0];rcy=c.cy-bb[1]}d=te(svg(c,bb)+`<!--rotationCenter:${rcx}:${rcy}-->`);ext='svg'}
+else{const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);
 /* 透明度1以上のピクセルがある範囲ぴったりに切り出す(何も描かれていない場合は元のサイズのまま)。回転中心は同じ位置を指すよう切り出し分だけずらす */
 const bb=bmBBox(o);let oo=o,ew=c.w,eh=c.h;if(bb){ew=bb[2]-bb[0];eh=bb[3]-bb[1];oo=document.createElement('canvas');oo.width=ew;oo.height=eh;oo.getContext('2d').drawImage(o,-bb[0],-bb[1]);rcx=c.cx-bb[0];rcy=c.cy-bb[1]}
 const b=await new Promise(r=>oo.toBlob(r,'image/png'));if(!b)throw Error('PNG変換に失敗しました');d=new Uint8Array(await b.arrayBuffer());ext='png';res=RS(c);if(oo.width!=ew||oo.height!=eh)throw Error(c.n+': 画像サイズの不整合')}
-const id=md5(d),fn=id+'.'+ext;costumes.push({name:c.n,bitmapResolution:res,dataFormat:ext,assetId:id,md5ext:fn,rotationCenterX:rcx,rotationCenterY:rcy});if(!seen.has(fn)){seen.add(fn);files.push([fn,d])}}
-const j={isStage:false,name,variables:{},lists:{},broadcasts:{},blocks:{},comments:{},currentCostume:ci,costumes,sounds:[],volume:100,layerOrder:1,visible:true,x:0,y:0,size:100,direction:90,draggable:false,rotationStyle:'all around'};
-dl(zipMake([['sprite.json',te(JSON.stringify(j))],...files]),name+'.sprite3')}catch(x){alert('.sprite3の書き出しに失敗しました: '+x.message)}}
-// 読み込み: すべて解析できてから現在のスプライトへ追加(失敗時は現在のデータを変更しない)
-async function s3in(file){const keep=ci,n0=cs.length,W=[],I=[];svgImport.q=1;svgImport.w=W;try{progBegin('ファイルを読み込み中…');const Z=await unzip(await file.arrayBuffer(),(i,n)=>progSet(.4*i/n,'ファイルを展開中 '+(i+1)+' / '+n));if(!Z['sprite.json'])throw Error('sprite.jsonがありません(.sprite3ではない可能性)');const j=JSON.parse(td(Z['sprite.json']));if(!Array.isArray(j.costumes)||!j.costumes.length)throw Error('コスチュームがありません');if(j.sounds&&j.sounds.length)W.push('サウンド/ブロックは読み込まれません(コスチュームのみ)');
-let kk=0;for(const q of j.costumes){progSet(.4+.6*kk/j.costumes.length,'コスチュームを読み込み中 '+(kk+1)+' / '+j.costumes.length);kk++;await slice();const d=Z[q.md5ext||q.assetId+'.'+q.dataFormat];if(!d){W.push(q.name+': 画像ファイルが見つかりません');continue}const rx=+q.rotationCenterX||0,ry=+q.rotationCenterY||0;
+const id=md5(d),fn=id+'.'+ext;return{fn,d,meta:{name:c.n,bitmapResolution:res,dataFormat:ext,assetId:id,md5ext:fn,rotationCenterX:rcx,rotationCenterY:rcy}}}
+// スプライト(またはステージ)1つ分のScratchターゲットJSONを作り、必要なファイルを files / seen に追加する
+async function spTarget(sp,lo,files,seen,onp){const costumes=[];
+if(sp.blank){const d=te(BLANK_BD),id=md5(d),fn=id+'.svg';costumes.push({name:'背景1',dataFormat:'svg',assetId:id,md5ext:fn,rotationCenterX:240,rotationCenterY:180});if(!seen.has(fn)){seen.add(fn);files.push([fn,d])}}
+else{let k=0;for(const c of sp.cs){if(onp)onp(k++,sp.cs.length);await slice();const a=await costAsset(c);costumes.push(a.meta);if(!seen.has(a.fn)){seen.add(a.fn);files.push([a.fn,a.d])}}}
+const ex=JSON.parse(JSON.stringify(sp.ex||(sp.stage?STD():SPD()))),snds=(Array.isArray(ex.sounds)?ex.sounds:[]).filter(x=>sp.snd&&sp.snd[x.md5ext]);
+snds.forEach(x=>{if(!seen.has(x.md5ext)){seen.add(x.md5ext);files.push([x.md5ext,sp.snd[x.md5ext]])}});
+return Object.assign({isStage:!!sp.stage,name:sp.stage?'Stage':sp.n},sp.stage?STD():SPD(),ex,{isStage:!!sp.stage,name:sp.stage?'Stage':sp.n,currentCostume:Math.min(Math.max(0,sp.ci|0),costumes.length-1),costumes,sounds:snds,layerOrder:lo})}
+const safeName=n=>String(n).replace(/[\\\/:*?"<>|]/g,'_')||'sprite';
+async function s3out(){try{spSave();const sp=SPS[SPI];if(sp.stage){await uiAlert('ステージは.sprite3では書き出せません。\n全体を.sb3で書き出してください。');return}
+bcommit();spSave();progBegin('.sprite3を書き出し中…');const files=[],seen=new Set(),t=await spTarget(sp,1,files,seen,(i,n)=>progSet(i/n,'コスチュームを書き出し中 '+(i+1)+' / '+n));
+progSet(1,'ZIPを作成中…');await yieldUI();const z=zipMake([['sprite.json',te(JSON.stringify(t))],...files]);progEnd();dl(z,safeName(sp.n)+'.sprite3')}catch(x){progEnd();await uiAlert('.sprite3の書き出しに失敗しました: '+x.message)}}
+async function sb3out(){try{spSave();bcommit();spSave();const all=SPS.slice(),stage=all.find(s=>s.stage)||{stage:true,n:'Stage',blank:1,ci:0,cs:[],ex:STD(),snd:{}},ord=[stage,...all.filter(s=>!s.stage)],tot=ord.reduce((a,s)=>a+(s.blank?1:s.cs.length),0);
+progBegin('.sb3を書き出し中…');const files=[],seen=new Set(),targets=[];let K=0;
+for(let i=0;i<ord.length;i++){targets.push(await spTarget(ord[i],i,files,seen,(k)=>progSet((K+k)/tot,'コスチュームを書き出し中 '+(K+k+1)+' / '+tot)));K+=ord[i].blank?1:ord[i].cs.length}
+progSet(1,'ZIPを作成中…');await yieldUI();
+const j={targets,monitors:PRJ.monitors||[],extensions:PRJ.extensions||[],meta:{semver:'3.0.0',vm:'15.2.0',agent:navigator.userAgent}};
+const z=zipMake([['project.json',te(JSON.stringify(j))],...files]);progEnd();dl(z,'project.sb3')}catch(x){progEnd();await uiAlert('.sb3の書き出しに失敗しました: '+x.message)}}
+// ===== 読み込み(.sprite3 / .sb3 を中身で自動判別) =====
+// コスチューム定義の一覧を、現在のデータには触れず新しい配列として作る(SVG変換が現在のコスチュームを使うため、処理中だけ cs/ci を差し替える)
+async function decodeCostumes(Z,list,W,I,onp){const k0=cs,k1=ci,out=[];cs=out;
+try{let kk=0;for(const q of list){if(onp)onp(kk,list.length);kk++;await slice();const d=Z[q.md5ext||q.assetId+'.'+q.dataFormat];if(!d){W.push(q.name+': 画像ファイルが見つかりません');continue}const rx=+q.rotationCenterX||0,ry=+q.rotationCenterY||0;
 if(q.dataFormat=='svg'){const t=td(d),R=new DOMParser().parseFromString(t,'image/svg+xml').documentElement;if(R.nodeName!='svg'){W.push(q.name+': SVGを解析できません');continue}
 const vb=(R.getAttribute('viewBox')||'').trim().split(/[\s,]+/).map(Number),ok=vb.length==4&&vb.every(isFinite)&&vb[2]>0&&vb[3]>0,vw=ok?vb[2]:parseFloat(R.getAttribute('width'))||480,vh=ok?vb[3]:parseFloat(R.getAttribute('height'))||360,k=Math.min(1,4096/Math.max(vw,vh)),c=mk('v',q.name);
 c.w=Math.max(1,Math.round(vw*k));c.h=Math.max(1,Math.round(vh*k));c.cx=rx*k;c.cy=ry*k;cs.push(c);ci=cs.length-1;sel=[];svgImport(t);c.u=[];c.r=[];
 if(!c.sh.length&&R.querySelector('path,rect,circle,ellipse,line,polygon,polyline,image,text')){const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(t)))};ld(s);c.sh.push(s);W.push(q.name+': 図形に変換できず画像として配置(個別編集不可)')}{const dx=240-c.cx,dy=180-c.cy;c.sh.forEach(s=>{s.x+=dx;s.y+=dy});c.w=480;c.h=360;c.cx=240;c.cy=180}}
 else if(q.dataFormat=='png'||q.dataFormat=='jpg'||q.dataFormat=='jpeg'){const im=await new Promise((ok,ng)=>{const i=new Image;i.onload=()=>ok(i);i.onerror=()=>ng(Error(q.name+': 画像を読み込めません'));i.src=URL.createObjectURL(new Blob([d],{type:'image/'+(q.dataFormat=='png'?'png':'jpeg')}))}),c=mk('b',q.name);
 const R=+q.bitmapResolution>0?+q.bitmapResolution:1;c.res=R;{const iw=im.naturalWidth,ih=im.naturalHeight,cX=isFinite(parseFloat(q.rotationCenterX))?+q.rotationCenterX:iw/2,cY=isFinite(parseFloat(q.rotationCenterY))?+q.rotationCenterY:ih/2,hx=Math.max(240*R,cX,iw-cX),hy=Math.max(180*R,cY,ih-cY),offX=Math.round(hx-cX),offY=Math.round(hy-cY);c.w=c.bc.width=Math.max(Math.ceil(hx*2),offX+iw);c.h=c.bc.height=Math.max(Math.ceil(hy*2),offY+ih);c.bc.getContext('2d').drawImage(im,offX,offY);c.cx=cX+offX;c.cy=cY+offY;I.push(`${q.name}: ${iw}×${ih}px / 解像度${R} → 論理${+(iw/R).toFixed(2)}×${+(ih/R).toFixed(2)}`)}cs.push(c);URL.revokeObjectURL(im.src)}
-else W.push(q.name+': 未対応の形式('+q.dataFormat+')')}
-if(cs.length==n0)throw Error('読み込めるコスチュームがありませんでした');progSet(1,'仕上げ中…');await yieldUI();ci=keep;go(n0);list();sync();progEnd();
-alert(`.sprite3から${cs.length-n0}個のコスチュームを追加しました。\nSVGは図形ごとに編集できます(未対応要素は除く)。PNGはビットマップです。`+(I.length?'\n\n画像サイズ(実ピクセル → 論理サイズ):\n・'+I.join('\n・'):'')+(W.length?'\n\n注意:\n・'+[...new Set(W)].join('\n・'):''))}
-catch(x){progEnd();cs.length=n0;ci=keep;sel=[];alert('.sprite3の読み込みに失敗しました。現在のデータは変更されていません。\n'+x.message)}finally{progEnd();svgImport.q=0;go(Math.min(ci,cs.length-1));list()}}
-$('#s3o').onclick=s3out;$('#s3i').onclick=()=>$('#s3f').click();$('#s3f').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)s3in(f)};
+else W.push(q.name+': 未対応の形式('+q.dataFormat+')')}return out}finally{cs=k0;ci=k1}}
+const exOf=(t,Z)=>{const e={},snd={};for(const k in t)if(!['name','isStage','costumes','currentCostume'].includes(k))e[k]=t[k];
+const L=[];(Array.isArray(t.sounds)?t.sounds:[]).forEach(x=>{const fn=x.md5ext||(x.assetId+'.'+x.dataFormat),f=Z[fn];if(f){snd[fn]=f;L.push(Object.assign({},x,{md5ext:fn}))}});e.sounds=L;return{ex:e,snd}};
+async function s3in(file){const W=[],I=[];svgImport.q=1;svgImport.w=W;spSave();
+try{progBegin('ファイルを読み込み中…');const Z=await unzip(await file.arrayBuffer(),(i,n)=>progSet(.3*i/n,'ファイルを展開中 '+(i+1)+' / '+n));
+const isP=!!Z['project.json'];if(!isP&&!Z['sprite.json'])throw Error('project.json / sprite.json がありません(.sb3 / .sprite3 ではない可能性)');
+const j=JSON.parse(td(Z[isP?'project.json':'sprite.json'])),TG=isP?j.targets:[j];if(!Array.isArray(TG)||!TG.length)throw Error('スプライトがありません');
+let mode='replace';progEnd();
+if(!isP){mode=await uiDlg('.sprite3の読み込み方法を選んでください',[{t:'キャンセル',v:null},{t:'現在のスプライトにコスチュームを追加',v:'add'},{t:'新しいスプライトとして追加',v:'new'}],{esc:null,focus:2});if(!mode)return}
+else if(!await uiConfirm('プロジェクト全体(.sb3)を読み込みます。\n現在の内容はすべて置き換わります。\n(必要なら先に「プロジェクトを保存」してください)','置き換えて読み込む','キャンセル'))return;
+progBegin('ファイルを読み込み中…');
+const tot=TG.reduce((a,t)=>a+(Array.isArray(t.costumes)?t.costumes.length:0),0)||1,built=[];let K=0;
+for(const t of TG){if(!Array.isArray(t.costumes)||!t.costumes.length){W.push((t.name||'?')+': コスチュームがありません(スキップ)');continue}
+const k0=K,out=await decodeCostumes(Z,t.costumes,W,I,i=>progSet(.3+.7*(k0+i)/tot,'コスチュームを読み込み中 '+(k0+i+1)+' / '+tot));K+=t.costumes.length;
+if(!out.length){W.push((t.name||'?')+': 読み込めるコスチュームがありませんでした');continue}
+const e=exOf(t,Z);if((t.sounds||[]).length>e.ex.sounds.length)W.push((t.name||'?')+': 一部のサウンドファイルが見つからないため外しました');
+built.push({n:t.isStage?'Stage':String(t.name||'スプライト'),cs:out,ci:Math.min(Math.max(0,t.currentCostume|0),out.length-1),ex:e.ex,snd:e.snd,stage:!!t.isStage})}
+if(!built.length)throw Error('読み込めるコスチュームがありませんでした');
+progSet(1,'仕上げ中…');await yieldUI();spLeave();spSave();let msg;
+if(mode=='replace'){built.sort((a,b)=>(b.stage?1:0)-(a.stage?1:0));const seenN=new Set();built.forEach(s=>{if(s.stage)return;let n=s.n,b=n.replace(/\d+$/,'')||n,k=2;while(seenN.has(n)||n=='Stage')n=b+k++;seenN.add(n);s.n=n});
+SPS=built;PRJ={monitors:Array.isArray(j.monitors)?j.monitors:[],extensions:Array.isArray(j.extensions)?j.extensions:[]};SPI=Math.max(0,SPS.findIndex(s=>!s.stage));cs=SPS[SPI].cs;list.force=1;go(Math.min(SPS[SPI].ci,cs.length-1));fit();spUI();
+msg='.sb3から'+SPS.filter(s=>!s.stage).length+'個のスプライト'+(SPS.some(s=>s.stage)?'とステージ':'')+'(コスチューム計'+SPS.reduce((a,s)=>a+s.cs.length,0)+'個)を読み込みました。'}
+else if(mode=='new'){const b=built[0];b.stage=false;b.n=spUnique(b.n);SPS.push(b);spSwitch(SPS.length-1);msg='.sprite3から新しいスプライト「'+b.n+'」(コスチューム'+b.cs.length+'個)を追加しました。'}
+else{const n0=cs.length,add=built[0].cs;cs.push(...add);ci=Math.min(ci,cs.length-1);list.force=1;go(n0);spUI();msg='.sprite3から'+add.length+'個のコスチュームを現在のスプライトに追加しました。'}
+progEnd();await uiAlert(msg+'\nSVGは図形ごとに編集できます(未対応要素は除く)。PNGはビットマップです。'+(mode!='add'?'\nブロック・変数・サウンドの定義はそのまま保持され、書き出し時に含まれます(編集はできません)。':'')+(I.length?'\n\n画像サイズ(実ピクセル → 論理サイズ):\n・'+I.join('\n・'):'')+(W.length?'\n\n注意:\n・'+[...new Set(W)].join('\n・'):''))}
+catch(x){progEnd();list.force=1;try{go(Math.min(ci,cs.length-1))}catch(e){}spUI();await uiAlert('.sprite3 / .sb3の読み込みに失敗しました。現在のデータは変更されていません。\n'+x.message)}
+finally{progEnd();svgImport.q=0}}
+$('#s3o').onclick=s3out;$('#sb3o').onclick=sb3out;$('#s3i').onclick=()=>$('#s3f').click();$('#s3f').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)s3in(f)};
 
 // ===== 輪郭トレース(文字の図形化 / PNGベクター化 共通エンジン) =====
 const tick=()=>new Promise(r=>setTimeout(r,0));
@@ -1715,7 +1794,7 @@ const lab={undo:'戻す',redo:'進む',tp:'パネル',pvw:'確認',flt:'補正',
 M.innerHTML='<b class="mt">コスチュームエディター</b>';const menus=[],closeM=()=>menus.forEach(([b,p])=>{p.hidden=true;b.classList.remove('on');b.setAttribute('aria-expanded','false')});
 function addMenu(id,label,build){const w=document.createElement('span');w.className='mw';const b=document.createElement('button');b.className='mbtn';b.id=id;b.setAttribute('aria-haspopup','true');b.setAttribute('aria-expanded','false');b.textContent=label+' ▾';const p=document.createElement('div');p.className='mpop';p.id=id+'_p';p.hidden=true;p.setAttribute('role','menu');w.append(b,p);M.append(w);build(p);
 b.onclick=e=>{e.stopPropagation();const open=p.hidden;closeM();if(open){p.hidden=false;b.classList.add('on');b.setAttribute('aria-expanded','true')}};p.addEventListener('click',e=>{if(e.target.closest('button.mi'))closeM()});menus.push([b,p])}
-const FM=[[['sv','プロジェクトを保存(JSON)'],['ld','プロジェクトを読み込む'],['bk','自動バックアップを復元']],[['impb','画像を読み込む(原寸)'],['svi','SVGを図形として読み込む'],['s3i','.sprite3を読み込む(Scratch)']],[['s3o','.sprite3で書き出す(Scratch)']]];
+const FM=[[['sv','プロジェクトを保存(JSON)'],['ld','プロジェクトを読み込む'],['bk','自動バックアップを復元']],[['impb','画像を読み込む(原寸)'],['svi','SVGを図形として読み込む'],['s3i','.sprite3 / .sb3を読み込む(Scratch)']],[['s3o','現在のスプライトを.sprite3で書き出す(Scratch)'],['sb3o','全体を.sb3で書き出す(Scratch)']]];
 addMenu('m_file','ファイル',p=>{FM.forEach((grp,k)=>{if(k)p.append(document.createElement('hr'));grp.forEach(([i,l])=>{const e=$('#'+i);e.classList.add('mi');e.dataset.l=l;p.append(e);const n=e.nextElementSibling;if(n&&n.tagName=='INPUT'&&n.type=='file')p.append(n)})})});
 const SW=[['#ffffff','白'],['#f0f0f0','明るい灰色'],['#bdbdbd','灰色'],['#424242','濃い灰色'],['#000000','黒'],['#fff4c2','クリーム'],['#cfe8ff','空色'],['#d4f5d4','うす緑'],['#ffd6e7','ピンク']];
 addMenu('m_view','表示',p=>{p.innerHTML='<div class="mh">編集画面の背景色(書き出しには影響しません)</div><div class="sws" id="sws"></div><label class="mrow">自由な色<input type="color" id="bgc" aria-label="背景色を選ぶ"></label><label class="mrow"><input type="checkbox" id="bgk">市松模様で透明部分を示す</label><button class="mi" id="bgr" style="padding:0 10px"><small>背景を初期状態(白+市松模様)に戻す</small></button>';
@@ -1861,5 +1940,5 @@ $('#prop').append($('#onion'));
 // コスチューム表示数
 window.lvnApply=()=>{const L=$('#list');if(!L)return;L.style.setProperty('--n',LVN);L.dataset.n=LVN;$('#lvv').textContent=LVN;$('#lvm').disabled=LVN<=1;$('#lvp').disabled=LVN>=12;const on=L.querySelector('.ci.on');if(on)on.scrollIntoView({block:'nearest',inline:'nearest'})};
 const setN=n=>{LVN=Math.min(12,Math.max(1,n));lvnApply();uiSave()};$('#lvm').onclick=()=>setN(LVN-1);$('#lvp').onclick=()=>setN(LVN+1)})();
-initIcons();fillFonts();buildPK();cs=[mk('v','コスチューム1')];go(0);refChips();
+Object.assign(IC,{spadd:'<path d="M12 5v14M5 12h14"/>'});initIcons();fillFonts();buildPK();cs=[mk('v','コスチューム1')];SPS[0].cs=cs;go(0);spInit();refChips();
 </script></body></html>
