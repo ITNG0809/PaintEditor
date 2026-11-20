@@ -7,7 +7,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%;overflow:hidden;font:14px system-ui,sans-serif;background:#e9eef2;color:#575e75;overscroll-behavior:none;user-select:none;-webkit-user-select:none}
-#app{display:grid;height:100%;grid-template:"menu menu menu" auto "top top top" auto "sp sp sp" auto "list tools main" 1fr "list prop prop" auto/100px 56px 1fr}
+#app{display:grid;height:100%;grid-template:"menu menu menu menu" auto "top top top top" auto "list tools main sp" 1fr "list prop prop sp" auto/100px 56px 1fr 124px}
 button,select,input[type=number]{min-height:44px;min-width:44px;border:1px solid #c9d0d9;background:#fff;border-radius:8px;font:inherit;color:inherit;padding:0 6px}
 button{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer}
 button small{font-size:9px;line-height:1}
@@ -130,6 +130,13 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #spname{flex:none;width:140px;min-width:0;min-height:36px;box-sizing:border-box;padding:0 8px;border:1px solid #c9d0d9;border-radius:6px;font:inherit;font-size:13px;text-overflow:ellipsis;background:#fff;color:inherit}#spname:focus{border-color:#855cd6;outline:0;text-overflow:clip}#spname:disabled{background:#eceef3}
 #spl .sp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 8px;min-width:64px}#spl .sp canvas{width:60px;height:45px;background:#fff;border-radius:4px;flex:none}#spl .sp span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.2}
 #list .ci.dupn,#list .ci.dupn.on{border-color:#e03131;box-shadow:0 0 0 2px #e03131}
+#spbar{flex-direction:column;align-items:stretch;gap:4px;border-bottom:0;border-left:1px solid #c9d0d9;padding:4px;min-height:0;overflow:hidden}
+#spbar #spname{width:100%}
+#spbtns{display:flex;gap:3px;flex:none}#spbtns button{flex:1 1 0;min-width:0;min-height:40px;padding:0}
+#spl{flex-direction:column;flex:1 1 0;min-height:0;overflow-x:hidden;overflow-y:auto;padding:2px}
+#spl .sp{width:100%;max-width:none;flex:0 0 auto;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#spl .sp canvas{width:100%;height:auto;aspect-ratio:4/3}
+@media(max-width:700px){#spbar{flex-direction:row;align-items:center;border-left:0;border-bottom:1px solid #c9d0d9;overflow:visible}#spbar #spname{width:130px;flex:none}#spbtns{order:2}#spl{order:1;flex-direction:row;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden}#spl .sp{width:auto;min-width:64px}#spl .sp canvas{width:60px;height:45px}}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
@@ -156,7 +163,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="v2b" data-i="conv" data-t="ベクター→ビットマップに変換"></button>
 <button id="hlp" data-i="help" data-t="ショートカット一覧(?)"></button>
 </div>
-<div id="spbar" role="toolbar" aria-label="スプライト"><input id="spname" type="text" maxlength="60" spellcheck="false" autocomplete="off" aria-label="スプライトの名前(Enterで確定)" title="スプライトの名前を変更(Enterで確定、Escで元に戻す)"><div id="spl" role="tablist" aria-label="スプライト一覧"></div><button id="spadd" data-i="spadd" data-l="追加" data-t="スプライトを追加(空のスプライトを新規作成)"></button><button id="spdup" data-i="dup" data-l="複製" data-t="現在のスプライトを複製(全コスチュームごと)"></button><button id="spdel" data-i="del" data-l="削除" data-t="現在のスプライトを削除"></button></div>
+<div id="spbar" role="toolbar" aria-label="スプライト"><input id="spname" type="text" maxlength="60" spellcheck="false" autocomplete="off" aria-label="スプライトの名前(Enterで確定)" title="スプライトの名前を変更(Enterで確定、Escで元に戻す)"><div id="spbtns"><button id="spadd" data-i="spadd" data-l="追加" data-t="スプライトを追加(空のスプライトを新規作成)"></button><button id="spdup" data-i="dup" data-l="複製" data-t="現在のスプライトを複製(全コスチュームごと)"></button><button id="spdel" data-i="del" data-l="削除" data-t="現在のスプライトを削除"></button></div><div id="spl" role="tablist" aria-label="スプライト一覧(右クリック/長押しでコピー・削除メニュー)"></div></div>
 <div id="lcol"><div id="lhead"></div><div id="lvn" role="group" aria-label="コスチュームの表示数" title="コスチュームの表示数(1画面に表示する数)"><span>表示数</span><button id="lvm" type="button" title="表示するコスチュームの数を減らす(大きく表示)" aria-label="表示数を減らす">−</button><b id="lvv" aria-live="polite">4</b><button id="lvp" type="button" title="表示するコスチュームの数を増やす(小さく表示)" aria-label="表示数を増やす">＋</button></div><div id="list"></div></div><div id="tools"></div>
 <div id="fpop" role="listbox" aria-label="フォント一覧" hidden></div>
 <div id="main"><canvas id="cv"></canvas><input id="te_in" type="text" hidden autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="文字を入力(Enterで確定)"><div id="shpp" hidden></div>
@@ -242,9 +249,20 @@ function spThumb(t,c){if(!t||!c)return;try{const x=t.getContext('2d');x.clearRec
 function spThumbCur(){clearTimeout(spThumbCur.t);spThumbCur.t=setTimeout(()=>{const t=document.querySelector('#spl .sp.on canvas');if(t&&cs[ci])spThumb(t,cs[ci])},250)}
 function spLeave(){if(TE)teEnd();bcommit();sel=[];selPt=-1;pvClear()}
 function spSwitch(k){if(k==SPI||!SPS[k])return;spLeave();spSave();SPI=k;cs=SPS[k].cs;ci=Math.min(SPS[k].ci,cs.length-1);list.force=1;go(ci);spUI()}
-function spUI(){const L=$('#spl');if(!L)return;L.innerHTML='';SPS.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'');b.innerHTML='<canvas width=72 height=54></canvas><span></span>';b.lastChild.textContent=s.stage?'ステージ':s.n;spThumb(b.firstChild,(i==SPI?cs:s.cs)[i==SPI?ci:s.ci]);b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>spSwitch(i);L.append(b)});
+function spUI(){const L=$('#spl');if(!L)return;L.innerHTML='';SPS.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'');b.innerHTML='<canvas width=72 height=54></canvas><span></span>';b.lastChild.textContent=s.stage?'ステージ':s.n;spThumb(b.firstChild,(i==SPI?cs:s.cs)[i==SPI?ci:s.ci]);b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>{if(b._lp){b._lp=0;return}spSwitch(i)};spChipEv(b,i);L.append(b)});
 const s=SPS[SPI],n=$('#spname');if(document.activeElement!==n)n.value=s.stage?'ステージ':s.n;n.disabled=!!s.stage;$('#spdup').disabled=!!s.stage;$('#spdel').disabled=!!s.stage||SPS.filter(x=>!x.stage).length<2;
-const on=L.querySelector('.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<L.scrollLeft)L.scrollLeft=Math.max(0,l-4);else if(r>L.scrollLeft+L.clientWidth)L.scrollLeft=r-L.clientWidth+4}}
+const on=L.querySelector('.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<L.scrollLeft)L.scrollLeft=Math.max(0,l-4);else if(r>L.scrollLeft+L.clientWidth)L.scrollLeft=r-L.clientWidth+4;const t=on.offsetTop,u=t+on.offsetHeight;if(t<L.scrollTop)L.scrollTop=Math.max(0,t-4);else if(u>L.scrollTop+L.clientHeight)L.scrollTop=u-L.clientHeight+4}}
+
+/* スプライトのメニュー(右クリック / 長押し): コスチュームと同じ「コピー・書き出し・削除」 */
+function spMenu(i,x,y){const s=SPS[i];if(!s)return;cmClose();const m=document.createElement('div');m.id='cmenu';m.setAttribute('role','menu');
+const add=(t,fn,dis,cls)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');b.textContent=t;b.disabled=!!dis;if(cls)b.className=cls;b.onclick=()=>{cmClose();fn()};m.append(b)};
+const at=()=>{const k=SPS.indexOf(s);if(k<0)return false;spSwitch(k);return true};
+add('コピー(複製)',()=>{if(at())spDup()},s.stage);add('書き出し(.sprite3)',()=>{if(at())s3out()},s.stage);add('削除',()=>{if(at())spDel()},s.stage||SPS.filter(z=>!z.stage).length<2,'danger');
+document.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(4,Math.min(x,innerWidth-r.width-4))+'px';m.style.top=Math.max(4,Math.min(y,innerHeight-r.height-4))+'px';CM=m;
+setTimeout(()=>{if(CM!==m)return;addEventListener('pointerdown',cmOut,true);addEventListener('keydown',cmKey,true);addEventListener('resize',cmClose)},0);const f=m.querySelector('button:not(:disabled)');if(f)f.focus()}
+function spChipEv(b,i){b.oncontextmenu=e=>{e.preventDefault();clearTimeout(b._t);spMenu(i,e.clientX,e.clientY)};
+b.onpointerdown=e=>{b._lp=0;clearTimeout(b._t);if(e.pointerType=='mouse')return;const x0=e.clientX,y0=e.clientY;b._t=setTimeout(()=>{b._lp=1;spMenu(i,x0,y0)},550)};
+b.onpointermove=m=>{if(b._t&&m.pointerType!='mouse'&&Math.abs(m.movementX)+Math.abs(m.movementY)>3)clearTimeout(b._t)};b.onpointerup=b.onpointercancel=()=>clearTimeout(b._t)}
 async function spAdd(){let stage=false;if(!SPS.some(s=>s.stage)){const m=await uiDlg('何を追加しますか?',[{t:'キャンセル',v:null},{t:'ステージ(背景)',v:'s'},{t:'スプライト',v:'p'}],{esc:null,focus:2});if(!m)return;stage=m=='s'}
 spLeave();spSave();const c=mk('v',stage?'背景1':'コスチューム1'),s={n:stage?'Stage':spUnique('スプライト'+(SPS.filter(x=>!x.stage).length+1)),cs:[c],ci:0,ex:stage?STD():SPD(),snd:{},stage};if(stage){SPS.unshift(s);SPI++}else SPS.push(s);spSwitch(SPS.indexOf(s))}
 function spDup(){const s=SPS[SPI];if(!s||s.stage)return;spLeave();spSave();const n=s.cs.map(c=>{const d=mk(c.k,c.n);rs(d,st(c));return d});SPS.splice(SPI+1,0,{n:spUnique(s.n),cs:n,ci:s.ci,ex:JSON.parse(JSON.stringify(s.ex||SPD())),snd:Object.assign({},s.snd),stage:false});spSwitch(SPI+1)}
@@ -1175,7 +1193,7 @@ const tl=(v,b)=>()=>{const t=isV()?v:b;if(!t)return;if(!isV())bcommit();tool=t;s
 let vclip=null,VCI=null,LASTCLIP='';const AR={t:0};
 function vcopy(){if(sel.length){vclip=JSON.stringify(sel,rep);const c=C();VCI={res:RS(c),w:c.w,h:c.h};LASTCLIP='v'}}
 function vpaste(){if(!vclip)return;const c=C(),G={};hist();const n=JSON.parse(vclip).map(q=>{if(q.g)q.g=G[q.g]||(G[q.g]=++gid+Date.now());if(q.src)ld(q);return q});c.sh.push(...n);sel=n;tool='sel';tools();fin()}
-function selAll(){const c=C();if(isV()){sel=c.sh.filter(s=>!s.hid&&!s.lk);if(tool!='sel'&&tool!='rsh'){tool='sel';tools()}}else{bcommit();tool='bsel';sel=[{t:'bs',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:[0,0,c.w,c.h],cvs:null}];tools()}sync();draw()}
+function selAll(){const c=C();if(isV()){sel=c.sh.filter(s=>!s.hid&&!s.lk);if(tool!='sel'&&tool!='rsh'){tool='sel';tools()}}else{bcommit();tool='bsel';sel=[{t:'bs',x:c.w/2,y:c.h/2,r:0,w:c.w,h:c.h,src:[0,0,c.w,c.h],cvs:null}];trimSel();tools()}sync();draw()}
 const del_=()=>{if(isV()){if(tool=='rsh'&&selPts().length){delPts();return}if(sel.length)$('#dl').onclick()}else $('#bdel').click()};
 const SC=[['v',0,0,'選択ツール',tl('sel','bsel')],['a',0,0,'リシェイプ(ベクターのみ)',tl('rsh',0)],['p',0,0,'ペン(ビットマップではブラシ)',tl('pen','brush')],['b',0,0,'ブラシ',tl('brush','brush')],['e',0,0,'消しゴム',tl('eras','eras')],['t',0,0,'文字(ベクターのみ)',tl('txt',0)],
 ['z',1,0,'元に戻す',undo],['z',1,1,'やり直し',redo],['y',1,0,'やり直し',redo],['Delete',0,0,'削除',del_],['Backspace',0,0,'',del_],
