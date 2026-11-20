@@ -144,10 +144,10 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #spl .sp.mem{width:calc(100% - 12px);margin-left:12px}
 @media(max-width:700px){#spl .sf{width:auto;min-width:96px}#spl .sp.mem{width:auto;margin-left:0}}
 #list .ci.cfh{display:none}#list .ci.cfm{margin-left:10px}
-#list .cf{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:5px;flex:0 0 auto;width:100%;min-height:34px;padding:0 8px;border:1px dashed #855cd6;border-radius:8px;background:#f3eefe;color:#4a2fa0;font:inherit;font-size:12px;font-weight:bold;text-align:left;box-sizing:border-box}
+#list{position:relative}#list .cf{position:relative;z-index:3;display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:5px;flex:0 0 auto;width:100%;min-height:34px;padding:0 8px;border:1px dashed #855cd6;border-radius:8px;background:#f3eefe;color:#4a2fa0;font:inherit;font-size:12px;font-weight:bold;text-align:left;box-sizing:border-box}
 #list .cf .ar::before{content:'▸';display:inline-block;width:10px}#list .cf.open .ar::before{content:'▾'}
 #list .cf .fn{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#list .cf small{flex:none;background:#855cd6;color:#fff;border-radius:9px;padding:0 6px;font-size:10px;line-height:16px}
-#list .cf.has:not(.open){background:#e3d9fb;border-style:solid}
+#list .cf.open{position:sticky;top:0;left:0}#list .cf.stk{box-shadow:0 2px 6px rgba(60,40,120,.25)}#list .cf.has:not(.open){background:#e3d9fb;border-style:solid}
 @media(max-width:700px){#list .cf{width:auto;min-width:96px}#list .ci.cfm{margin-left:0}}
 </style></head><body>
 <div id="app">
@@ -271,7 +271,14 @@ ci_.forEach((d,i)=>{const f=spFile(cs[i].n);d.classList.remove('cfh','cfm');if(!
 if(prev!==f){let m=0;while(i+m<cs.length&&spFile(cs[i+m].n)===f)m++;const h=document.createElement('button');h.type='button';h.className='cf'+(open?' open':'')+(ci>=i&&ci<i+m?' has':'');
 h.innerHTML='<b class="ar"></b><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="currentColor" opacity=".85"/></svg><span class="fn"></span><small></small>';h.querySelector('.fn').textContent=f;h.lastChild.textContent=m;h.title=f+'ファイル('+m+'個)  タップで'+(open?'閉じる':'開く');h.setAttribute('aria-expanded',open);
 h.onclick=()=>{if(CFO.has(f))CFO.delete(f);else CFO.add(f);cfLayout(1)};L.insertBefore(h,d)}
-if(!open)d.classList.add('cfh');prev=f})}
+if(!open)d.classList.add('cfh');prev=f});if(!L._sk){L._sk=1;L.addEventListener('scroll',cfStick,{passive:true});addEventListener('resize',cfStick)}cfStick()}
+/* 開いているファイルの見出しは position:sticky(ブラウザ任せ=カクつかない)で上端/左端に固定し、
+   ファイルの最後のコスチュームが通り過ぎる最後の一瞬だけ、押し出される分だけ動かす */
+function cfStick(){const L=$('#list');if(!L)return;const horiz=getComputedStyle(L).flexDirection.startsWith('row');
+L.querySelectorAll(':scope>.cf').forEach(h=>{let y=0;if(h.classList.contains('open')){let last=null,e=h.nextElementSibling;while(e&&e.classList.contains('cfm')){last=e;e=e.nextElementSibling}
+if(last){const hs=horiz?h.offsetWidth:h.offsetHeight,sc=horiz?L.scrollLeft:L.scrollTop,end=horiz?last.offsetLeft+last.offsetWidth:last.offsetTop+last.offsetHeight;y=Math.max(Math.min(0,end-(sc+hs)),-hs-2)}}
+const t=y<0?(horiz?'translateX('+y+'px)':'translateY('+y+'px)'):'';if(h.style.transform!==t)h.style.transform=t;
+let st=false;if(y===0&&h.classList.contains('open')){const a=h.getBoundingClientRect(),b=L.getBoundingClientRect();st=horiz?(L.scrollLeft>0&&a.left<=b.left+8):(L.scrollTop>0&&a.top<=b.top+8)}h.classList.toggle('stk',st)})}
 const SPO=new Set();
 const spFile=n=>{const k=String(n).indexOf('//');if(k<=0)return null;const f=n.slice(0,k).trim();return f&&n.length>k+2?f:null};
 const spShort=n=>{const k=String(n).indexOf('//');return spFile(n)?n.slice(k+2).trim()||n:n};
