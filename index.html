@@ -137,6 +137,12 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #spl .sp{width:100%;max-width:none;flex:0 0 auto;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 #spl .sp canvas{width:100%;height:auto;aspect-ratio:4/3}
 @media(max-width:700px){#spbar{flex-direction:row;align-items:center;border-left:0;border-bottom:1px solid #c9d0d9;overflow:visible}#spbar #spname{width:130px;flex:none}#spbtns{order:2}#spl{order:1;flex-direction:row;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden}#spl .sp{width:auto;min-width:64px}#spl .sp canvas{width:60px;height:45px}}
+#spl .sf{display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:5px;flex:0 0 auto;width:100%;min-height:36px;padding:0 8px;border:1px dashed #855cd6;border-radius:8px;background:#f3eefe;color:#4a2fa0;font:inherit;font-size:12px;font-weight:bold;text-align:left}
+#spl .sf .ar::before{content:'▸';display:inline-block;width:10px}#spl .sf.open .ar::before{content:'▾'}
+#spl .sf .fn{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}#spl .sf small{flex:none;background:#855cd6;color:#fff;border-radius:9px;padding:0 6px;font-size:10px;line-height:16px}
+#spl .sf.has:not(.open){background:#e3d9fb;border-style:solid}
+#spl .sp.mem{width:calc(100% - 12px);margin-left:12px}
+@media(max-width:700px){#spl .sf{width:auto;min-width:96px}#spl .sp.mem{width:auto;margin-left:0}}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
@@ -163,7 +169,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 <button id="v2b" data-i="conv" data-t="ベクター→ビットマップに変換"></button>
 <button id="hlp" data-i="help" data-t="ショートカット一覧(?)"></button>
 </div>
-<div id="spbar" role="toolbar" aria-label="スプライト"><input id="spname" type="text" maxlength="60" spellcheck="false" autocomplete="off" aria-label="スプライトの名前(Enterで確定)" title="スプライトの名前を変更(Enterで確定、Escで元に戻す)"><div id="spbtns"><button id="spadd" data-i="spadd" data-l="追加" data-t="スプライトを追加(空のスプライトを新規作成)"></button><button id="spdup" data-i="dup" data-l="複製" data-t="現在のスプライトを複製(全コスチュームごと)"></button><button id="spdel" data-i="del" data-l="削除" data-t="現在のスプライトを削除"></button></div><div id="spl" role="tablist" aria-label="スプライト一覧(右クリック/長押しでコピー・削除メニュー)"></div></div>
+<div id="spbar" role="toolbar" aria-label="スプライト"><input id="spname" type="text" maxlength="60" spellcheck="false" autocomplete="off" aria-label="スプライトの名前(Enterで確定)" title="スプライトの名前を変更(Enterで確定、Escで元に戻す)。「ファイル名//スプライト名」と付けると、そのファイルにまとまります"><div id="spbtns"><button id="spadd" data-i="spadd" data-l="追加" data-t="スプライトを追加(空のスプライトを新規作成)"></button><button id="spdup" data-i="dup" data-l="複製" data-t="現在のスプライトを複製(全コスチュームごと)"></button><button id="spdel" data-i="del" data-l="削除" data-t="現在のスプライトを削除"></button></div><div id="spl" role="tablist" aria-label="スプライト一覧(右クリック/長押しでコピー・削除メニュー)"></div></div>
 <div id="lcol"><div id="lhead"></div><div id="lvn" role="group" aria-label="コスチュームの表示数" title="コスチュームの表示数(1画面に表示する数)"><span>表示数</span><button id="lvm" type="button" title="表示するコスチュームの数を減らす(大きく表示)" aria-label="表示数を減らす">−</button><b id="lvv" aria-live="polite">4</b><button id="lvp" type="button" title="表示するコスチュームの数を増やす(小さく表示)" aria-label="表示数を増やす">＋</button></div><div id="list"></div></div><div id="tools"></div>
 <div id="fpop" role="listbox" aria-label="フォント一覧" hidden></div>
 <div id="main"><canvas id="cv"></canvas><input id="te_in" type="text" hidden autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" aria-label="文字を入力(Enterで確定)"><div id="shpp" hidden></div>
@@ -249,8 +255,20 @@ function spThumb(t,c){if(!t||!c)return;try{const x=t.getContext('2d');x.clearRec
 function spThumbCur(){clearTimeout(spThumbCur.t);spThumbCur.t=setTimeout(()=>{const t=document.querySelector('#spl .sp.on canvas');if(t&&cs[ci])spThumb(t,cs[ci])},250)}
 function spLeave(){if(TE)teEnd();bcommit();sel=[];selPt=-1;pvClear()}
 function spSwitch(k){if(k==SPI||!SPS[k])return;spLeave();spSave();SPI=k;cs=SPS[k].cs;ci=Math.min(SPS[k].ci,cs.length-1);list.force=1;go(ci);spUI()}
-function spUI(){const L=$('#spl');if(!L)return;L.innerHTML='';SPS.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'');b.innerHTML='<canvas width=72 height=54></canvas><span></span>';b.lastChild.textContent=s.stage?'ステージ':s.n;spThumb(b.firstChild,(i==SPI?cs:s.cs)[i==SPI?ci:s.ci]);b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>{if(b._lp){b._lp=0;return}spSwitch(i)};spChipEv(b,i);L.append(b)});
+/* ファイル: スプライト名を「〇〇//□□」と付けると、〇〇ファイルの中の□□として一覧にまとめる(名前はそのまま保存・書き出し)。ファイルをタップで開閉 */
+const SPO=new Set();
+const spFile=n=>{const k=String(n).indexOf('//');if(k<=0)return null;const f=n.slice(0,k).trim();return f&&n.length>k+2?f:null};
+const spShort=n=>{const k=String(n).indexOf('//');return spFile(n)?n.slice(k+2).trim()||n:n};
+function spUI(keep){const L=$('#spl');if(!L)return;const st=L.scrollTop,sl=L.scrollLeft;
+if(!keep){const f=SPS[SPI]&&!SPS[SPI].stage?spFile(SPS[SPI].n):null;if(f)SPO.add(f)}
+L.innerHTML='';const seen=new Set();
+const chip=(s,i,mem)=>{const b=document.createElement('button');b.type='button';b.className='sp'+(i==SPI?' on':'')+(s.stage?' stg':'')+(mem?' mem':'');b.innerHTML='<canvas width=72 height=54></canvas><span></span>';b.lastChild.textContent=s.stage?'ステージ':spShort(s.n);spThumb(b.firstChild,(i==SPI?cs:s.cs)[i==SPI?ci:s.ci]);b.title=s.stage?'ステージ(背景)':s.n;b.setAttribute('role','tab');b.setAttribute('aria-selected',i==SPI);b.onclick=()=>{if(b._lp){b._lp=0;return}spSwitch(i)};spChipEv(b,i);L.append(b)};
+SPS.forEach((s,i)=>{const f=s.stage?null:spFile(s.n);if(!f){chip(s,i,false);return}if(seen.has(f))return;seen.add(f);
+const mem=SPS.map((x,j)=>j).filter(j=>!SPS[j].stage&&spFile(SPS[j].n)===f),open=SPO.has(f),h=document.createElement('button');h.type='button';h.className='sf'+(open?' open':'')+(mem.includes(SPI)?' has':'');
+h.innerHTML='<b class="ar"></b><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="currentColor" opacity=".85"/></svg><span class="fn"></span><small></small>';h.querySelector('.fn').textContent=f;h.lastChild.textContent=mem.length;h.title=f+'ファイル('+mem.length+'個)  タップで'+(open?'閉じる':'開く');h.setAttribute('aria-expanded',open);
+h.onclick=()=>{if(SPO.has(f))SPO.delete(f);else SPO.add(f);spUI(1)};L.append(h);if(open)mem.forEach(j=>chip(SPS[j],j,true))});
 const s=SPS[SPI],n=$('#spname');if(document.activeElement!==n)n.value=s.stage?'ステージ':s.n;n.disabled=!!s.stage;$('#spdup').disabled=!!s.stage;$('#spdel').disabled=!!s.stage||SPS.filter(x=>!x.stage).length<2;
+if(keep){L.scrollTop=st;L.scrollLeft=sl;return}
 const on=L.querySelector('.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<L.scrollLeft)L.scrollLeft=Math.max(0,l-4);else if(r>L.scrollLeft+L.clientWidth)L.scrollLeft=r-L.clientWidth+4;const t=on.offsetTop,u=t+on.offsetHeight;if(t<L.scrollTop)L.scrollTop=Math.max(0,t-4);else if(u>L.scrollTop+L.clientHeight)L.scrollTop=u-L.clientHeight+4}}
 
 /* スプライトのメニュー(右クリック / 長押し): コスチュームと同じ「コピー・書き出し・削除」 */
