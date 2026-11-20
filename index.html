@@ -129,6 +129,7 @@ label{display:flex;align-items:center;gap:3px}input[type=range]{width:84px}input
 #spbar button:disabled{opacity:.4}
 #spname{flex:none;width:140px;min-width:0;min-height:36px;box-sizing:border-box;padding:0 8px;border:1px solid #c9d0d9;border-radius:6px;font:inherit;font-size:13px;text-overflow:ellipsis;background:#fff;color:inherit}#spname:focus{border-color:#855cd6;outline:0;text-overflow:clip}#spname:disabled{background:#eceef3}
 #spl .sp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 8px;min-width:64px}#spl .sp canvas{width:60px;height:45px;background:#fff;border-radius:4px;flex:none}#spl .sp span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.2}
+#list .ci.dupn,#list .ci.dupn.on{border-color:#e03131;box-shadow:0 0 0 2px #e03131}
 </style></head><body>
 <div id="app">
 <div id="mbar" role="menubar" aria-label="メニューバー"></div>
@@ -865,7 +866,7 @@ $('#addf').onclick=()=>$('#ff').click();
 $('#ff').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const n=prompt('フォント名',f.name.replace(/\.[^.]+$/,''));if(!n)return;const fb=prompt('バックアップフォント(読み込み失敗時に使用)','sans-serif')||'sans-serif';const o={n,data:r.result,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};r.readAsDataURL(f);e.target.value=''};
 $('#sysf').onclick=async()=>{const n=prompt('システムにあるフォント名');if(!n)return;const fb=prompt('バックアップフォント','sans-serif')||'sans-serif',o={n,data:null,fb};fonts.push(o);await regFont(o);$('#fn').value=FL.findIndex(x=>x.n==n)};
 function relabel(d,i){const c=cs[i],g=d.querySelector('i'),l=d.querySelector('.cl');g.textContent=i+1;d.querySelector('canvas')._ix=i;l.textContent=c.n;l.title=c.n;if(c.k=='b')d.title=`${c.w}×${c.h}px / 解像度${RS(c)} → 論理${+(c.w/RS(c)).toFixed(2)}×${+(c.h/RS(c)).toFixed(2)}`}
-function nameLabel(c){const d=$('#list').children[cs.indexOf(c)];if(!d)return;const l=d.querySelector('.cl');if(l){l.textContent=c.n;l.title=c.n}}
+function nameLabel(c){const d=$('#list').children[cs.indexOf(c)];if(!d)return;const l=d.querySelector('.cl');if(l){l.textContent=c.n;l.title=c.n}markDup()}
 function list(){const L=$('#list');if(TIO)TIO.disconnect();VIS.clear();list.n=cs.length;L.innerHTML='';cs.forEach((c,i)=>{const d=document.createElement('div');d.className='ci'+(i==ci?' on':'');d.innerHTML=`<i class="grip" title="ドラッグで並べ替え"></i><canvas width=72 height=54></canvas><span class="cl"></span>`;
 const ix=()=>cs.indexOf(c);
 d.onclick=e=>{if(RD.sup){RD.sup=0;return}const i=ix();if(i==ci)return;go(i)};
@@ -948,7 +949,8 @@ function thumbBox(c){if(c.k=='v'){if(c===C())return vecBBox(c);if(c._bb===undefi
 if(c.k!='b')return null;if(c===C()){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;dc(o.getContext('2d'),c);return bmBBox(o)}if(c._bb===undefined)c._bb=bmBBox(c.bc);return c._bb}
 function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContext('2d');x.clearRect(0,0,72,54);const bb=thumbBox(c),bx=bb?bb[0]:0,by=bb?bb[1]:0,bw=bb?bb[2]-bb[0]:c.w,bh=bb?bb[3]-bb[1]:c.h,k=Math.min(72/bw,54/bh);x.save();x.imageSmoothingEnabled=!(bb&&k>=1&&c.k=='b');x.translate((72-bw*k)/2,(54-bh*k)/2);x.scale(k,k);x.translate(-bx,-by);dc(x,c);x.restore()}
 // thumbs(): 既定は編集中の1枚だけ更新。thumbs(true)は全コスチューム(見えているものだけ即時、残りはスクロールで表示された時に描画)
-function thumbs(all){spThumbCur();document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
+function markDup(){const L=document.getElementById('list');if(!L)return;const cnt={};cs.forEach(c=>cnt[c.n]=(cnt[c.n]||0)+1);[...L.children].forEach((d,i)=>{const c=cs[i],f=!!c&&cnt[c.n]>1;d.classList.toggle('dupn',f);if(f)d.setAttribute('data-dup','同じ名前のコスチュームがあります');else d.removeAttribute('data-dup')})}
+function thumbs(all){markDup();spThumbCur();document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
 function thumbAt(c){const i=cs.indexOf(c),t=i<0?null:$('#list').children[i]&&$('#list').children[i].querySelector('canvas');if(!t)return;t._ix=i;t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}
 function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&$('#list').children.length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;cs[ci]._bb=undefined;{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
