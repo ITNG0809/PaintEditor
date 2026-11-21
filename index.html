@@ -243,8 +243,10 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 .sb-pal h5{margin:6px 0 6px;font-size:12px;opacity:.8}
 .sb-pal .sc-b{min-height:34px;font-size:12px;margin:2px 0}
 .sb-pal .vrow{display:flex;gap:4px;align-items:center;margin-bottom:6px}
-.sb-ws{flex:1;min-width:0;position:relative;overflow:auto;background:var(--ws);background-image:radial-gradient(circle,#8883 1px,transparent 1px);background-size:20px 20px;touch-action:pan-x pan-y}
-.sb-wsc{position:relative;min-width:100%;min-height:100%}
+.sb-wsw{flex:1;min-width:0;position:relative;display:flex}
+.sb-ws{flex:1;min-width:0;position:relative;overflow:auto;background:var(--ws);background-image:radial-gradient(circle,#8883 1px,transparent 1px);background-size:20px 20px;background-attachment:local;touch-action:none;overscroll-behavior:contain}
+.sb-zs{position:relative}
+.sb-wsc{position:relative;transform-origin:0 0}
 .sb-lock{position:absolute;left:8px;top:8px;z-index:5;background:#ec5959;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;pointer-events:none}
 #scn.run .sb-ws .sb,#scn.run .sb-pal .sb{pointer-events:none}
 .sb-script{position:absolute;display:flex;flex-direction:column;align-items:flex-start;touch-action:none;width:max-content}
@@ -267,13 +269,20 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 .sb-slot.bool{min-width:32px;height:22px;background:#0003;clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 50%,calc(100% - 9px) 100%,9px 100%,0 50%)}
 .sb-slot .sb{box-shadow:none}
 .sb-hint{position:fixed;z-index:200;pointer-events:none;background:#fff;box-shadow:0 0 0 2px #4c97ff,0 0 8px #4c97ff;border-radius:3px}
-.sb-ghost{position:fixed;z-index:190;pointer-events:none;opacity:.92;filter:drop-shadow(2px 4px 4px #0006)}
+.sb-ghost{position:fixed;z-index:190;pointer-events:none;opacity:.92;filter:drop-shadow(2px 4px 4px #0006);transform-origin:0 0}
 .sb-ghost .sb-script{position:static}
 .cat-event{--c:#ffbf00}.cat-motion{--c:#4c97ff}.cat-looks{--c:#9966ff}.cat-control{--c:#ffab19}.cat-sense{--c:#5cb1d6}.cat-op{--c:#59c059}.cat-var{--c:#ff8c1a}.cat-msg{--c:#e0a000}
 .sb-ev,.sb-ev .sb-row{color:#fff}
 .sb-wsc .sb.sel{outline:2px solid #fff}
 
-.sb-pal .sb-script,.sb-pal .sb{touch-action:pan-y}
+.sb-pal{touch-action:pan-y}
+.sb-pal .sb-script,.sb-pal .sb{touch-action:none}
+.sb{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+/* ブロック部分の拡大縮小ボタン */
+#scn .sb-zoom{position:absolute;right:10px;bottom:10px;z-index:6;display:flex;background:var(--pn);border:1px solid var(--bd);border-radius:12px;box-shadow:0 2px 10px #0003;overflow:hidden;touch-action:manipulation}
+#scn .sb-zoom button{min-width:46px;min-height:46px;border:0;background:transparent;color:var(--tx);font:600 20px/1 system-ui,sans-serif;cursor:pointer;padding:0}
+#scn .sb-zoom button:nth-child(2){min-width:60px;font-size:13px;border-left:1px solid var(--bd);border-right:1px solid var(--bd)}
+#scn .sb-zoom button:hover{background:var(--pn2)}#scn .sb-zoom button:active{background:var(--bd)}
 
 #scn.big .sc-stbox{flex:1 1 auto;min-height:0}
 @media(max-width:900px){#scn[data-panel=stage] .sc-stbox{flex:1 1 auto;min-height:0}}
@@ -2390,7 +2399,7 @@ Object.assign(H,{toNum,toStr,toBool,cl});
 let RT=null;H.rt=()=>RT;
 const now=()=>performance.now();
 const costList=T=>{const m=T.c&&ownerOf(T.c);return m?m.s.cs:[]};
-function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='control_startasclone')h.clone.push(s)});return h}
+function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[],key:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='event_whenkey')h.key.push(s);else if(f.op=='control_startasclone')h.clone.push(s)});return h}
 function mkTarget(o){const sc=JSON.parse(JSON.stringify(o.sc));return{id:uid(),name:o.name,src:o,isClone:false,x:o.x,y:o.y,size:o.size,dir:o.dir,vis:o.vis,ghost:o.ghost,c:alive(o)?o.c:null,vars:JSON.parse(JSON.stringify(o.vars)),sc,hats:hatIndex(sc),dead:false}}
 function buildRT(){const s=SC();RT={list:s.objs.map(mkTarget),threads:[],tmap:new Map(),g:JSON.parse(JSON.stringify(s.gvars)),mon:{},clones:0,raf:0,next:0,err:null};R.root.classList.add('run');updateRunUI();R.root.classList.add('run');if(H.renderWS)H.renderWS()}
 H.list=()=>RT?RT.list:(SC()?SC().objs:[]);
@@ -2438,6 +2447,17 @@ for(let j=0;j<Hh;j++){const py=y0+j,yo=py<=0||py>=360;for(let i=0;i<W;i++){if(D[
 Object.assign(H,{overlap,touchEdge});
 /* ---------- ブロック定義 ---------- */
 def('event_whenflag','event','hat','緑の旗が押されたとき');
+def('event_whenkey','event','hat','[KEY]キーが押されたとき',{KEY:['m','key','space']});
+/* キーが押されたとき: 実行中(緑の旗の後)にキーボードを押すと、該当するブロックのスクリプトを起動する */
+function keyIds(e){const s=new Set(),k=e.key||'',c=e.code||'';let m;
+if(k.length==1&&/[a-z0-9]/i.test(k))s.add(k.toLowerCase());
+else{if(m=/^Key([A-Z])$/.exec(c))s.add(m[1].toLowerCase());else if(m=/^(?:Digit|Numpad)([0-9])$/.exec(c))s.add(m[1]);if(k.length==1&&k!=' ')s.add(k)}
+if(k==' '||c=='Space')s.add('space');
+const n={Enter:'enter',Shift:'shift',Control:'control',Alt:'alt',ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[k];if(n)s.add(n);if(c=='NumpadEnter')s.add('enter');return s}
+document.addEventListener('keydown',e=>{if(!S.open||!RT)return;const t=e.target;if(/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)||t.isContentEditable||document.querySelector('.sc-ov,#uidlg'))return;
+const ids=keyIds(e);if(!ids.size)return;let hit=false;
+for(const T of RT.list.slice())for(const s of T.hats.key){const v=String(s.b[0].in.KEY).toLowerCase();if(v=='any'||ids.has(v)){startScript(T,s);hit=true}}
+if(hit&&!e.ctrlKey&&!e.metaKey&&!e.altKey)e.preventDefault()});
 def('event_whenclicked','event','hat','このオブジェクトがクリックされたとき');
 def('event_whenbroadcast','event','hat','メッセージ[MSG]を受け取ったとき',{MSG:['m','msg']});
 def('motion_move','motion','stack','[N]歩動かす',{N:['n',10]},(T,A)=>{const a=T.dir*Math.PI/180,n=toNum(A.N);T.x=cl(T.x+n*Math.sin(a));T.y=cl(T.y+n*Math.cos(a))});
@@ -2512,7 +2532,8 @@ if(d.subs.length){o.c={};d.subs.forEach(s=>o.c[s]=vBlocks(b.c&&b.c[s],W,dep+1,cn
 function vBlocks(a,W,dep,cnt){const out=[];if(!Array.isArray(a))return out;dep=dep||0;cnt=cnt||{n:0};for(const b of a.slice(0,2000)){const v=vBlock(b,W,dep,cnt);if(v)out.push(v)}return out}
 H.vBlocks=vBlocks;
 /* ---------- ブロックの描画 ---------- */
-const WS={cat:'motion',pal:null,ws:null,wsc:null,cats:null};
+const WS={cat:'motion',pal:null,ws:null,wsc:null,cats:null,wsw:null,zs:null,zl:null,z:1,cw:0,ch:0};
+const ZMIN=.4,ZMAX=2.5,LIFT=22;/* ズーム範囲 / タッチ時にブロックを指より上へ持ち上げる量(px) */
 const mkBlock=(op,pre)=>{const d=BK[op],b={op,in:{}};for(const k in d.inp)b.in[k]=dfl(d.inp[k]);if(d.subs.length){b.c={};d.subs.forEach(k=>b.c[k]=[])}if(pre)Object.assign(b.in,pre);return b};
 H.mkBlock=mkBlock;
 const menuDefs={};/* 種類 -> (obj)=>[[value,label],...] */
@@ -2520,6 +2541,10 @@ menuDefs.costume=o=>{const m=o&&alive(o)?ownerOf(o.c):null;return m?m.s.cs.map(c
 menuDefs.msg=()=>SC().msgs.map(m=>[m,m]).concat([['__newmsg__','新しいメッセージ…']]);
 menuDefs.target=o=>SC().objs.filter(x=>x!==o).map(x=>[x.name,x.name]);
 menuDefs.mathop=()=>MATHOPS;
+const KEYLIST=(()=>{const L=[['space','スペース'],['enter','Enter'],['shift','Shift'],['control','Control'],['alt','Alt'],['up','↑ 上矢印'],['down','↓ 下矢印'],['left','← 左矢印'],['right','→ 右矢印']];
+for(let i=0;i<26;i++){const c=String.fromCharCode(97+i);L.push([c,c.toUpperCase()])}for(let i=0;i<10;i++)L.push([String(i),String(i)]);
+for(const c of '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~')L.push([c,c]);L.push(['any','どれかのキー']);return L})();
+menuDefs.key=()=>KEYLIST;
 H.menuDefs=menuDefs;
 function palPre(op,o){const d=BK[op],pre={};for(const k in d.inp){const sp=d.inp[k];if(sp[0]!='m')continue;const L=(menuDefs[sp[1]]||(()=>[]))(o).filter(x=>!x[0].startsWith('__'));if(sp[1]=='costume'&&o&&alive(o))pre[k]=o.c.n;else if(sp[2]!==undefined)pre[k]=sp[2];else if(L.length)pre[k]=L[0][0]}return pre}
 function slotEl(b,name,sp,pal){const w=el('span','sb-slot'+(sp[0]=='b'?' bool':'')),v=b.in[name];w._o={b,name};w._spec=sp;
@@ -2541,52 +2566,106 @@ function renderScript(s,pal){const e=el('div','sb-script');e._s=s;fillStack(e,s.
 function renderWS(){if(!WS.wsc)return;const o=OBJ(),wsc=WS.wsc;wsc.innerHTML='';if(RT){const l=el('div','sb-lock','実行中は編集できません(リセットで編集に戻ります)');wsc.append(l)}
 if(!o){const t=el('div',null,'オブジェクトを選ぶと、ここにブロックを組み立てられます。');t.style.cssText='padding:20px;opacity:.7';wsc.append(t);return}
 let mx=0,my=0;o.sc.forEach(s=>{const e=renderScript(s,false);e.style.left=s.x+'px';e.style.top=s.y+'px';wsc.append(e)});
-wsc.querySelectorAll(':scope > .sb-script').forEach(e=>{mx=Math.max(mx,e._s.x+e.offsetWidth);my=Math.max(my,e._s.y+e.offsetHeight)});wsc.style.minWidth=(mx+300)+'px';wsc.style.minHeight=(my+300)+'px';markRunning()}
+wsc.querySelectorAll(':scope > .sb-script').forEach(e=>{mx=Math.max(mx,e._s.x+e.offsetWidth);my=Math.max(my,e._s.y+e.offsetHeight)});WS.cw=DG?Math.max(WS.cw,mx+300):mx+300;WS.ch=DG?Math.max(WS.ch,my+300):my+300;applyZoom();markRunning()}
 function renderPal(){const p=WS.pal;if(!p)return;const o=OBJ(),cat=WS.cat;p.innerHTML='';if(PALX[cat])PALX[cat](p,o);(PAL[cat]||[]).forEach(op=>{if(op=='msg_send'&&0)return;const b=mkBlock(op,palPre(op,o));const sc=renderScript({b:[b]},true);p.append(sc)});p.scrollTop=0}
 const PALX={};H.PALX=PALX;
 PALX.msg=(p)=>{const b=el('button','sc-b','新しいメッセージ');b.type='button';b.onclick=async()=>{const t=await askText('新しいメッセージの名前','');if(!t)return;const v=t.slice(0,40);if(!SC().msgs.includes(v)){SC().msgs.push(v);touch()}renderPal()};p.append(b)};
 function renderCats(){const c=WS.cats;c.innerHTML='';CATS.forEach(k=>{if(!(PAL[k.id]&&PAL[k.id].length)&&!PALX[k.id])return;const b=el('button',k.id==WS.cat?'on':'','<i></i><span></span>');b.type='button';b.style.setProperty('--c',k.c);b.lastChild.textContent=k.n;b.onclick=()=>{WS.cat=k.id;renderCats();renderPal()};c.append(b)});
 const sp=el('span');sp.style.flex='1';const t=el('button','sc-b','整理');t.type='button';t.title='スクリプトを縦に整列';t.style.minHeight='34px';t.onclick=()=>{const o=OBJ();if(!o||RT)return;let y=14;o.sc.forEach(s=>{s.x=14;s.y=y;const e=[...WS.wsc.querySelectorAll(':scope > .sb-script')].find(q=>q._s===s);y+=(e?e.offsetHeight:40)+22});touch();renderWS()};c.append(sp,t)}
-H.buildCode=()=>{const p=el('div','p-code');WS.cats=el('div','sb-cats');const m=el('div','sb-main');WS.pal=el('div','sb-pal');WS.ws=el('div','sb-ws');WS.wsc=el('div','sb-wsc');WS.ws.append(WS.wsc);m.append(WS.pal,WS.ws);p.append(WS.cats,m);bindDrag(WS.pal,true);bindDrag(WS.ws,false);
+H.buildCode=()=>{const p=el('div','p-code');WS.cats=el('div','sb-cats');const m=el('div','sb-main');WS.pal=el('div','sb-pal');WS.wsw=el('div','sb-wsw');WS.ws=el('div','sb-ws');WS.zs=el('div','sb-zs');WS.wsc=el('div','sb-wsc');WS.zs.append(WS.wsc);WS.ws.append(WS.zs);WS.wsw.append(WS.ws,zoomUI());m.append(WS.pal,WS.wsw);p.append(WS.cats,m);bindDrag(WS.pal,true);bindDrag(WS.ws,false);bindGesture(WS.ws);applyZoom();
 WS.ws.addEventListener('contextmenu',e=>{const be=e.target.closest('.sb');if(!be||!be._b||RT||e.target.closest('input,select'))return;e.preventDefault();blockMenu(be,e.clientX,e.clientY)});return p};
 H.refresh=()=>{if(!WS.wsc)return;renderCats();renderPal();renderWS()};H.renderWS=()=>{renderWS();renderPal()};H.onOpen=()=>{};
 /* ---------- ドラッグ&ドロップ ---------- */
 let PD=null,DG=null;
-function bindDrag(root,pal){root.addEventListener('pointerdown',e=>{if(RT||e.button>0||PD||DG)return;if(e.target.closest('input,select,button'))return;const be=e.target.closest('.sb');if(!be||!be._b)return;
-PD={pal,be,id:e.pointerId,x0:e.clientX,y0:e.clientY,rect:be.getBoundingClientRect(),go:false,root};if(!pal&&e.pointerType!='mouse')PD.lp=setTimeout(()=>{if(PD&&!PD.go){const p=PD;PD=null;blockMenu(p.be,p.x0,p.y0)}},650);try{root.setPointerCapture(e.pointerId)}catch(x){}});
-root.addEventListener('pointermove',e=>{if(!PD||PD.id!==e.pointerId)return;if(!PD.go){if(Math.hypot(e.clientX-PD.x0,e.clientY-PD.y0)<6)return;clearTimeout(PD.lp);PD.go=true;beginDrag(e)}if(DG)updateDrag(e)});
-const up=e=>{if(!PD||PD.id!==e.pointerId)return;clearTimeout(PD.lp);const wasGo=PD.go;PD=null;if(wasGo&&DG)endDrag(e,e.type=='pointercancel')};root.addEventListener('pointerup',up);root.addEventListener('pointercancel',up)}
+/* ---------- ブロック部分の拡大縮小 ---------- */
+function applyZoom(){const z=WS.z,wsc=WS.wsc,zs=WS.zs,ws=WS.ws;if(!wsc||!zs||!ws)return;
+wsc.style.width=WS.cw+'px';wsc.style.height=WS.ch+'px';wsc.style.transform=z==1?'':'scale('+z+')';
+zs.style.width=Math.ceil(WS.cw*z)+'px';zs.style.height=Math.ceil(WS.ch*z)+'px';
+const g=(20*z).toFixed(2)+'px';ws.style.backgroundSize=g+' '+g;
+if(WS.zl)WS.zl.textContent=Math.round(z*100)+'%'}
+function setZoom(nz,ax,ay){const ws=WS.ws;nz=clamp(nz,ZMIN,ZMAX);if(!ws||Math.abs(nz-WS.z)<1e-4)return;
+const r=ws.getBoundingClientRect();if(ax==null){ax=r.left+r.width/2;ay=r.top+r.height/2}
+const lx=(ws.scrollLeft+ax-r.left)/WS.z,ly=(ws.scrollTop+ay-r.top)/WS.z;WS.z=nz;applyZoom();ws.scrollLeft=lx*nz-(ax-r.left);ws.scrollTop=ly*nz-(ay-r.top)}
+function zoomUI(){const b=el('div','sb-zoom'),mk=(t,tt,f)=>{const x=el('button','',t);x.type='button';x.title=tt;x.setAttribute('aria-label',tt);x.onclick=f;return x};
+WS.zl=mk('100%','拡大率を100%に戻す',()=>setZoom(1));b.append(mk('−','ブロック部分を縮小',()=>setZoom(WS.z/1.2)),WS.zl,mk('+','ブロック部分を拡大',()=>setZoom(WS.z*1.2)));return b}
+/* 慣性スクロール(タッチで指を離した後も少し流れる) */
+function kinetic(box,vx,vy){if(Math.abs(vx)<.05&&Math.abs(vy)<.05)return;let last=performance.now();cancelAnimationFrame(box._kin);
+const tick=t=>{const dt=Math.min(32,t-last);last=t;box.scrollLeft-=vx*dt;box.scrollTop-=vy*dt;const f=Math.pow(.94,dt/16);vx*=f;vy*=f;box._kin=(Math.abs(vx)>.02||Math.abs(vy)>.02)?requestAnimationFrame(tick):0};box._kin=requestAnimationFrame(tick)}
+/* 作業エリア: 指1本=背景のスクロール / 指2本=ピンチ拡大縮小 / Ctrl+ホイール=拡大縮小 */
+function bindGesture(ws){const TP=new Map();let pan=null,pz=null;
+const two=()=>{const v=[...TP.values()];return v.length>=2?[v[0],v[1]]:null};
+ws.addEventListener('pointerdown',e=>{if(e.pointerType=='mouse'||e.target.closest('button')||DG)return;cancelAnimationFrame(ws._kin);TP.set(e.pointerId,[e.clientX,e.clientY]);
+if(TP.size>=2){if(PD&&!PD.go){clearTimeout(PD.lp);PD=null}pan=null;const t=two(),r=ws.getBoundingClientRect(),mx=(t[0][0]+t[1][0])/2,my=(t[0][1]+t[1][1])/2;
+pz={d0:Math.max(10,Math.hypot(t[0][0]-t[1][0],t[0][1]-t[1][1])),z0:WS.z,lx:(ws.scrollLeft+mx-r.left)/WS.z,ly:(ws.scrollTop+my-r.top)/WS.z};try{ws.setPointerCapture(e.pointerId)}catch(x){}}
+else if(!e.target.closest('.sb')&&!e.target.closest('input,select')){pan={id:e.pointerId,x:e.clientX,y:e.clientY,sl:ws.scrollLeft,st:ws.scrollTop,go:0,lx:e.clientX,ly:e.clientY,lt:performance.now(),vx:0,vy:0};try{ws.setPointerCapture(e.pointerId)}catch(x){}}});
+ws.addEventListener('pointermove',e=>{if(!TP.has(e.pointerId))return;TP.set(e.pointerId,[e.clientX,e.clientY]);
+if(pz&&TP.size>=2){const t=two(),r=ws.getBoundingClientRect(),d=Math.hypot(t[0][0]-t[1][0],t[0][1]-t[1][1]),mx=(t[0][0]+t[1][0])/2,my=(t[0][1]+t[1][1])/2,nz=clamp(pz.z0*d/pz.d0,ZMIN,ZMAX);
+WS.z=nz;applyZoom();ws.scrollLeft=pz.lx*nz-(mx-r.left);ws.scrollTop=pz.ly*nz-(my-r.top);return}
+if(pan&&pan.id==e.pointerId){const dx=e.clientX-pan.x,dy=e.clientY-pan.y;if(!pan.go&&Math.hypot(dx,dy)<4)return;pan.go=1;ws.scrollLeft=pan.sl-dx;ws.scrollTop=pan.st-dy;
+const now=performance.now(),dt=now-pan.lt;if(dt>0){pan.vx=.6*pan.vx+.4*(e.clientX-pan.lx)/dt;pan.vy=.6*pan.vy+.4*(e.clientY-pan.ly)/dt}pan.lx=e.clientX;pan.ly=e.clientY;pan.lt=now}});
+const end=e=>{if(!TP.has(e.pointerId))return;TP.delete(e.pointerId);if(pz&&TP.size<2){pz=null;pan=null}
+if(pan&&pan.id==e.pointerId){if(pan.go&&e.type=='pointerup'&&performance.now()-pan.lt<90)kinetic(ws,pan.vx,pan.vy);pan=null}};
+ws.addEventListener('pointerup',end);ws.addEventListener('pointercancel',end);
+ws.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();setZoom(WS.z*Math.exp(-e.deltaY*.002),e.clientX,e.clientY)},{passive:false})}
+/* ドラッグ中、作業エリアの端で自動スクロール */
+function autoScroll(){const D=DG;if(!D||!WS.ws)return;const ws=WS.ws,r=ws.getBoundingClientRect(),M=48,x=D.lx,y=D.ly;
+if(x<r.left||x>r.right||y<r.top||y>r.bottom){D.zt=0;return}
+const ax=x-r.left,bx=r.right-x,ay=y-r.top,by=r.bottom-y;let dx=0,dy=0;
+if(ax<M)dx=-(M-ax)/M;else if(bx<M)dx=(M-bx)/M;if(ay<M)dy=-(M-ay)/M;else if(by<M)dy=(M-by)/M;
+if(!dx&&!dy){D.zt=0;return}const now=performance.now();if(!D.zt)D.zt=now;if(now-D.zt<250)return;
+if(dx>0&&ws.scrollLeft+ws.clientWidth>=ws.scrollWidth-1){WS.cw+=dx*16/WS.z;applyZoom()}
+if(dy>0&&ws.scrollTop+ws.clientHeight>=ws.scrollHeight-1){WS.ch+=dy*16/WS.z;applyZoom()}
+const sl=ws.scrollLeft,st=ws.scrollTop;ws.scrollLeft+=dx*16;ws.scrollTop+=dy*16;
+if(ws.scrollLeft!==sl||ws.scrollTop!==st){D.C=collect();updateDrag({clientX:x,clientY:y})}}
+/* ---------- ドラッグ開始の判定 ---------- */
+function startPick(P){/* 長押しで持ち上げ(パレット・タッチ) */P.go=true;P.mode='drag';if(P.inp){try{P.root.setPointerCapture(P.id)}catch(x){}}beginDrag({clientX:P.lx,clientY:P.ly})}
+function bindDrag(root,pal){
+root.addEventListener('pointerdown',e=>{if(RT||e.button>0||PD||DG)return;const touch=e.pointerType!='mouse';if(e.target.closest('button'))return;const inp=!!e.target.closest('input,select');if(inp&&!touch)return;
+const be=e.target.closest('.sb');if(!be||!be._b)return;cancelAnimationFrame(root._kin);
+PD={pal,be,id:e.pointerId,x0:e.clientX,y0:e.clientY,lx:e.clientX,ly:e.clientY,lt:performance.now(),vx:0,vy:0,sl:root.scrollLeft,st:root.scrollTop,rect:be.getBoundingClientRect(),go:false,root,touch,inp,mode:0};
+if(touch){if(pal)PD.lp=setTimeout(()=>{if(PD&&!PD.go&&!PD.mode)startPick(PD)},260);else PD.lp=setTimeout(()=>{if(PD&&!PD.go){const p=PD;PD=null;blockMenu(p.be,p.x0,p.y0)}},650)}
+if(!inp){try{root.setPointerCapture(e.pointerId)}catch(x){}}});
+root.addEventListener('pointermove',e=>{const P=PD;if(!P||P.id!==e.pointerId)return;
+if(!P.go){const dx=e.clientX-P.x0,dy=e.clientY-P.y0,dist=Math.hypot(dx,dy);
+if(P.mode!='scroll'){if(dist<(P.touch?5:6))return;
+if(P.touch&&P.pal&&Math.abs(dy)>Math.abs(dx)*1.2){P.mode='scroll';clearTimeout(P.lp)}/* パレットでは縦にこすったらスクロール */
+else{clearTimeout(P.lp);P.go=true;P.mode='drag';if(P.inp){try{root.setPointerCapture(P.id)}catch(x){}}beginDrag(e)}}
+if(P.mode=='scroll'){root.scrollTop=P.st-dy;root.scrollLeft=P.sl-dx;const now=performance.now(),dt=now-P.lt;if(dt>0){P.vx=.6*P.vx+.4*(e.clientX-P.lx)/dt;P.vy=.6*P.vy+.4*(e.clientY-P.ly)/dt}P.lx=e.clientX;P.ly=e.clientY;P.lt=now;return}}
+P.lx=e.clientX;P.ly=e.clientY;if(DG)updateDrag(e)});
+const up=e=>{if(!PD||PD.id!==e.pointerId)return;const P=PD;clearTimeout(P.lp);PD=null;
+if(P.go&&DG)endDrag(e,e.type=='pointercancel');else if(P.mode=='scroll'&&e.type=='pointerup'&&performance.now()-P.lt<90)kinetic(root,P.vx,P.vy)};
+root.addEventListener('pointerup',up);root.addEventListener('pointercancel',up)}
 const kindOf=b=>BK[b.op].kind;
 function pruneScripts(o){o.sc=o.sc.filter(s=>s.b.length)}
 function beginDrag(e){const o=OBJ();if(!o)return;const be=PD.be;let held;
 if(PD.pal){const m=JSON.parse(JSON.stringify(be._b));held={arr:[m]}}
 else{const b=be._b,par=be.parentNode;if(isRep(BK[b.op])&&par&&par._o){const ow=par._o;ow.b.in[ow.name]=dflIn(ow.b,ow.name);held={arr:[b]}}
 else if(be._arr){held={arr:be._arr.splice(be._i)};pruneScripts(o)}else return}
-held.rep=isRep(BK[held.arr[0].op]);const g=el('div','sb-ghost');g.append(renderScript({b:held.arr},true));document.body.append(g);
-DG={held,g,ox:PD.x0-PD.rect.left,oy:PD.y0-PD.rect.top,hint:el('div','sb-hint'),C:null,best:null,fromPal:PD.pal};document.body.append(DG.hint);DG.hint.style.display='none';
-if(!PD.pal){renderWS();DG.C=collect()}else DG.C=collect();DG.gh=g.getBoundingClientRect().height;updateDrag(e)}
+held.rep=isRep(BK[held.arr[0].op]);const g=el('div','sb-ghost');g.append(renderScript({b:held.arr},true));const gp=q('#scn')||document.body;/* #scn の中に作る(外だと入力欄などのスタイルが外れて大きくなる) */gp.append(g);const gs=PD.pal?1:WS.z;g.style.transformOrigin='0 0';if(gs!==1)g.style.transform='scale('+gs+')';
+DG={held,g,ox:PD.x0-PD.rect.left,oy:PD.y0-PD.rect.top+(PD.touch?LIFT:0),hint:el('div','sb-hint'),C:null,best:null,fromPal:PD.pal,touch:PD.touch,lx:e.clientX,ly:e.clientY,zt:0,iv:0,m:PD.touch?1.7:1,R:PD.touch?58:38};gp.append(DG.hint);DG.hint.style.display='none';
+if(!PD.pal){renderWS();DG.C=collect()}else DG.C=collect();DG.gh=g.getBoundingClientRect().height;if(PD.touch&&navigator.vibrate){try{navigator.vibrate(8)}catch(x){}}DG.iv=setInterval(autoScroll,16);updateDrag(e)}
 function collect(){const C={stack:[],tops:[],slots:[]},wsc=WS.wsc;wsc.querySelectorAll('.sb').forEach(be=>{const d=BK[be._b.op];if(isRep(d)||!be._arr)return;if(!isEnd(d)){const r=be.getBoundingClientRect();C.stack.push({x:r.left,y:r.bottom,arr:be._arr,i:be._i+1})}});
 wsc.querySelectorAll('.sb-sub').forEach(s=>{const r=s.getBoundingClientRect();C.stack.push({x:r.left,y:r.top,arr:s._arr,i:0})});
 wsc.querySelectorAll(':scope > .sb-script').forEach(se=>{const f=se._s.b[0];if(f&&BK[f.op].kind!='hat'&&!isRep(BK[f.op])){const r=se.getBoundingClientRect();C.tops.push({x:r.left,y:r.top,s:se._s})}});
 wsc.querySelectorAll('.sb-slot').forEach(sl=>{if(sl._o)C.slots.push({r:sl.getBoundingClientRect(),o:sl._o,sp:sl._spec})});return C}
-function updateDrag(e){const D=DG,gx=e.clientX-D.ox,gy=e.clientY-D.oy;D.g.style.left=gx+'px';D.g.style.top=gy+'px';const h=D.held,C=D.C;let best=null,bd=1e9;
+function updateDrag(e){const D=DG,gx=e.clientX-D.ox,gy=e.clientY-D.oy;D.lx=e.clientX;D.ly=e.clientY;D.g.style.left=gx+'px';D.g.style.top=gy+'px';const h=D.held,C=D.C;let best=null,bd=1e9;
 if(!h.rep){const first=BK[h.arr[0].op],lastEnd=isEnd(BK[h.arr[h.arr.length-1].op]);
-if(first.kind!='hat')for(const c of C.stack){if(lastEnd&&c.i!==c.arr.length)continue;const dd=Math.hypot(gx-c.x,gy-c.y);if(dd<38&&dd<bd){best={t:'stack',c};bd=dd}}
-if(!lastEnd)for(const c of C.tops){const dd=Math.hypot(gx-c.x,gy+D.gh-c.y);if(dd<38&&dd<bd){best={t:'top',c};bd=dd}}}
-else{const k=kindOf(h.arr[0]),px=gx+10,py=gy+D.gh/2;for(const c of C.slots){const ok=k=='b'?(c.sp[0]=='b'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat')):(c.sp[0]=='n'||c.sp[0]=='s'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat'));if(!ok)continue;const r=c.r;if(px>=r.left-10&&px<=r.right+10&&py>=r.top-12&&py<=r.bottom+12){const dd=Math.hypot(px-(r.left+4),py-(r.top+r.height/2));if(dd<bd){best={t:'slot',c};bd=dd}}}}
+if(first.kind!='hat')for(const c of C.stack){if(lastEnd&&c.i!==c.arr.length)continue;const dd=Math.hypot(gx-c.x,gy-c.y);if(dd<D.R&&dd<bd){best={t:'stack',c};bd=dd}}
+if(!lastEnd)for(const c of C.tops){const dd=Math.hypot(gx-c.x,gy+D.gh-c.y);if(dd<D.R&&dd<bd){best={t:'top',c};bd=dd}}}
+else{const k=kindOf(h.arr[0]),px=gx+10,py=gy+D.gh/2;for(const c of C.slots){const ok=k=='b'?(c.sp[0]=='b'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat')):(c.sp[0]=='n'||c.sp[0]=='s'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat'));if(!ok)continue;const r=c.r;if(px>=r.left-10*D.m&&px<=r.right+10*D.m&&py>=r.top-12*D.m&&py<=r.bottom+12*D.m){const dd=Math.hypot(px-(r.left+4),py-(r.top+r.height/2));if(dd<bd){best={t:'slot',c};bd=dd}}}}
 D.best=best;const hi=D.hint;if(!best)hi.style.display='none';else{hi.style.display='block';if(best.t=='slot'){const r=best.c.r;hi.style.cssText='display:block;background:transparent;left:'+(r.left-2)+'px;top:'+(r.top-2)+'px;width:'+(r.width+4)+'px;height:'+(r.height+4)+'px'}
 else{const c=best.c;hi.style.cssText='display:block;background:#fff;left:'+c.x+'px;top:'+(c.y-3)+'px;width:64px;height:6px'}}}
-function endDrag(e,cancel){const D=DG;DG=null;D.g.remove();D.hint.remove();const o=OBJ();if(!o||cancel){renderWS();return}
+function endDrag(e,cancel){const D=DG;DG=null;clearInterval(D.iv);D.g.remove();D.hint.remove();const o=OBJ();if(!o||cancel){renderWS();return}
 const wr=WS.ws.getBoundingClientRect(),inWs=e.clientX>=wr.left&&e.clientX<=wr.right&&e.clientY>=wr.top&&e.clientY<=wr.bottom;const h=D.held,b=D.best;
 if(!inWs){touch();renderWS();return}/* パレットや外側に落としたら削除 */
 if(b&&b.t=='stack'){b.c.arr.splice(b.c.i,0,...h.arr)}
-else if(b&&b.t=='top'){const s=b.c.s;s.b.unshift(...h.arr);const gx=e.clientX-D.ox-wr.left+WS.ws.scrollLeft,gy=e.clientY-D.oy-wr.top+WS.ws.scrollTop;s.x=Math.max(0,Math.round(gx));s.y=Math.max(0,Math.round(gy))}
-else if(b&&b.t=='slot'){const ow=b.c.o,old=ow.b.in[ow.name];ow.b.in[ow.name]=h.arr[0];if(old&&typeof old=='object'){const r=b.c.r;o.sc.push({id:uid(),x:Math.max(0,Math.round(r.left-wr.left+WS.ws.scrollLeft+30)),y:Math.max(0,Math.round(r.top-wr.top+WS.ws.scrollTop+30)),b:[old]})}}
-else{const gx=e.clientX-D.ox-wr.left+WS.ws.scrollLeft,gy=e.clientY-D.oy-wr.top+WS.ws.scrollTop;o.sc.push({id:uid(),x:Math.max(0,Math.round(gx)),y:Math.max(0,Math.round(gy)),b:h.arr})}
+else if(b&&b.t=='top'){const s=b.c.s;s.b.unshift(...h.arr);const gx=(e.clientX-D.ox-wr.left+WS.ws.scrollLeft)/WS.z,gy=(e.clientY-D.oy-wr.top+WS.ws.scrollTop)/WS.z;s.x=Math.max(0,Math.round(gx));s.y=Math.max(0,Math.round(gy))}
+else if(b&&b.t=='slot'){const ow=b.c.o,old=ow.b.in[ow.name];ow.b.in[ow.name]=h.arr[0];if(old&&typeof old=='object'){const r=b.c.r;o.sc.push({id:uid(),x:Math.max(0,Math.round((r.left-wr.left+WS.ws.scrollLeft)/WS.z+30)),y:Math.max(0,Math.round((r.top-wr.top+WS.ws.scrollTop)/WS.z+30)),b:[old]})}}
+else{const gx=(e.clientX-D.ox-wr.left+WS.ws.scrollLeft)/WS.z,gy=(e.clientY-D.oy-wr.top+WS.ws.scrollTop)/WS.z;o.sc.push({id:uid(),x:Math.max(0,Math.round(gx)),y:Math.max(0,Math.round(gy)),b:h.arr})}
 touch();renderWS();thumbCurSafe()}
 const thumbCurSafe=()=>{};
 function blockMenu(be,x,y){const o=OBJ();if(!o||RT)return;const b=be._b,d=BK[b.op];const items=[];
-items.push(['複製'+(be._arr&&!isRep(d)?'(このブロックと下のブロック)':''),()=>{const src=be._arr&&!isRep(d)?be._arr.slice(be._i):[b],cp=JSON.parse(JSON.stringify(src)),r=be.getBoundingClientRect(),wr=WS.ws.getBoundingClientRect();o.sc.push({id:uid(),x:Math.max(0,Math.round(r.left-wr.left+WS.ws.scrollLeft+24)),y:Math.max(0,Math.round(r.top-wr.top+WS.ws.scrollTop+24)),b:cp});touch();renderWS()}]);
+items.push(['複製'+(be._arr&&!isRep(d)?'(このブロックと下のブロック)':''),()=>{const src=be._arr&&!isRep(d)?be._arr.slice(be._i):[b],cp=JSON.parse(JSON.stringify(src)),r=be.getBoundingClientRect(),wr=WS.ws.getBoundingClientRect();o.sc.push({id:uid(),x:Math.max(0,Math.round((r.left-wr.left+WS.ws.scrollLeft)/WS.z+24)),y:Math.max(0,Math.round((r.top-wr.top+WS.ws.scrollTop)/WS.z+24)),b:cp});touch();renderWS()}]);
 items.push([isRep(d)?'このブロックを削除':'このブロックだけ削除',()=>{const par=be.parentNode;if(isRep(d)&&par&&par._o){const ow=par._o;ow.b.in[ow.name]=dflIn(ow.b,ow.name)}else if(be._arr){be._arr.splice(be._i,1);pruneScripts(o)}touch();renderWS()},'danger']);
 items.push(['このスクリプト全体を削除',()=>{let t=be;while(t&&!(t.classList&&t.classList.contains('sb-script')&&t._s&&t.parentNode===WS.wsc))t=t.parentNode;if(t&&t._s){o.sc=o.sc.filter(s=>s!==t._s);touch();renderWS()}},'danger']);menuAt(x,y,items)}
 function markRunning(){if(!WS.wsc)return;const o=OBJ();WS.wsc.querySelectorAll(':scope > .sb-script').forEach(e=>{const on=!!(RT&&o&&RT.threads.some(t=>!t.dead&&t.s.id===e._s.id&&t.T.src===o));e.classList.toggle('running',on)})}
