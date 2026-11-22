@@ -2166,7 +2166,7 @@ SCN.uid=uid;SCN.clamp=clamp;SCN.nz=nz;SCN.el=el;
 Object.assign(IC,{sc_flag:'<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',sc_stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',sc_reset:'<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/>',
 sc_film:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18M8 5v4M13 5v4M18 5v4"/>',sc_big:'<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',sc_eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
 sc_code:'<rect x="4" y="4" width="9" height="5" rx="1"/><rect x="8" y="10" width="12" height="5" rx="1"/><rect x="4" y="16" width="9" height="4" rx="1"/>',sc_stage:'<rect x="3" y="5" width="18" height="14" rx="1"/><circle cx="12" cy="12" r="3"/>',sc_objs:'<rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>',
-sc_front:'<rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5h10"/>',sc_back:'<rect x="4" y="4" width="11" height="11" rx="1"/><path d="M9 20h11V9"/>',sc_grid:'<path d="M4 4h16v16H4zM12 4v16M4 12h16"/>'});
+sc_front:'<rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5h10"/>',sc_back:'<rect x="4" y="4" width="11" height="11" rx="1"/><path d="M9 20h11V9"/>',sc_grid:'<path d="M4 4h16v16H4zM12 4v16M4 12h16"/>',sc_ext:'<path d="M10 4a2 2 0 1 1 4 0v2h4a1 1 0 0 1 1 1v4h-2a2 2 0 1 0 0 4h2v4a1 1 0 0 1-1 1h-4v-2a2 2 0 1 0-4 0v2H6a1 1 0 0 1-1-1v-4h2a2 2 0 1 0 0-4H5V7a1 1 0 0 1 1-1h4z"/>'});
 const S={scenes:[],cur:0,sel:null,big:false,panel:'stage',guide:true,open:false,cn:0};
 const SC=()=>S.scenes[S.cur],OBJ=()=>{const s=SC();return s&&s.objs.find(o=>o.id===S.sel)||null};
 SCN.S=S;SCN.scene=SC;SCN.sel=OBJ;
@@ -2228,7 +2228,7 @@ SCN.redraw=redraw;SCN.drawNow=()=>{drawStage();drawInfo()};
 /* ---------- 保存(自動保存・プロジェクト連携・JSON) ---------- */
 function packObj(o){if(alive(o))syncRef(o);return{id:o.id,name:o.name,ref:o.ref,x:rnd(o.x),y:rnd(o.y),size:rnd(o.size),dir:rnd(o.dir),vis:!!o.vis,ghost:rnd(o.ghost),sc:o.sc,vars:o.vars,lists:o.lists||{}}}
 const packScene=s=>({id:s.id,n:s.n,bg:s.bg,msgs:s.msgs,gvars:s.gvars,glists:s.glists||{},defs:s.defs||[],objs:s.objs.map(packObj)});
-SCN.pack=()=>{reindex();return{v:1,cur:S.cur,scenes:S.scenes.map(packScene)}};
+SCN.pack=()=>{reindex();const o={v:1,cur:S.cur,scenes:S.scenes.map(packScene)},x=H.exPack?H.exPack():[];if(x.length)o.exts=x;return o};
 let _sv=0,_svWarn=0;function touch(){clearTimeout(_sv);_sv=setTimeout(()=>{try{localStorage.setItem('ced_scn',JSON.stringify(SCN.pack()))}catch(e){if(!_svWarn){_svWarn=1;toast('シーンの自動保存に失敗しました(容量不足の可能性)。JSONで書き出してください')}}},500)}
 SCN.touch=touch;
 const vRef=r=>r&&typeof r=='object'&&typeof r.sp=='string'?{sp:r.sp.slice(0,80),cn:String(r.cn==null?'':r.cn).slice(0,80),ci:Math.max(0,r.ci|0),st:!!r.st}:null;
@@ -2242,13 +2242,13 @@ s.objs.push({id:uid(),name:nm,ref:vRef(p.ref),c:null,x:clamp(nz(p.x),-1e5,1e5),y
 SCN.vScene=vScene;
 function bindAll(){reindex();RC=new WeakMap();let miss=0;S.scenes.forEach(s=>s.objs.forEach(o=>{bindObj(o);if(!o.c)miss++}));return miss}
 SCN.bindAll=bindAll;
-SCN.unpack=d=>{const W={drop:0};if(!d||!Array.isArray(d.scenes))throw Error('シーンデータの形式が違います');const L=d.scenes.slice(0,100).map(r=>vScene(r,W));if(!L.length)throw Error('シーンがありません');
+SCN.unpack=(d,opt)=>{const W={drop:0};if(!d||!Array.isArray(d.scenes))throw Error('シーンデータの形式が違います');const prevEx=H.exPack?H.exPack():null;if(H.exRestore){const m=H.exRestore(d.exts,opt);if(m)W.exm=m}let L;try{L=d.scenes.slice(0,100).map(r=>vScene(r,W));if(!L.length)throw Error('シーンがありません')}catch(e){if(prevEx&&H.exRestore)H.exRestore(prevEx,{trust:true});throw e}
 S.scenes=L;S.cur=clamp(d.cur|0,0,L.length-1);S.sel=null;if(H.reset)H.reset();if(S.open){bindAll();refreshAll()}return W};
-function exportScenes(all){reindex();const P=(all?S.scenes:[SC()]).map(packScene);return JSON.stringify({kind:'ced-scene',v:1,scenes:P})}
+function exportScenes(all){reindex();const P=(all?S.scenes:[SC()]).map(packScene);const ex=H.exPack?H.exPack():[];return JSON.stringify(ex.length?{kind:'ced-scene',v:1,scenes:P,exts:ex}:{kind:'ced-scene',v:1,scenes:P})}
 async function importText(t){let o;try{o=JSON.parse(t)}catch(e){throw Error('JSONとして読み込めません(ファイルが壊れています)')}
 if(!o||typeof o!='object'||o.kind!='ced-scene'||!Array.isArray(o.scenes))throw Error('シーンのファイルではありません');if(!o.scenes.length)throw Error('シーンが含まれていません');
-const W={drop:0},L=[];for(const r of o.scenes.slice(0,100)){try{L.push(vScene(r,W))}catch(e){W.bad=(W.bad||0)+1}}if(!L.length)throw Error('読み込めるシーンがありませんでした');
-L.forEach(s=>{s.n=uniqScene(s.n)});S.scenes.push(...L);S.cur=S.scenes.length-L.length;S.sel=null;if(H.reset)H.reset();const miss=bindAll();touch();refreshAll();return{n:L.length,drop:W.drop,bad:W.bad||0,miss}}
+let exm='';if(Array.isArray(o.exts)&&o.exts.length&&H.exMerge)exm=await H.exMerge(o.exts);const W={drop:0},L=[];for(const r of o.scenes.slice(0,100)){try{L.push(vScene(r,W))}catch(e){W.bad=(W.bad||0)+1}}if(!L.length)throw Error('読み込めるシーンがありませんでした');
+L.forEach(s=>{s.n=uniqScene(s.n)});S.scenes.push(...L);S.cur=S.scenes.length-L.length;S.sel=null;if(H.reset)H.reset();const miss=bindAll();touch();refreshAll();return{n:L.length,drop:W.drop,bad:W.bad||0,miss,exm}}
 const uniqScene=n=>{const used=new Set(S.scenes.map(s=>s.n));if(!used.has(n))return n;const m=n.match(/^(.*?)(\d+)$/),b=m?m[1]:n;let k=m?+m[2]+1:2;while(used.has(b+k))k++;return b+k};
 const uniqName=(b,skip)=>{const used=new Set(SC().objs.filter(o=>o!==skip).map(o=>o.name));if(!used.has(b))return b;const m=b.match(/^(.*?)(\d+)$/),s=m?m[1]:b;let k=m?+m[2]+1:2;while(used.has(s+k))k++;return s+k};
 SCN.uniqName=uniqName;
@@ -2257,7 +2257,7 @@ const newScene=n=>({id:uid(),n:n||'シーン1',bg:'#ffffff',objs:[],gvars:{},gli
 const newObj=(c,name)=>{const o={id:uid(),name:name||'',ref:null,c:c||null,x:0,y:0,size:100,dir:90,vis:true,ghost:0,sc:[],vars:{},lists:{}};if(c)syncRef(o);return o};
 SCN.newScene=newScene;
 const stopRun=()=>{if(H.reset)H.reset()};
-function addObj(c){stopRun();const s=SC(),o=newObj(c,uniqName(c.n||'オブジェクト'));let n=0;while(s.objs.some(p=>Math.abs(p.x-o.x)<1&&Math.abs(p.y-o.y)<1&&p.c===c)){n++;o.x+=24;o.y-=24;if(n>40)break}s.objs.push(o);S.sel=o.id;touch();refreshAll();return o}
+function addObj(c,name){stopRun();const s=SC(),o=newObj(c,uniqName(name||c.n||'オブジェクト'));let n=0;while(s.objs.some(p=>Math.abs(p.x-o.x)<1&&Math.abs(p.y-o.y)<1&&p.c===c)){n++;o.x+=24;o.y-=24;if(n>40)break}s.objs.push(o);S.sel=o.id;touch();refreshAll();return o}
 SCN.addObj=addObj;
 function dupObj(o){stopRun();const s=SC(),p=newObj(o.c,uniqName(o.name));Object.assign(p,{ref:o.ref?{...o.ref}:null,x:o.x+20,y:o.y-20,size:o.size,dir:o.dir,vis:o.vis,ghost:o.ghost,vars:{...o.vars},lists:JSON.parse(JSON.stringify(o.lists||{})),sc:JSON.parse(JSON.stringify(o.sc)).map(z=>({...z,id:uid()}))});
 s.objs.splice(s.objs.indexOf(o)+1,0,p);S.sel=p.id;touch();refreshAll();return p}
@@ -2271,10 +2271,15 @@ b0.onclick=()=>fin(null);b1.onclick=()=>fin(inp.value.trim()||null);inp.onkeydow
 ov.onpointerdown=e=>{if(e.target===ov)fin(null)};ov.append(d);document.body.append(ov);inp.focus();inp.select()})}
 SCN.askText=askText;
 function lazyThumbs(items){let i=0;const step=()=>{const t0=performance.now();while(i<items.length&&performance.now()-t0<10){const[cv,c]=items[i++];if(cv.isConnected)spThumb(cv,c)}if(i<items.length)requestAnimationFrame(step)};step()}
-function pickCost(title,onPick,keep){reindex();const ov=el('div','sc-ov'),d=el('div','sc-dl'),pk=el('div','sc-pk'),th=[];d.innerHTML='<h3></h3>';d.firstChild.textContent=title;
-SPS.forEach(s=>{const h=el('h4');h.textContent=s.stage?'ステージ(背景)':s.n;const g=el('div','g');s.cs.forEach(c=>{const b=el('button',null,'<canvas width="72" height="54"></canvas><span></span>');b.lastChild.textContent=c.n;b.title=c.n;th.push([b.firstChild,c]);b.onclick=()=>{onPick(c);if(!keep)ov.remove()};g.append(b)});pk.append(h,g)});
+function pickCost(title,onPick,keep,only){reindex();const ov=el('div','sc-ov'),d=el('div','sc-dl'),pk=el('div','sc-pk'),th=[];d.innerHTML='<h3></h3>';d.firstChild.textContent=title;
+(only?[only]:SPS).forEach(s=>{const h=el('h4');h.textContent=s.stage?'ステージ(背景)':s.n;const g=el('div','g');s.cs.forEach(c=>{const b=el('button',null,'<canvas width="72" height="54"></canvas><span></span>');b.lastChild.textContent=c.n;b.title=c.n;th.push([b.firstChild,c]);b.onclick=()=>{onPick(c);if(!keep)ov.remove()};g.append(b)});pk.append(h,g)});
 const ac=el('div','acts'),x=el('button','sc-b pri');x.type='button';x.textContent=keep?'閉じる':'キャンセル';x.onclick=()=>ov.remove();ac.append(x);d.append(pk,ac);ov.onpointerdown=e=>{if(e.target===ov)ov.remove()};ov.append(d);document.body.append(ov);lazyThumbs(th)}
-SCN.pickCost=pickCost;
+/* スプライト選択: いまあるスプライト(ステージを除く)から選ぶ。配置されるのは、そのスプライトで選択中のコスチューム */
+function pickSprite(title,onPick,keep){reindex();const ov=el('div','sc-ov'),d=el('div','sc-dl'),pk=el('div','sc-pk'),th=[];d.innerHTML='<h3></h3>';d.firstChild.textContent=title;const g=el('div','g');let n=0;
+SPS.forEach(s=>{if(s.stage||!s.cs||!s.cs.length)return;const c=s.cs[clamp(s.ci|0,0,s.cs.length-1)];n++;const b=el('button',null,'<canvas width="72" height="54"></canvas><span></span><small></small>');b.children[1].textContent=s.n;b.lastChild.textContent=s.cs.length+'個のコスチューム';b.lastChild.style.cssText='font-size:10px;opacity:.7';b.title=s.n;th.push([b.firstChild,c]);b.onclick=()=>{onPick(s,c);if(!keep)ov.remove()};g.append(b)});
+if(n)pk.append(g);else{const e=el('div',null,'配置できるスプライトがありません(コスチュームのあるスプライトを作ってください)');e.style.padding='12px 4px';pk.append(e)}
+const ac=el('div','acts'),x=el('button','sc-b pri');x.type='button';x.textContent=keep?'閉じる':'キャンセル';x.onclick=()=>ov.remove();ac.append(x);d.append(pk,ac);ov.onpointerdown=e=>{if(e.target===ov)ov.remove()};ov.append(d);document.body.append(ov);lazyThumbs(th)}
+SCN.pickCost=pickCost;SCN.pickSprite=pickSprite;
 function menuAt(x,y,items){const m=el('div','sc-menu');items.forEach(([t,f,cls])=>{const b=el('button',cls||'');b.type='button';b.textContent=t;b.onclick=()=>{cl();f()};m.append(b)});document.body.append(m);const r=m.getBoundingClientRect();m.style.left=Math.max(4,Math.min(x,innerWidth-r.width-4))+'px';m.style.top=Math.max(4,Math.min(y,innerHeight-r.height-4))+'px';
 const cl=()=>{m.remove();removeEventListener('pointerdown',out,true)},out=e=>{if(!m.contains(e.target))cl()};setTimeout(()=>addEventListener('pointerdown',out,true),0)}
 SCN.menuAt=menuAt;
@@ -2292,7 +2297,7 @@ const body=el('div','sc-body');R.code=H.buildCode?H.buildCode():el('div','p-code
 const right=el('div','sc-right'),ps=el('div','p-stage'),bar=el('div','sc-stbar');R.bg=el('input');R.bg.type='color';R.bg.title='ステージの背景色';R.bg.setAttribute('aria-label','ステージの背景色');
 R.gd=BTN('sc_grid','ガイド','中心線(座標0,0)の表示切り替え');const lb=el('label');lb.append('背景',R.bg);const s2=el('span','sc-sp');bar.append(lb,R.gd,s2);
 const sb=el('div','sc-stbox');R.cv=el('canvas');R.cv.id='scs';R.cv.width=480;R.cv.height=360;R.cv.tabIndex=0;R.cv.setAttribute('aria-label','ステージ(480×360)');sb.append(R.cv);R.info=el('div','sc-info');ps.append(bar,sb,R.info);R.stbox=sb;
-const po=el('div','p-objs'),oh=el('div','sc-oh');R.oadd=BTN('plus','追加','コスチュームからオブジェクトを追加');R.odup=BTN('dup','','選択中のオブジェクトを複製');R.odel=BTN('del','','選択中のオブジェクトを削除');
+const po=el('div','p-objs'),oh=el('div','sc-oh');R.oadd=BTN('plus','追加','スプライトからオブジェクトを追加');R.odup=BTN('dup','','選択中のオブジェクトを複製');R.odel=BTN('del','','選択中のオブジェクトを削除');
 R.ofr=BTN('sc_front','','最前面へ');R.obk=BTN('sc_back','','最背面へ');R.oup=BTN('arrU','','1つ前面へ');R.odn=BTN('arrD','','1つ背面へ');oh.append(R.oadd,R.odup,R.odel,el('span','sc-sp'),R.ofr,R.oup,R.odn,R.obk);
 R.ol=el('div','sc-ol');R.ol.setAttribute('role','listbox');R.pr=el('div','sc-pr');po.append(oh,R.ol,R.pr);right.append(ps,po);body.append(R.code,right);
 const tabs=el('div','sc-tabs');[['code','sc_code','ブロック'],['stage','sc_stage','ステージ'],['objs','sc_objs','オブジェクト']].forEach(([k,i,l])=>{if(k=='code'&&!H.buildCode)return;const b=el('button','sc-b',ic(i,22)+'<span>'+l+'</span>');b.type='button';b.dataset.p=k;b.onclick=()=>setPanel(k);tabs.append(b)});R.tabs=tabs;
@@ -2302,7 +2307,7 @@ function fitStage(){const box=R.stbox,cv=R.cv;if(!box||!box.clientWidth)return;c
 const W=Math.round(480*k),Hh=Math.round(360*k);if(cv.width!=W||cv.height!=Hh){cv.width=W;cv.height=Hh}}
 /* ---------- プロパティ ---------- */
 const P={};
-function buildProps(){const pr=R.pr;pr.innerHTML='';P.none=el('div','none','オブジェクトを選ぶか、「追加」でコスチュームを配置してください。');P.form=el('div');
+function buildProps(){const pr=R.pr;pr.innerHTML='';P.none=el('div','none','オブジェクトを選ぶか、「追加」でスプライトを配置してください。');P.form=el('div');
 const row=(...a)=>{const r=el('div','row');r.append(...a);return r},lab=(t,i)=>{const l=el('label');l.append(t,i);return l},num=(k,min,max,w)=>{const i=el('input');i.type='number';i.step='any';i.inputMode='decimal';if(min!=null)i.min=min;if(max!=null)i.max=max;if(w)i.style.width=w;i.dataset.k=k;P[k]=i;return i};
 P.name=el('input');P.name.type='text';P.name.maxLength=60;P.name.setAttribute('aria-label','オブジェクト名');
 P.cost=el('div','cost');P.cvs=el('canvas');P.cvs.width=72;P.cvs.height=54;P.cname=el('span');P.cchg=BTN('ren','変更','使うコスチュームを変更');P.cost.append(P.cvs,P.cname,P.cchg);
@@ -2314,7 +2319,8 @@ P.name.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();P
 P.vis.onchange=()=>{const o=OBJ();if(!o)return;stopRun();o.vis=P.vis.checked;touch();renderList();redraw()};
 ['x','y','size','dir','ghost'].forEach(k=>{P[k].oninput=()=>{const o=OBJ();if(!o||P[k].value==='')return;stopRun();let v=nz(P[k].value);if(k=='size')v=clamp(v,0,1e4);else if(k=='ghost')v=clamp(v,0,100);else if(k=='dir'){}else v=clamp(v,-1e5,1e5);o[k]=v;touch();redraw();thumbCur()};
 P[k].onchange=()=>{const o=OBJ();if(o){if(k=='dir')o.dir=normDir(o.dir);refreshProps()}};P[k].onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();P[k].blur()}}});
-P.cchg.onclick=()=>{const o=OBJ();if(!o)return;pickCost('「'+o.name+'」のコスチュームを選ぶ',c=>{stopRun();o.c=c;syncRef(o);touch();refreshAll()})}}
+P.cchg.onclick=()=>{const o=OBJ();if(!o)return;const own=alive(o)?ownerOf(o.c).s:null,set=c=>{stopRun();o.c=c;syncRef(o);touch();refreshAll()};/* 使えるのは、そのオブジェクトのスプライトのコスチュームだけ(スプライトが見つからないときだけ選び直し) */
+if(own)pickCost('「'+o.name+'」のコスチュームを選ぶ(スプライト: '+own.n+')',set,false,own);else pickSprite('スプライトを選び直す',(s,c)=>set(c))}}
 function refreshProps(){const o=OBJ();P.none.hidden=!!o;P.form.hidden=!o;if(!o)return;const a=document.activeElement;
 if(a!==P.name)P.name.value=o.name;P.vis.checked=!!o.vis;['x','y','size','dir','ghost'].forEach(k=>{if(a!==P[k]){const v=k=='dir'?normDir(o.dir):o[k];P[k].value=rnd(v)}});
 const x=P.cvs.getContext('2d');x.clearRect(0,0,72,54);if(alive(o))spThumb(P.cvs,o.c);else{x.fillStyle='#e03a5a';x.font='bold 30px sans-serif';x.textAlign='center';x.fillText('?',36,38)}
@@ -2347,7 +2353,7 @@ refreshProps();redraw()});
 const end=e=>{if(!DR||DR.id!==e.pointerId)return;DR=null;touch();renderList();refreshProps()};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 R.back.onclick=close;R.bigb.onclick=()=>{S.big=!S.big;refreshAll();setTimeout(()=>{fitStage();redraw()},0)};R.gd.onclick=()=>{S.guide=!S.guide;R.gd.classList.toggle('on',S.guide);redraw()};
 R.bg.oninput=()=>{SC().bg=R.bg.value;touch();redraw()};
-R.oadd.onclick=()=>pickCost('配置するコスチュームを選ぶ(何個でも配置できます)',c=>addObj(c),true);
+R.oadd.onclick=()=>pickSprite('配置するスプライトを選ぶ(何個でも配置できます)',(s,c)=>addObj(c,s.n),true);
 R.odup.onclick=()=>{const o=OBJ();if(o)dupObj(o)};R.odel.onclick=()=>delObj(OBJ());R.ofr.onclick=()=>zmove(OBJ(),'front');R.obk.onclick=()=>zmove(OBJ(),'back');R.oup.onclick=()=>zmove(OBJ(),'up');R.odn.onclick=()=>zmove(OBJ(),'down');
 R.sel.onchange=()=>switchScene(+R.sel.value);
 R.sname.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();R.sname.blur()}else if(e.key=='Escape'){R.sname.value=SC().n;R.sname.blur()}};
@@ -2358,7 +2364,7 @@ R.sdel.onclick=async()=>{if(S.scenes.length<2)return;if(!await uiConfirm('シー
 R.exp.onclick=async()=>{let all=false;if(S.scenes.length>1){const v=await uiDlg('どちらを書き出しますか?',[{t:'キャンセル',v:null},{t:'このシーンだけ',v:'one'},{t:'すべてのシーン',v:'all'}],{esc:null,focus:1});if(!v)return;all=v=='all'}
 reindex();const t=exportScenes(all);dl(new Blob([t],{type:'application/json'}),(all?'scenes':SC().n.replace(/[\\/:*?"<>|]/g,'_')||'scene')+'.scene.json');toast('シーンをJSONで書き出しました')};
 R.imp.onclick=()=>R.file.click();R.file.onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>60e6){uiAlert('ファイルが大きすぎます(60MBまで)');return}const r=new FileReader();r.onerror=()=>uiAlert('ファイルを読み込めませんでした');
-r.onload=async()=>{try{const x=await importText(String(r.result));let m='シーンを'+x.n+'個読み込みました。';if(x.miss)m+='\n参照できないコスチュームのオブジェクトが'+x.miss+'個あります(「?」表示。コスチュームを選び直せます)。';if(x.drop)m+='\n不正または未対応のデータ'+x.drop+'件を読み飛ばしました。';if(x.bad)m+='\n壊れたシーン'+x.bad+'個を読み込めませんでした。';await uiAlert(m)}catch(er){uiAlert('読み込みに失敗しました: '+er.message)}};r.readAsText(f)}}
+r.onload=async()=>{try{const x=await importText(String(r.result));let m='シーンを'+x.n+'個読み込みました。';if(x.miss)m+='\n参照できないコスチュームのオブジェクトが'+x.miss+'個あります(「?」表示。コスチュームを選び直せます)。';if(x.drop)m+='\n不正または未対応のデータ'+x.drop+'件を読み飛ばしました。';if(x.exm)m+='\n'+x.exm;if(x.bad)m+='\n壊れたシーン'+x.bad+'個を読み込めませんでした。';await uiAlert(m)}catch(er){uiAlert('読み込みに失敗しました: '+er.message)}};r.readAsText(f)}}
 const uniqScene2=(n,skip)=>{const used=new Set(S.scenes.filter(s=>s!==skip).map(s=>s.n));if(!used.has(n))return n;const m=n.match(/^(.*?)(\d+)$/),b=m?m[1]:n;let k=m?+m[2]+1:2;while(used.has(b+k))k++;return b+k};
 function switchScene(i){if(!S.scenes[i])return;stopRun();S.cur=i;S.sel=null;bindAll();touch();refreshAll()}
 SCN.switchScene=switchScene;
@@ -2375,7 +2381,7 @@ if(m){e.preventDefault();o.x+=m[0];o.y+=m[1];touch();refreshProps();redraw()}els
 document.addEventListener('keyup',e=>{if(S.open)e.stopPropagation()});
 /* ---------- 既存エディタとの連携(既存コードは変更せず、外側から包む) ---------- */
 (function(){const _ser=window.ser;if(typeof _ser=='function')window.ser=function(n){const t=_ser(n);try{if(!S.scenes.length)return t;const j=JSON.stringify(SCN.pack());return t.slice(0,-1)+',"scn":'+j+'}'}catch(e){return t}};
-const _la=window.loadAsync;if(typeof _la=='function')window.loadAsync=async function(t){const r=await _la.apply(this,arguments);try{if(typeof t=='string'&&t.lastIndexOf('"scn":')>=0){const o=JSON.parse(t);if(o&&o.scn){const W=SCN.unpack(o.scn);if(W.drop)toast('シーンの不正なデータ'+W.drop+'件を読み飛ばしました')}}}catch(e){toast('プロジェクト内のシーンデータを読み込めませんでした: '+e.message)}return r}})();
+const _la=window.loadAsync;if(typeof _la=='function')window.loadAsync=async function(t){const r=await _la.apply(this,arguments);try{if(typeof t=='string'&&t.lastIndexOf('"scn":')>=0){const o=JSON.parse(t);if(o&&o.scn){const ok=H.exAsk?await H.exAsk(o.scn.exts):true,W=SCN.unpack(o.scn,{trust:ok});if(W.drop)toast('シーンの不正なデータ'+W.drop+'件を読み飛ばしました');if(W.exm)toast(W.exm)}}}catch(e){toast('プロジェクト内のシーンデータを読み込めませんでした: '+e.message)}return r}})();
 
 /* ============================================================
    第2部: ブロックエディタ + 実行エンジン
@@ -2398,10 +2404,10 @@ isNumStr=v=>typeof v=='number'||typeof v=='boolean'||(typeof v=='string'&&v.trim
 cmp=(a,b)=>{if(isNumStr(a)&&isNumStr(b))return Number(a)-Number(b);const s=String(a).toLowerCase(),t=String(b).toLowerCase();return s<t?-1:s>t?1:0};
 Object.assign(H,{toNum,toStr,toBool,cl});
 /* ---------- 実行時の状態 ---------- */
-let RT=null;H.rt=()=>RT;
+let RT=null,EXA=false;const PEND={};H.rt=()=>RT;
 const now=()=>performance.now();
 const costList=T=>{const m=T.c&&ownerOf(T.c);return m?m.s.cs:[]};
-function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[],key:[],gt:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='event_whenkey')h.key.push(s);else if(f.op=='event_whengt')h.gt.push(s);else if(f.op=='control_startasclone')h.clone.push(s)});return h}
+function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[],key:[],gt:[],ex:[],xe:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='event_whenkey')h.key.push(s);else if(f.op=='event_whengt')h.gt.push(s);else if(f.op=='control_startasclone')h.clone.push(s);else if(d.ex)(d.ex.ev?h.xe:h.ex).push(s)});return h}
 function mkTarget(o){const sc=JSON.parse(JSON.stringify(o.sc));return{id:uid(),name:o.name,src:o,isClone:false,x:o.x,y:o.y,size:o.size,dir:o.dir,vis:o.vis,ghost:o.ghost,c:alive(o)?o.c:null,vars:JSON.parse(JSON.stringify(o.vars)),lists:JSON.parse(JSON.stringify(o.lists||{})),sc,hats:hatIndex(sc),dead:false}}
 function buildRT(){const s=SC();RT={list:s.objs.map(mkTarget),threads:[],tmap:new Map(),g:JSON.parse(JSON.stringify(s.gvars)),gl:JSON.parse(JSON.stringify(s.glists||{})),lmon:{},mon:{},clones:0,raf:0,next:0,err:null,t0:now(),ans:''};R.root.classList.add('run');updateRunUI();R.root.classList.add('run');if(H.renderWS)H.renderWS()}
 H.list=()=>RT?RT.list:(SC()?SC().objs:[]);
@@ -2409,24 +2415,28 @@ H.list=()=>RT?RT.list:(SC()?SC().objs:[]);
 function startScript(T,s){const key=T.id+'|'+s.id,old=RT.tmap.get(key);if(old)old.dead=true;const th={T,s,key,dead:false,stop:false};th.gen=runList(s.b.slice(1),T,th);RT.threads.push(th);RT.tmap.set(key,th);ensureLoop();return th}
 function* runList(arr,T,th){for(let i=0;i<arr.length;i++){if(th.stop||T.dead)return;yield* execBlock(arr[i],T,th)}}
 function ev(x,T,th){if(x&&typeof x=='object'){const d=BK[x.op];if(!d||!d.fn)return 0;const A={};for(const k in d.inp)A[k]=ev(x.in?x.in[k]:undefined,T,th);return d.fn(T,A,th,x)}return x}
+/* 非同期の拡張ブロック(Promiseを返す値ブロック)を待つための評価: 値ブロックがPENDを投げたら、完了まで待ってから式を評価し直す(解決済みの値は th.pc に保存) */
+function* evg(x,T,th){if(!(x&&typeof x=='object'))return x;const own=!th.pc;if(own)th.pc=new Map();
+try{for(;;){try{return ev(x,T,th)}catch(e){if(e!==PEND)throw e;const w=th.pw;th.pw=null;let st=0,v,er;w.p.then(r=>{st=1;v=r},r=>{st=2;er=r});
+while(!st){yield;if(th.stop||T.dead)return 0}if(st==2){exErr(er);v=''}th.pc.set(w.b,exVal(BK[w.b.op],v))}}}finally{if(own)th.pc=null}}
 const sub=(b,k)=>(b.c&&b.c[k])||[];
 function* execBlock(b,T,th){const d=BK[b.op];if(!d)return;
 switch(b.op){
-case'control_repeat':{const n=Math.floor(toNum(ev(b.in.TIMES,T,th))+.5),L=sub(b,'SUB');for(let i=0;i<n;i++){yield* runList(L,T,th);if(th.stop||T.dead)return;if(WY(th))yield}return}
+case'control_repeat':{const n=Math.floor(toNum((EXA?(yield* evg(b.in.TIMES,T,th)):ev(b.in.TIMES,T,th)))+.5),L=sub(b,'SUB');for(let i=0;i<n;i++){yield* runList(L,T,th);if(th.stop||T.dead)return;if(WY(th))yield}return}
 case'control_forever':{const L=sub(b,'SUB');for(;;){yield* runList(L,T,th);if(th.stop||T.dead)return;if(WY(th))yield}}
-case'control_if':{if(toBool(ev(b.in.COND,T,th)))yield* runList(sub(b,'SUB'),T,th);return}
-case'control_ifelse':{yield* runList(sub(b,toBool(ev(b.in.COND,T,th))?'SUB':'SUB2'),T,th);return}
-case'control_repeatuntil':{const L=sub(b,'SUB');while(!toBool(ev(b.in.COND,T,th))){yield* runList(L,T,th);if(th.stop||T.dead)return;if(WY(th))yield}return}
-case'control_waituntil':{while(!toBool(ev(b.in.COND,T,th))){yield;if(th.stop||T.dead)return}return}
-case'control_wait':{const end=now()+Math.max(0,toNum(ev(b.in.SECS,T,th)))*1000;do{yield;if(th.stop||T.dead)return}while(now()<end);return}
+case'control_if':{if(toBool((EXA?(yield* evg(b.in.COND,T,th)):ev(b.in.COND,T,th))))yield* runList(sub(b,'SUB'),T,th);return}
+case'control_ifelse':{yield* runList(sub(b,toBool((EXA?(yield* evg(b.in.COND,T,th)):ev(b.in.COND,T,th)))?'SUB':'SUB2'),T,th);return}
+case'control_repeatuntil':{const L=sub(b,'SUB');while(!toBool((EXA?(yield* evg(b.in.COND,T,th)):ev(b.in.COND,T,th)))){yield* runList(L,T,th);if(th.stop||T.dead)return;if(WY(th))yield}return}
+case'control_waituntil':{while(!toBool((EXA?(yield* evg(b.in.COND,T,th)):ev(b.in.COND,T,th)))){yield;if(th.stop||T.dead)return}return}
+case'control_wait':{const end=now()+Math.max(0,toNum((EXA?(yield* evg(b.in.SECS,T,th)):ev(b.in.SECS,T,th))))*1000;do{yield;if(th.stop||T.dead)return}while(now()<end);return}
 }
-if(!d.fn||isRep(d)||d.kind=='hat')return;const A={};for(const k in d.inp)A[k]=ev(b.in?b.in[k]:undefined,T,th);if(d.gen)yield* d.fn(T,A,th,b);else d.fn(T,A,th,b);if(T.pen&&T.pen.down)penTrack(T)}
+if(!d.fn||isRep(d)||d.kind=='hat')return;const A={};for(const k in d.inp)A[k]=(EXA?(yield* evg(b.in?b.in[k]:undefined,T,th)):ev(b.in?b.in[k]:undefined,T,th));if(d.ex){yield* exRun(b,d,T,th,A);return}if(d.gen){const g=d.fn(T,A,th,b);for(;;){const r=g.next();if(T.pen&&T.pen.down)penTrack(T);if(r.done)break;yield}}else d.fn(T,A,th,b);if(T.pen&&T.pen.down)penTrack(T)}
 function ensureLoop(){if(!RT||RT.raf)return;RT.next=now();RT.raf=requestAnimationFrame(loop)}
 function tickAll(){const L=RT.threads;for(let i=0;i<L.length;i++){const th=L[i];if(th.dead||th.T.dead){th.dead=true;continue}try{if(th.gen.next().done)th.dead=true}catch(e){th.dead=true;if(!RT.err){RT.err=e;toast('実行エラー: '+(e&&e.message||e))}console.error(e)}}
 RT.threads=L.filter(t=>{if(t.dead){if(RT.tmap.get(t.key)===t)RT.tmap.delete(t.key);return false}return true})}
 function loop(){if(!RT)return;RT.raf=0;const t=now();if(RT.next<t-120)RT.next=t-33.4;let n=0;while(RT.next<=t&&n<3){tickAll();RT.next+=1000/30;n++}if(n==3)RT.next=t+33.4;if(n)SCN.drawNow();
-if(RT.threads.length||(!RT.halt&&RT.list.some(T=>T.hats.gt&&T.hats.gt.length)))RT.raf=requestAnimationFrame(loop);else updateRunUI()}
-function flag(){if(!S.open)return;if(!RT)buildRT();else killAll();RT.halt=0;RT.t0=now();RT.list.forEach(T=>(T.hats.gt||[]).forEach(s=>{s._on=false}));for(const T of RT.list.slice())for(const s of T.hats.flag)startScript(T,s);ensureLoop();SCN.drawNow();updateRunUI()}
+if(RT.threads.length||(!RT.halt&&RT.list.some(T=>(T.hats.gt&&T.hats.gt.length)||(T.hats.ex&&T.hats.ex.length))))RT.raf=requestAnimationFrame(loop);else updateRunUI()}
+function flag(){if(!S.open)return;if(!RT)buildRT();else killAll();RT.halt=0;RT.t0=now();RT.list.forEach(T=>{(T.hats.gt||[]).forEach(s=>{s._on=false});T.xon=null});for(const T of RT.list.slice())for(const s of T.hats.flag)startScript(T,s);ensureLoop();SCN.drawNow();updateRunUI()}
 function killAll(){if(!RT)return;RT.threads.forEach(t=>{t.dead=true;t.stop=true});RT.threads=[];RT.tmap.clear();const L=RT.list.filter(t=>!t.isClone);RT.list.forEach(t=>{if(t.isClone)t.dead=true});RT.list=L;RT.clones=0}
 function stopAll(){if(!RT)return;RT.halt=1;killAll();SCN.drawNow();updateRunUI()}
 function reset(){if(!RT){updateRunUI();return}killAll();if(RT.raf)cancelAnimationFrame(RT.raf);RT=null;if(R.root){R.root.classList.remove('run');updateRunUI();SCN.drawNow();if(H.renderWS)H.renderWS();refreshProps()}}
@@ -2528,7 +2538,7 @@ const dflIn=(bl,k)=>{const sp=BK[bl.op].inp[k];if(sp[0]=='m'){if(sp[2]!==undefin
 const dfl=sp=>sp[0]=='b'?null:(sp[1]!==undefined&&sp[0]!='m'?sp[1]:(sp[2]!==undefined?sp[2]:''));
 function vBlock(b,W,dep,cnt){if(!b||typeof b!='object'||typeof b.op!='string'||!BK[b.op]||dep>30||++cnt.n>6000){W.drop++;return null}const d=BK[b.op],o={op:b.op,in:{}};
 for(const k in d.inp){const sp=d.inp[k],x=b.in&&typeof b.in=='object'?b.in[k]:undefined;
-if(x&&typeof x=='object'){const kd=BK[x.op]&&BK[x.op].kind;if((sp[0]=='b'&&kd=='b')||((sp[0]=='n'||sp[0]=='s')&&(kd=='r'||kd=='b'))||(sp[0]=='m'&&d.kind!='hat'&&(kd=='r'||kd=='b'))){const y=vBlock(x,W,dep+1,cnt);o.in[k]=y||dfl(sp)}else{W.drop++;o.in[k]=dfl(sp)}}
+if(x&&typeof x=='object'){const kd=BK[x.op]&&BK[x.op].kind;if((sp[0]=='b'&&kd=='b')||((sp[0]=='n'||sp[0]=='s'||sp[0]=='c')&&(kd=='r'||kd=='b'))||(sp[0]=='m'&&d.kind!='hat'&&(kd=='r'||kd=='b'))){const y=vBlock(x,W,dep+1,cnt);o.in[k]=y||dfl(sp)}else{W.drop++;o.in[k]=dfl(sp)}}
 else if(sp[0]=='b')o.in[k]=null;else if(typeof x=='number'&&Number.isFinite(x)||typeof x=='boolean')o.in[k]=x;else if(typeof x=='string')o.in[k]=x.slice(0,200);else o.in[k]=dfl(sp)}
 if(d.subs.length){o.c={};d.subs.forEach(s=>o.c[s]=vBlocks(b.c&&b.c[s],W,dep+1,cnt))}return o}
 function vBlocks(a,W,dep,cnt){const out=[];if(!Array.isArray(a))return out;dep=dep||0;cnt=cnt||{n:0};for(const b of a.slice(0,2000)){const v=vBlock(b,W,dep,cnt);if(v)out.push(v)}return out}
@@ -2658,7 +2668,7 @@ function updateDrag(e){const D=DG,gx=e.clientX-D.ox,gy=e.clientY-D.oy;D.lx=e.cli
 if(!h.rep){const first=BK[h.arr[0].op],lastEnd=isEnd(BK[h.arr[h.arr.length-1].op]);
 if(first.kind!='hat')for(const c of C.stack){if(lastEnd&&c.i!==c.arr.length)continue;const dd=Math.hypot(gx-c.x,gy-c.y);if(dd<D.R&&dd<bd){best={t:'stack',c};bd=dd}}
 if(!lastEnd)for(const c of C.tops){const dd=Math.hypot(gx-c.x,gy+D.gh-c.y);if(dd<D.R&&dd<bd){best={t:'top',c};bd=dd}}}
-else{const k=kindOf(h.arr[0]),px=gx+10,py=gy+D.gh/2;for(const c of C.slots){const ok=k=='b'?(c.sp[0]=='b'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat')):(c.sp[0]=='n'||c.sp[0]=='s'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat'));if(!ok)continue;const r=c.r;if(px>=r.left-10*D.m&&px<=r.right+10*D.m&&py>=r.top-12*D.m&&py<=r.bottom+12*D.m){const dd=Math.hypot(px-(r.left+4),py-(r.top+r.height/2));if(dd<bd){best={t:'slot',c};bd=dd}}}}
+else{const k=kindOf(h.arr[0]),px=gx+10,py=gy+D.gh/2;for(const c of C.slots){const ok=k=='b'?(c.sp[0]=='b'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat')):(c.sp[0]=='n'||c.sp[0]=='s'||c.sp[0]=='c'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat'));if(!ok)continue;const r=c.r;if(px>=r.left-10*D.m&&px<=r.right+10*D.m&&py>=r.top-12*D.m&&py<=r.bottom+12*D.m){const dd=Math.hypot(px-(r.left+4),py-(r.top+r.height/2));if(dd<bd){best={t:'slot',c};bd=dd}}}}
 D.best=best;const hi=D.hint;if(!best)hi.style.display='none';else{hi.style.display='block';if(best.t=='slot'){const r=best.c.r;hi.style.cssText='display:block;background:transparent;left:'+(r.left-2)+'px;top:'+(r.top-2)+'px;width:'+(r.width+4)+'px;height:'+(r.height+4)+'px'}
 else{const c=best.c;hi.style.cssText='display:block;background:#fff;left:'+c.x+'px;top:'+(c.y-3)+'px;width:64px;height:6px'}}}
 function endDrag(e,cancel){const D=DG;DG=null;clearInterval(D.iv);D.g.remove();D.hint.remove();const o=OBJ();if(!o||cancel){renderWS();return}
@@ -2718,7 +2728,7 @@ menuDefs.var=o=>varNames(o).map(([n,l])=>[n,n+(l?'(このオブジェクトの�
    第4部: Scratchにあって未実装だったブロックの追加(拡張機能を除く)
    ============================================================ */
 const MS={x:0,y:0,down:false},KD=new Map();let DRG=null;
-document.addEventListener('pointermove',e=>{if(!RT||!R.cv)return;const r=R.cv.getBoundingClientRect();if(!r.width)return;MS.x=Math.round((e.clientX-r.left)*480/r.width-240);MS.y=Math.round(180-(e.clientY-r.top)*360/r.height);if(DRG&&DRG.id===e.pointerId){DRG.T.x=cl(MS.x+DRG.dx);DRG.T.y=cl(MS.y+DRG.dy);SCN.drawNow()}},true);
+document.addEventListener('pointermove',e=>{if(!RT||!R.cv)return;const r=R.cv.getBoundingClientRect();if(!r.width)return;MS.x=Math.round((e.clientX-r.left)*480/r.width-240);MS.y=Math.round(180-(e.clientY-r.top)*360/r.height);if(DRG&&DRG.id===e.pointerId){DRG.T.x=cl(MS.x+DRG.dx);DRG.T.y=cl(MS.y+DRG.dy);if(DRG.T.pen&&DRG.T.pen.down)penTrack(DRG.T);SCN.drawNow()}},true);
 document.addEventListener('pointerdown',e=>{if(!RT||e.target!==R.cv)return;MS.down=true;const[X,Y]=stagePt(e),h=pickAt(RT.list,X,Y,false);if(h&&h.drag)DRG={T:h,id:e.pointerId,dx:h.x-(X-240),dy:h.y-(180-Y)}},true);
 const mup=()=>{MS.down=false;DRG=null};document.addEventListener('pointerup',mup,true);document.addEventListener('pointercancel',mup,true);
 document.addEventListener('keydown',e=>{if(S.open)KD.set(e.code||e.key,keyIds(e))},true);document.addEventListener('keyup',e=>KD.delete(e.code||e.key),true);addEventListener('blur',()=>KD.clear());
@@ -2781,7 +2791,7 @@ def('control_stopother','control','stack','このオブジェクトの他のス�
 /* 調べる */
 function colorHit(T,c1,c2){const rgb=h=>{h=String(h).trim().replace('#','');if(h.length==3)h=[...h].map(c=>c+c).join('');const n=parseInt(h,16);return h.length==6&&!isNaN(n)?[n>>16&255,n>>8&255,n&255]:null},a=rgb(c1),b=c2==null?null:rgb(c2);if(!a||(c2!=null&&!b)||!T.vis)return false;
 const bb=aabb(corners(T)),x0=Math.max(0,Math.floor(bb[0])),y0=Math.max(0,Math.floor(bb[1])),W=Math.min(480,Math.ceil(bb[2]))-x0,Hh=Math.min(360,Math.ceil(bb[3]))-y0;if(W<=0||Hh<=0)return false;
-CX2.forEach((x,i)=>{CV2[i].width=W;CV2[i].height=Hh;x.setTransform(1,0,0,1,-x0,-y0)});const x=CX2[0];x.fillStyle=SC().bg;x.fillRect(x0,y0,W,Hh);RT.list.forEach(o=>{if(o!==T)drawObj(x,o,1)});mask(CX2[1],T);CX2.forEach(x=>x.setTransform(1,0,0,1,0,0));
+CX2.forEach((x,i)=>{CV2[i].width=W;CV2[i].height=Hh;x.setTransform(1,0,0,1,-x0,-y0)});const x=CX2[0];x.fillStyle=SC().bg;x.fillRect(x0,y0,W,Hh);if(RT.pc)x.drawImage(RT.pc,0,0,480,360);RT.list.forEach(o=>{if(o!==T)drawObj(x,o,1)});mask(CX2[1],T);CX2.forEach(x=>x.setTransform(1,0,0,1,0,0));
 const D=CX2.map(x=>x.getImageData(0,0,W,Hh).data),m=(d,i,c)=>(d[i]&248)==(c[0]&248)&&(d[i+1]&248)==(c[1]&248)&&(d[i+2]&248)==(c[2]&248);
 for(let i=0;i<D[0].length;i+=4)if(D[1][i+3]>0&&m(D[0],i,a)&&(!b||m(D[1],i,b)))return true;return false}
 def('sense_touchcolor','sense','b','色[C]に触れた',{C:['s','#ff0000']},(T,A)=>RT?colorHit(T,A.C):false);
@@ -2911,28 +2921,246 @@ const h=el('div',null,'※「ブロックを作る」を押すと、定義ブロ
 function hsv2rgb(h,s,v){const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),u=v*(1-(1-f)*s);return[[v,u,p],[q,v,p],[p,v,u],[p,q,v],[u,p,v],[v,p,q]][i%6].map(c=>Math.round(c*255))}
 function rgb2hsv(r,g,b){r/=255;g/=255;b/=255;const M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m;let h=0;if(d){h=M==r?((g-b)/d+6)%6:M==g?(b-r)/d+2:(r-g)/d+4;h/=6}return[h,M?d/M:0,M]}
 const PN=T=>T.pen||(T.pen={down:false,h:200/3,s:100,b:100,a:0,size:1}),penCol=P=>{const[r,g,b]=hsv2rgb(((P.h%100)+100)%100/100,clamp(P.s,0,100)/100,clamp(P.b,0,100)/100);return'rgba('+r+','+g+','+b+','+(1-clamp(P.a,0,100)/100)+')'};
-function penCtx(){if(!RT.pc){RT.pc=document.createElement('canvas');RT.pc.width=960;RT.pc.height=720;RT.px=RT.pc.getContext('2d');RT.px.setTransform(2,0,0,2,0,0);RT.px.lineCap='round';RT.px.lineJoin='round'}return RT.px}
+const PS=3;/* ペン専用レイヤーの解像度(ステージの3倍) */
+function penCtx(){if(!RT.pc){RT.pc=document.createElement('canvas');RT.pc.width=480*PS;RT.pc.height=360*PS;RT.px=RT.pc.getContext('2d');RT.px.setTransform(PS,0,0,PS,0,0);RT.px.lineCap='round';RT.px.lineJoin='round'}return RT.px}
 function penDot(T){const P=PN(T),x=penCtx();x.fillStyle=penCol(P);x.beginPath();x.arc(240+T.x,180-T.y,P.size/2,0,7);x.fill()}
-function penTrack(T){if(!RT||(T._px===T.x&&T._py===T.y))return;const P=T.pen,x=penCtx();x.strokeStyle=penCol(P);x.lineWidth=P.size;x.beginPath();x.moveTo(240+T._px,180-T._py);x.lineTo(240+T.x,180-T.y);x.stroke();T._px=T.x;T._py=T.y}
+function penTrack(T){if(!RT||!T.pen)return;if(T._px==null||T._py==null){T._px=T.x;T._py=T.y;return}if(T._px===T.x&&T._py===T.y)return;const P=T.pen,x=penCtx();x.strokeStyle=penCol(P);x.lineWidth=P.size;x.beginPath();x.moveTo(240+T._px,180-T._py);x.lineTo(240+T.x,180-T.y);x.stroke();T._px=T.x;T._py=T.y}
+/* どの方法で動いても(ブロック・ドラッグ・拡張機能)、1フレームの終わりに取りこぼしを描く */
+{const _tp=tickAll;tickAll=function(){_tp();if(RT)for(const T of RT.list)if(T.pen&&T.pen.down)penTrack(T)}}
+/* 色の読み取り: #rgb #rrggbb #rrggbbaa / 数値(0xRRGGBB) / rgb()・色名など → [r,g,b,a(0〜1)] */
+const _pcx=document.createElement('canvas').getContext('2d');
+function penRgb(v){if(typeof v=='number'||typeof v=='boolean'){const n=Math.floor(toNum(v))>>>0;return[n>>16&255,n>>8&255,n&255,1]}
+const s=String(v==null?'':v).trim();if(!s)return null;if(/^-?\d+(\.\d+)?$/.test(s)){const n=Math.floor(Number(s))>>>0;return[n>>16&255,n>>8&255,n&255,1]}
+const hx=s[0]=='#'?s.slice(1):(/^[0-9a-f]{6}$/i.test(s)?s:'');
+if(hx&&/^[0-9a-f]+$/i.test(hx)&&[3,4,6,8].includes(hx.length)){const h=hx.length<=4?[...hx].map(c=>c+c).join(''):hx,n=parseInt(h.slice(0,6),16);return[n>>16&255,n>>8&255,n&255,h.length==8?parseInt(h.slice(6),16)/255:1]}
+_pcx.fillStyle='#010203';_pcx.fillStyle=s;const f=String(_pcx.fillStyle);if(f==='#010203')return null;let m=/^#([0-9a-f]{6})$/i.exec(f);if(m){const n=parseInt(m[1],16);return[n>>16&255,n>>8&255,n&255,1]}
+m=/^rgba?\(([^)]+)\)$/.exec(f);if(m){const q=m[1].split(',').map(Number);return[q[0],q[1],q[2],q.length>3?q[3]:1]}return null}
+const PK={h:'h',color:'h','色':'h',s:'s',saturation:'s','鮮やかさ':'s',b:'b',brightness:'b','明るさ':'b',a:'a',transparency:'a','透明度':'a'},pkey=v=>PK[String(v).trim().toLowerCase()];
 H.drawPen=x=>{if(RT&&RT.pc)x.drawImage(RT.pc,0,0,480,360)};
 menuDefs.penp=()=>[['h','色'],['s','鮮やかさ'],['b','明るさ'],['a','透明度']];
 def('pen_clear','pen','stack','すべて消す',{},()=>{if(RT&&RT.pc)penCtx().clearRect(0,0,480,360)});
-def('pen_stamp','pen','stack','スタンプ',{},T=>{if(RT&&T.vis)drawObj(penCtx(),T,2)});
-def('pen_down','pen','stack','ペンを下ろす',{},T=>{PN(T).down=true;T._px=T.x;T._py=T.y;penDot(T)});
+def('pen_stamp','pen','stack','スタンプ',{},T=>{if(RT&&T.vis)drawObj(penCtx(),T,PS)});
+def('pen_down','pen','stack','ペンを下ろす',{},T=>{const P=PN(T);if(!P.down){P.down=true;T._px=T.x;T._py=T.y;penDot(T)}});
 def('pen_up','pen','stack','ペンを上げる',{},T=>{PN(T).down=false});
-def('pen_setcolor','pen','stack','ペンの色を[C]にする',{C:['c','#0000ff']},(T,A)=>{const m=/^#([0-9a-f]{6})$/i.exec(String(A.C).trim());if(!m)return;const n=parseInt(m[1],16),[h,s,v]=rgb2hsv(n>>16&255,n>>8&255,n&255);Object.assign(PN(T),{h:h*100,s:s*100,b:v*100,a:0})});
+def('pen_setcolor','pen','stack','ペンの色を[C]にする',{C:['c','#0000ff']},(T,A)=>{const c=penRgb(A.C);if(!c)return;const[h,s,v]=rgb2hsv(c[0],c[1],c[2]);Object.assign(PN(T),{h:h*100,s:s*100,b:v*100,a:(1-clamp(c[3],0,1))*100})});
 const penFix=P=>{P.h=((P.h%100)+100)%100;P.s=clamp(P.s,0,100);P.b=clamp(P.b,0,100);P.a=clamp(P.a,0,100)};
-def('pen_change','pen','stack','ペンの[P]を[V]ずつ変える',{P:['m','penp','h'],V:['n',10]},(T,A)=>{const P=PN(T),k=String(A.P);if(k in P&&k!='size'&&k!='down'){P[k]+=toNum(A.V);penFix(P)}});
-def('pen_set','pen','stack','ペンの[P]を[V]にする',{P:['m','penp','h'],V:['n',50]},(T,A)=>{const P=PN(T),k=String(A.P);if(k in P&&k!='size'&&k!='down'){P[k]=toNum(A.V);penFix(P)}});
+def('pen_change','pen','stack','ペンの[P]を[V]ずつ変える',{P:['m','penp','h'],V:['n',10]},(T,A)=>{const P=PN(T),k=pkey(A.P);if(k){P[k]+=toNum(A.V);penFix(P)}});
+def('pen_set','pen','stack','ペンの[P]を[V]にする',{P:['m','penp','h'],V:['n',50]},(T,A)=>{const P=PN(T),k=pkey(A.P);if(k){P[k]=toNum(A.V);penFix(P)}});
 def('pen_changesize','pen','stack','ペンの太さを[V]ずつ変える',{V:['n',1]},(T,A)=>{const P=PN(T);P.size=clamp(P.size+toNum(A.V),1,1200)});
 def('pen_setsize','pen','stack','ペンの太さを[V]にする',{V:['n',1]},(T,A)=>{PN(T).size=clamp(toNum(A.V),1,1200)});
+/* ============================================================
+   第7部: カスタム拡張機能(TurboWarp形式のJavaScript拡張機能を読み込む仕組み)
+   - 拡張機能 = Scratch.extensions.register(new クラス()) で登録する JS(.js)。getInfo() の blocks/menus をブロックに変換する
+   - 対応: COMMAND / REPORTER / BOOLEAN / HAT(判定を毎フレーム実行) / EVENT(startHatsで起動) / LOOP / CONDITIONAL(startBranch) / BUTTON / LABEL / '---'
+   - 非同期(Promiseを返すブロック)・util.stackFrame・util.yield()・メニュー(配列/メソッド名)に対応。サンドボックスなし(このページ内で実行)
+   - 保存: シーンのJSON・プロジェクト・自動保存に拡張機能のコードごと含める(読み込み時は実行してよいか確認する)
+   ============================================================ */
+const EX={src:[],quiet:0};
+const exFind=id=>{for(const s of EX.src)for(const e of s.exts)if(e.id===id)return e;return null};
+let _exT=0;const exErr=e=>{console.error('[拡張機能]',e);const n=Date.now();if(n-_exT>1500){_exT=n;toast('拡張機能のエラー: '+((e&&e.message)||e))}};
+const exVal=(d,v)=>{if(d.kind=='b')return toBool(v);if(v==null)return'';return typeof v=='number'||typeof v=='string'||typeof v=='boolean'?v:String(v)};
+/* ---------- Scratch.Cast ---------- */
+const exRgb=v=>{if(typeof v=='string'){const s=v.trim();let m=/^#?([0-9a-f]{6})$/i.exec(s);if(m){const n=parseInt(m[1],16);return[n>>16&255,n>>8&255,n&255]}m=/^#?([0-9a-f]{3})$/i.exec(s);if(m)return[...m[1]].map(c=>parseInt(c+c,16))}const n=Math.floor(toNum(v))>>>0;return[n>>16&255,n>>8&255,n&255]};
+const CAST={toNumber:toNum,toString:v=>typeof v=='string'?v:toStr(v),toBoolean:toBool,compare:cmp,isWhiteSpace:v=>v==null||(typeof v=='string'&&v.trim().length==0),
+isInt:v=>typeof v=='number'?Number.isInteger(v):typeof v=='boolean'?true:typeof v=='string'?Number.isInteger(parseFloat(v)):false,
+toRgbColorList:exRgb,toRgbColorObject:v=>{const[r,g,b]=exRgb(v);return{r,g,b,a:255}},LIST_INVALID:'INVALID',LIST_ALL:'ALL',
+toListIndex:(i,len,all)=>{if(typeof i!=='number'){if(i==='all')return all?'ALL':'INVALID';if(i==='last')return len>0?len:'INVALID';if(i==='random'||i==='any')return len>0?1+Math.floor(Math.random()*len):'INVALID'}i=Math.floor(toNum(i));return i<1||i>len?'INVALID':i}};
+/* ---------- Scratch.vm.runtime などの互換(一部だけ) ---------- */
+const EXW=new WeakMap();
+function exTarget(T){let w=EXW.get(T);if(w)return w;
+w={get x(){return T.x},set x(v){T.x=cl(toNum(v))},get y(){return T.y},set y(v){T.y=cl(toNum(v))},get direction(){return T.dir},set direction(v){T.dir=normDir(toNum(v))},get size(){return T.size},set size(v){T.size=clamp(toNum(v),0,1e4)},get visible(){return!!T.vis},set visible(v){T.vis=!!v},
+get currentCostume(){return costList(T).indexOf(T.c)},id:T.id,isStage:false,sprite:{name:T.name},get isOriginal(){return!T.isClone},variables:{},getName:()=>T.name,lookupVariableByNameAndType:()=>null,
+setXY(x,y){T.x=cl(toNum(x));T.y=cl(toNum(y))},setDirection(d){T.dir=normDir(toNum(d))},setSize(s){T.size=clamp(toNum(s),0,1e4)},setVisible(v){T.vis=!!v},
+setCostume(i){const L=costList(T);if(L.length)T.c=L[((Math.round(toNum(i))%L.length)+L.length)%L.length]}};EXW.set(T,w);return w}
+const exStage={isStage:true,variables:{},sprite:{name:'Stage'},getName:()=>'Stage',lookupVariableByNameAndType:()=>null};
+function exRuntime(src){const rt={get targets(){return RT?RT.list.map(exTarget):[]},get currentMSecs(){return Date.now()},
+ioDevices:{mouse:{getScratchX:()=>MS.x,getScratchY:()=>MS.y,getIsDown:()=>MS.down},keyboard:{getKeyIsDown:k=>keyDown(k)}},
+startHats:(op,f)=>exStartHats(op,f),requestRedraw:()=>SCN.drawNow(),getTargetForStage:()=>exStage,
+on(n,f){(src.ev[n]||(src.ev[n]=[])).push(f);return rt},off(n,f){src.ev[n]=(src.ev[n]||[]).filter(x=>x!==f);return rt},emit:(n,...a)=>exEmit(n,...a)};return rt}
+const exEmit=(n,...a)=>{for(const s of EX.src)(s.ev[n]||[]).slice().forEach(f=>{try{f(...a)}catch(e){exErr(e)}})};
+const exUrlOk=u=>/^(https?:|data:|blob:)/i.test(String(u));
+function exAPI(src){const rt=src.rt,
+BT={COMMAND:'command',REPORTER:'reporter',BOOLEAN:'Boolean',HAT:'hat',EVENT:'event',LOOP:'loop',CONDITIONAL:'conditional',BUTTON:'button',LABEL:'label',XML:'xml'},
+AT={ANGLE:'angle',BOOLEAN:'Boolean',COLOR:'color',NUMBER:'number',STRING:'string',MATRIX:'matrix',NOTE:'note',IMAGE:'image',COSTUME:'costume',SOUND:'sound'};
+return{BlockType:BT,ArgumentType:AT,TargetType:{SPRITE:'sprite',STAGE:'stage'},Cast:CAST,
+extensions:{register:inst=>exRegister(src,inst),unsandboxed:true,isPenguinMod:false},
+vm:{runtime:rt,extensionManager:{refreshBlocks(){EX.src.forEach(s=>s.exts.forEach(e=>{try{exDefine(e)}catch(x){exErr(x)}}));exAfter()}}},runtime:rt,
+translate:Object.assign((s,p)=>{let x=typeof s=='string'?s:(s&&s.default)||'';if(p)for(const k in p)x=x.split('{'+k+'}').join(String(p[k]));return x},{setup(){},language:'ja'}),
+canFetch:u=>Promise.resolve(exUrlOk(u)),fetch:async(u,o)=>{if(!exUrlOk(u))throw Error('許可されていないURLです: '+u);return fetch(u,o)},
+canOpenWindow:u=>Promise.resolve(/^https?:/i.test(String(u))),openWindow:async(u,f)=>{if(!/^https?:/i.test(String(u)))throw Error('http(s)のURLだけ開けます');if(!await uiConfirm('拡張機能が新しいタブで次のページを開こうとしています:\n'+u+'\n\n開きますか?','開く'))throw Error('ユーザーが拒否しました');return window.open(u,'_blank','noopener,noreferrer')},
+canRedirect:()=>Promise.resolve(false),redirect:()=>Promise.reject(Error('このページの移動は許可されていません'))}}
+/* ---------- 拡張機能の登録: getInfo() → ブロック定義 ---------- */
+function exRegister(src,inst){if(!inst||typeof inst.getInfo!='function')throw Error('Scratch.extensions.register() には getInfo() を持つオブジェクトを渡してください');
+const ext={src,inst,id:'',name:'',color:'#0fbd8c',cat:'',ops:[],items:[],menus:[],warn:[]};src.exts.push(ext);
+try{exDefine(ext)}catch(e){src.exts.splice(src.exts.indexOf(ext),1);throw e}
+exAfter();if(src.exts.length)src.name=src.exts.map(e=>e.name).join(' / ');return ext}
+function exUndef(ext){ext.ops.forEach(o=>delete BK[o]);ext.ops=[];ext.menus.forEach(k=>delete menuDefs[k]);ext.menus=[];ext.items=[]}
+function exDefine(ext){exUndef(ext);const info=ext.inst.getInfo();if(!info||typeof info!='object')throw Error('getInfo() がオブジェクトを返しませんでした');
+const id=String(info.id==null?'':info.id);if(!/^[A-Za-z0-9_-]{1,40}$/.test(id))throw Error('拡張機能のID「'+id+'」は使えません(英数字・-・_ で40文字まで)');
+const dup=exFind(id);if(dup&&dup!==ext)throw Error('ID「'+id+'」は、読み込み済みの拡張機能「'+dup.name+'」で使われています。先に削除してください');
+ext.id=id;ext.name=String(info.name||id).slice(0,40);ext.color=/^#[0-9a-f]{6}$/i.test(String(info.color1))?info.color1:'#0FBD8C';ext.cat='x_'+id;const warn=ext.warn=[];
+const menus=info.menus&&typeof info.menus=='object'?info.menus:{},mk=n=>'x:'+id+':'+n;
+for(const n of Object.keys(menus)){const m=menus[n],items=Array.isArray(m)?m:(m&&m.items),key=mk(n);ext.menus.push(key);
+menuDefs[key]=()=>{let a=items;try{if(typeof a=='string'){const f=ext.inst[a];a=typeof f=='function'?f.call(ext.inst):[]}}catch(e){exErr(e);a=[]}if(!Array.isArray(a))a=[];
+const out=a.slice(0,500).map(x=>x&&typeof x=='object'?[String(x.value),String(x.text==null?x.value:x.text)]:[String(x),String(x)]);return out.length?out:[['','(なし)']]}}
+const KINDS={command:'stack',reporter:'r',Boolean:'b',hat:'hat',event:'hat',loop:'c',conditional:'c'};
+for(const bi of(Array.isArray(info.blocks)?info.blocks:[])){
+if(bi==='---'){ext.items.push({t:'sep'});continue}if(!bi||typeof bi!='object')continue;const bt=bi.blockType||'command';
+if(bt=='label'){ext.items.push({t:'label',text:String(bi.text||'')});continue}
+if(bt=='button'){ext.items.push({t:'btn',text:String(bi.text||'ボタン'),func:String(bi.func||bi.opcode||'')});continue}
+if(!(bt in KINDS)){warn.push('未対応のブロックタイプ「'+bt+'」を読み飛ばしました');continue}
+const opc=String(bi.opcode==null?'':bi.opcode);if(!/^[A-Za-z0-9_]+$/.test(opc)){warn.push('opcode「'+opc+'」は使えないため読み飛ばしました');continue}
+let kind=KINDS[bt];if(bt=='command'&&bi.isTerminal)kind='cap';const bc=Math.floor(nz(bi.branchCount,1));if(bt=='conditional'&&bc>=2)kind='ce';if(bc>2)warn.push('「'+opc+'」の分岐は2つまで対応です');
+const texts=Array.isArray(bi.text)?bi.text.map(String):[String(bi.text==null?opc:bi.text)],args=bi.arguments&&typeof bi.arguments=='object'?bi.arguments:{},inp={},keys=[],idx={};
+for(const n of Object.keys(args)){const a=args[n]||{},ty=a.type||'string',dv=a.defaultValue;if(ty=='image'){idx[n]=null;continue}const k='A'+keys.length;idx[n]=k;let sp;
+if(a.menu!=null&&menus[a.menu]!==undefined)sp=['m',mk(a.menu),dv!==undefined?String(dv):undefined];else if(ty=='costume')sp=['m','costume'];
+else if(ty=='number'||ty=='angle'||ty=='note')sp=['n',dv!==undefined?dv:(ty=='note'?60:'')];else if(ty=='Boolean')sp=['b'];
+else if(ty=='color')sp=['c',/^#[0-9a-f]{6}$/i.test(String(dv))?String(dv):'#ff0000'];
+else{sp=['s',dv!==undefined?dv:''];if(ty=='sound'||ty=='matrix')warn.push('引数の型「'+ty+'」は文字入力として扱います')}inp[k]=sp;keys.push([k,n,ty])}
+const conv=s=>s.replace(/\[([^\[\]]+)\]/g,(m,n)=>n in idx?(idx[n]?'['+idx[n]+']':''):'［'+n+'］'),o2={pal:false};if(kind=='ce'){const e=texts[1]!=null?String(texts[1]).replace(/\[[^\]]*\]/g,'').trim():'';if(e)o2.els=e}
+let d;const fn=kind=='r'||kind=='b'?(T,A,th,b)=>exRep(d,T,A,th,b):kind=='hat'?null:()=>{};
+d=def(id+'.'+opc,ext.cat,kind,conv(texts[0]).trim()||opc,inp,fn,o2);
+d.ex={ext,opc,full:id+'_'+opc,func:typeof bi.func=='string'&&bi.func?bi.func:opc,keys,edge:bi.isEdgeActivated!==false,ev:bt=='event'};ext.ops.push(id+'.'+opc);ext.items.push({t:'b',op:id+'.'+opc,hide:!!bi.hideFromPalette})}}
+/* ---------- 実行: 引数→メソッド呼び出し(util互換) ---------- */
+function exCall(d,A,util){const X=d.ex,a={};for(const[k,n,ty]of X.keys){let v=A[k];if(ty=='Boolean')v=toBool(v);a[n]=v}const f=X.ext.inst[X.func];if(typeof f!='function')throw Error('メソッド「'+X.func+'」が見つかりません');return f.call(X.ext.inst,a,util)}
+function exUtil(T,th,b,src){return{stackFrame:{},target:exTarget(T),thread:th,runtime:src.rt,_y:false,_br:0,_lp:false,yield(){this._y=true},startBranch(n,lp){this._br=Math.floor(n)==2?2:1;this._lp=!!lp},isStuck:()=>false,stopThisScript(){if(th)th.stop=true},startHats:(op,f)=>exStartHats(op,f),ioQuery(){},getParam(){return undefined}}}
+function exRep(d,T,A,th,b){const pc=th&&th.pc;if(pc&&pc.has(b))return pc.get(b);let r;
+try{r=exCall(d,A,exUtil(T,th||{},b,d.ex.ext.src))}catch(e){exErr(e);return d.kind=='b'?false:''}
+if(r&&typeof r.then=='function'){if(!th||th.poll||!th.gen){r.then(()=>{},()=>{});return d.kind=='b'?false:''}th.pw={b,p:r};throw PEND}return exVal(d,r)}
+/* 命令・C字型ブロック: Promiseは完了まで待つ / util.yield() は次のフレームに同じブロックをもう一度実行 / util.startBranch(n,ループか) で中身を実行 */
+function* exRun(b,d,T,th,A){const util=exUtil(T,th,b,d.ex.ext.src);
+for(;;){util._y=false;util._br=0;util._lp=false;let r;try{r=exCall(d,A,util)}catch(e){exErr(e);return}
+if(r&&typeof r.then=='function'){let st=0,er;r.then(()=>{st=1},e=>{st=2;er=e});while(!st){yield;if(th.stop||T.dead)return}if(st==2){exErr(er);return}}
+if(T.pen&&T.pen.down)penTrack(T);
+if(util._y){yield;if(th.stop||T.dead)return;continue}
+if(util._br){yield* runList(sub(b,util._br==2?'SUB2':'SUB'),T,th);if(th.stop||T.dead)return;if(util._lp){yield;if(th.stop||T.dead)return;continue}}
+return}}
+/* HAT(判定の関数)は毎フレーム実行。EVENT は util.startHats / runtime.startHats で起動 */
+function exStartHats(op,f){if(!RT)return[];op=String(op);const out=[];for(const T of RT.list.slice())for(const s of T.hats.xe||[]){const h=s.b[0],d=BK[h.op];if(!d||!d.ex||(d.ex.full!==op&&d.ex.opc!==op))continue;let ok=true;
+if(f)for(const k in f){const kk=d.ex.keys.find(z=>z[1]==k);if(kk&&String(h.in[kk[0]]).toLowerCase()!==String(f[k]).toLowerCase())ok=false}if(ok)out.push(startScript(T,s))}return out}
+function exPoll(){for(const T of RT.list.slice()){if(T.dead)continue;const on=T.xon||(T.xon={});for(const s of T.hats.ex||[]){const h=s.b[0],d=BK[h.op];if(!d||!d.ex)continue;let v=false;
+try{const th={poll:1,pc:null},A={};for(const k in d.inp)A[k]=ev(h.in?h.in[k]:undefined,T,th);const r=exCall(d,A,exUtil(T,th,h,d.ex.ext.src));v=!(r&&typeof r.then=='function')&&toBool(r)}catch(e){exErr(e)}
+if(d.ex.edge){if(v&&!on[s.id])startScript(T,s)}else if(v){const t=RT.tmap.get(T.id+'|'+s.id);if(!t||t.dead)startScript(T,s)}on[s.id]=v}}}
+{const _ta=tickAll;tickAll=function(){if(RT&&!RT.halt)exPoll();_ta()}}
+{const _fl=flag;flag=function(){_fl();exEmit('PROJECT_START')};const _sa=stopAll;stopAll=function(){_sa();exEmit('PROJECT_STOP_ALL')}}
+/* ---------- パレット・カテゴリ・色 ---------- */
+const exS=document.createElement('style');exS.id='ex_css';document.head.append(exS);
+const EXCSS=`.sb-cats .ex-add{position:sticky;left:0;z-index:2;background:var(--pn2);border-color:var(--bd);gap:4px;padding:0 10px}.sb-cats .ex-add svg{width:18px;height:18px}
+.ex-dl{width:min(640px,calc(100vw - 14px))}.ex-dl .ex-body{overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:0}
+.ex-dl .ex-note{font-size:12px;line-height:1.5;background:#ff980022;border:1px solid #ff980066;border-radius:8px;padding:6px 8px}
+.ex-dl .ex-tabs{display:flex;gap:4px}.ex-dl .ex-tabs .sc-b{flex:1}.ex-dl .ex-tabs .sc-b.on{background:#855cd6;color:#fff;border-color:#855cd6}
+.ex-dl textarea{min-height:150px;max-height:34vh;resize:vertical;font:12px/1.45 ui-monospace,Consolas,monospace;border:1px solid #b8c0cc;border-radius:8px;padding:8px;background:#fff;color:#222;tab-size:2;white-space:pre}
+.ex-dl .ex-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.ex-dl .ex-row input[type=text]{flex:1;min-width:160px}
+.ex-dl .ex-list{display:flex;flex-direction:column;gap:6px}.ex-dl .ex-item{display:flex;align-items:center;gap:8px;border:1px solid #b8c0cc88;border-radius:8px;padding:4px 4px 4px 10px}
+.ex-dl .ex-item i{width:14px;height:14px;border-radius:50%;flex:none}.ex-dl .ex-item .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ex-dl .ex-item small{opacity:.7;display:block}
+.ex-dl h4{margin:4px 0 0;font-size:13px}.ex-dl .ex-msg{font-size:12px;line-height:1.5;white-space:pre-wrap;min-height:1.2em}.ex-dl .ex-msg.err{color:#c92a2a}`;
+function exCss(){let s=EXCSS;for(const x of EX.src)for(const e of x.exts){const m=/^#(..)(..)(..)$/.exec(e.color),lum=m?.299*parseInt(m[1],16)+.587*parseInt(m[2],16)+.114*parseInt(m[3],16):0;s+='.cat-'+e.cat+'{--c:'+e.color+(lum>175?';color:#222':'')+'}'}exS.textContent=s}
+function exPal(ext){return(p,o)=>{ext.items.forEach(it=>{if(it.t=='sep'){const e=el('div');e.style.height='14px';p.append(e)}else if(it.t=='label'){const e=el('h5');e.textContent=it.text;p.append(e)}
+else if(it.t=='btn'){const b=el('button','sc-b');b.type='button';b.textContent=it.text;b.onclick=()=>{try{const f=ext.inst[it.func];if(typeof f=='function')f.call(ext.inst,{},{})}catch(e){exErr(e)}};p.append(b)}
+else if(!it.hide&&BK[it.op])p.append(renderScript({b:[mkBlock(it.op,palPre(it.op,o))]},true))})}}
+function exAfter(){for(let i=CATS.length-1;i>=0;i--)if(CATS[i].id.startsWith('x_'))CATS.splice(i,1);for(const k of Object.keys(PALX))if(k.startsWith('x_'))delete PALX[k];
+for(const s of EX.src)for(const e of s.exts){CATS.push({id:e.cat,n:e.name,c:e.color});PALX[e.cat]=exPal(e)}
+EXA=Object.values(BK).some(d=>d.ex&&(d.kind=='r'||d.kind=='b'));exCss();if(!CATS.some(c=>c.id==WS.cat))WS.cat='motion';if(H.refresh&&!EX.quiet)H.refresh()}
+{const _rc=renderCats;renderCats=function(){_rc();const c=WS.cats;if(!c)return;const b=el('button','ex-add',ic('sc_ext',18)+'<span>拡張機能</span>');b.type='button';b.title='拡張機能を追加・管理(TurboWarp形式のJavaScript拡張機能)';b.onclick=exDialog;c.prepend(b)}}
+/* ---------- 読み込み・削除・保存 ---------- */
+function exLoad(code,meta){const src={code,name:String(meta&&meta.name||'拡張機能').slice(0,60),url:meta&&meta.url?String(meta.url).slice(0,500):'',exts:[],ev:{}};src.rt=exRuntime(src);EX.src.push(src);
+try{new Function('Scratch',code)(exAPI(src))}catch(e){exUnload(src,false);throw e}if(src.exts.length)src.name=src.exts.map(e=>e.name).join(' / ');return src}
+function exPurge(ops){const isX=b=>b&&typeof b=='object'&&ops.has(b.op),fix=b=>{if(b.in)for(const k in b.in){const v=b.in[k];if(v&&typeof v=='object'){if(isX(v))b.in[k]=dflIn(b,k);else fix(v)}}},
+rm=a=>{for(let i=a.length-1;i>=0;i--){const b=a[i];if(isX(b)){a.splice(i,1);continue}fix(b);if(b.c)for(const k in b.c)rm(b.c[k])}};
+S.scenes.forEach(s=>s.objs.forEach(o=>{o.sc=o.sc.filter(z=>!(z.b[0]&&isX(z.b[0])&&BK[z.b[0].op]&&BK[z.b[0].op].kind=='hat'));o.sc.forEach(z=>rm(z.b));o.sc=o.sc.filter(z=>z.b.length)}))}
+function exUnload(src,purge){const ops=new Set();src.exts.forEach(e=>e.ops.forEach(o=>ops.add(o)));if(purge)exPurge(ops);src.exts.forEach(exUndef);const i=EX.src.indexOf(src);if(i>=0)EX.src.splice(i,1);exAfter()}
+const exOk=r=>r&&typeof r=='object'&&typeof r.code=='string'&&r.code.length<=3e6;
+H.exPack=()=>EX.src.map(s=>({kind:'custom',name:s.name,code:s.code,url:s.url||undefined,ids:s.exts.map(e=>e.id)}));
+H.exRestore=(list,opt)=>{EX.quiet=1;try{return exRestore0(list,opt)}finally{EX.quiet=0}};
+function exRestore0(list,opt){EX.src.slice().forEach(s=>exUnload(s,false));const L=Array.isArray(list)?list.filter(exOk).slice(0,20):[];if(!L.length)return'';
+if(!(opt&&opt.trust))return'拡張機能('+L.map(r=>String(r.name||'?').slice(0,30)).join('、')+')は実行を許可しなかったため、そのブロックは読み込まれませんでした。';
+const bad=[];for(const r of L){try{exLoad(r.code,r)}catch(e){bad.push(String(r.name||'?').slice(0,30)+': '+((e&&e.message)||e))}}return bad.length?'拡張機能を読み込めませんでした: '+bad.join(' / '):''}
+H.exAsk=async list=>{const L=Array.isArray(list)?list.filter(exOk).slice(0,20):[];if(!L.length)return true;
+return uiConfirm('このデータには拡張機能のプログラム(JavaScript)が含まれています:\n・'+L.map(r=>String(r.name||'?').slice(0,40)+(r.url?'('+String(r.url).slice(0,60)+')':'')).join('\n・')+'\n\n拡張機能のコードはこのページの中で制限なしに実行されます。信頼できるデータだけ許可してください。\n\n実行を許可しますか?(許可しない場合、拡張機能のブロックは読み込まれません)','実行を許可')};
+H.exMerge=async list=>{const L=Array.isArray(list)?list.filter(exOk).slice(0,20):[];if(!L.length)return'';if(!await H.exAsk(L))return'拡張機能を許可しなかったため、そのブロックは読み込まれませんでした。';
+const out=[];for(const r of L){if(EX.src.some(s=>s.code===r.code))continue;const clash=(r.ids||[]).find(id=>exFind(id));if(clash){out.push('拡張機能ID「'+clash+'」は読み込み済みのため、「'+String(r.name||'?').slice(0,30)+'」は読み込みませんでした');continue}
+try{exLoad(r.code,r)}catch(e){out.push(String(r.name||'?').slice(0,30)+': '+((e&&e.message)||e))}}return out.length?'拡張機能: '+out.join(' / '):''};
+/* ---------- 画面: 拡張機能ダイアログ ---------- */
+const EX_SAMPLE=`// サンプル拡張機能(TurboWarp形式)。このまま「読み込む」で試せます
+(function (Scratch) {
+  'use strict';
+  class SampleExt {
+    getInfo() {
+      return {
+        id: 'sampleext',
+        name: 'サンプル',
+        color1: '#e64980',
+        blocks: [
+          { opcode: 'greet', blockType: Scratch.BlockType.REPORTER, text: 'あいさつ[WORD] [NAME]',
+            arguments: {
+              WORD: { type: Scratch.ArgumentType.STRING, menu: 'words', defaultValue: 'こんにちは' },
+              NAME: { type: Scratch.ArgumentType.STRING, defaultValue: 'ネコ' } } },
+          { opcode: 'isEven', blockType: Scratch.BlockType.BOOLEAN, text: '[N]は偶数',
+            arguments: { N: { type: Scratch.ArgumentType.NUMBER, defaultValue: 4 } } },
+          '---',
+          { opcode: 'diag', blockType: Scratch.BlockType.COMMAND, text: 'ななめに[N]歩動かす',
+            arguments: { N: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 } } },
+          { opcode: 'later', blockType: Scratch.BlockType.REPORTER, text: '[SECS]秒待った後の時刻',
+            arguments: { SECS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 } } },
+          { opcode: 'times', blockType: Scratch.BlockType.LOOP, text: '[N]回くり返す(拡張)',
+            arguments: { N: { type: Scratch.ArgumentType.NUMBER, defaultValue: 3 } } },
+          { opcode: 'whenDown', blockType: Scratch.BlockType.HAT, text: 'マウスが押されたとき(拡張)', isEdgeActivated: true }
+        ],
+        menus: { words: { acceptReporters: true, items: ['こんにちは', 'おはよう', 'こんばんは'] } }
+      };
+    }
+    greet(args) { return args.WORD + ' ' + args.NAME + 'さん'; }
+    isEven(args) { return Scratch.Cast.toNumber(args.N) % 2 === 0; }
+    diag(args, util) { const n = Scratch.Cast.toNumber(args.N) / Math.SQRT2; util.target.setXY(util.target.x + n, util.target.y + n); }
+    later(args) { return new Promise(res => setTimeout(() => res(new Date().toLocaleTimeString('ja-JP')), Scratch.Cast.toNumber(args.SECS) * 1000)); }
+    times(args, util) {
+      const f = util.stackFrame;
+      if (f.i === undefined) f.i = 0;
+      if (f.i < Scratch.Cast.toNumber(args.N)) { f.i++; util.startBranch(1, true); }
+    }
+    whenDown() { return Scratch.vm.runtime.ioDevices.mouse.getIsDown(); }
+  }
+  Scratch.extensions.register(new SampleExt());
+})(Scratch);
+`;
+function exDialog(){if(document.querySelector('.ex-dl'))return;const ov=el('div','sc-ov'),dl=el('div','sc-dl ex-dl'),body=el('div','ex-body');let busy=0;
+const close=()=>ov.remove();ov.addEventListener('keydown',e=>{e.stopPropagation();if(e.key=='Escape'&&!e.isComposing){e.preventDefault();close()}});ov.onpointerdown=e=>{if(e.target===ov)close()};
+const h=el('h3');h.textContent='拡張機能';const note=el('div','ex-note');note.textContent='TurboWarpなどで使われているJavaScriptの拡張機能(.js)を読み込んで、新しいブロックを追加できます。拡張機能のコードは、このページの中で制限なしに実行されます(サンドボックスなし)。信頼できるものだけを読み込んでください。';
+const tabs=el('div','ex-tabs'),panels={},tb={};const msg=el('div','ex-msg');const say=(t,err)=>{msg.textContent=t;msg.className='ex-msg'+(err?' err':'')};
+const show=k=>{for(const x in panels){panels[x].hidden=x!=k;tb[x].classList.toggle('on',x==k)}};
+[['file','ファイル'],['text','テキスト'],['url','URL']].forEach(([k,t])=>{const b=el('button','sc-b');b.type='button';b.textContent=t;b.onclick=()=>show(k);tb[k]=b;tabs.append(b);panels[k]=el('div','ex-row');panels[k].style.flexDirection='column';panels[k].style.alignItems='stretch'});
+const btn=(t,f,pri)=>{const b=el('button','sc-b'+(pri?' pri':''));b.type='button';b.textContent=t;b.onclick=f;return b};
+const file=el('input');file.type='file';file.accept='.js,.mjs,.txt,text/javascript,application/javascript';file.hidden=true;
+const ta=el('textarea');ta.spellcheck=false;ta.placeholder='ここに拡張機能のコードを貼り付け( Scratch.extensions.register(...) を呼ぶJS )';ta.setAttribute('aria-label','拡張機能のコード');
+const ui=el('input');ui.type='text';ui.placeholder='https://example.com/extension.js';ui.setAttribute('aria-label','拡張機能のURL');
+const list=el('div','ex-list');
+async function add(code,meta){if(busy)return;if(!code||!code.trim()){say('コードが空です',1);return}if(code.length>3e6){say('コードが大きすぎます(3MBまで)',1);return}
+if(!await uiConfirm('拡張機能のコードをこのページの中で実行します。\n'+(meta.url?'取得元: '+meta.url+'\n':'')+(meta.name?'名前: '+meta.name+'\n':'')+'サイズ: '+Math.ceil(code.length/1024)+'KB\n\n信頼できるコードだけ実行してください。実行しますか?','実行する'))return;
+busy=1;say('読み込み中…');stopRun();let src;
+try{src=exLoad(code,meta);for(let i=0;i<20&&!src.exts.length;i++)await new Promise(r=>setTimeout(r,100));
+if(!src.exts.length){exUnload(src,false);throw Error('Scratch.extensions.register() が呼ばれませんでした(TurboWarp形式の拡張機能ではないかもしれません)')}
+touch();const e=src.exts[0];WS.cat=e.cat;if(H.refresh)H.refresh();const n=src.exts.reduce((a,x)=>a+x.ops.length,0),w=src.exts.reduce((a,x)=>a.concat(x.warn),[]);
+say('読み込みました: '+src.name+'('+n+'個のブロック)。ブロックの一覧の「'+e.name+'」にあります。'+(w.length?'\n注意: '+w.join(' / '):''))}
+catch(e){say('読み込みに失敗しました: '+((e&&e.message)||e),1)}finally{busy=0;renderList()}}
+function renderList(){list.innerHTML='';if(!EX.src.length){const e=el('div');e.style.cssText='font-size:12px;opacity:.7';e.textContent='読み込み済みの拡張機能はありません';list.append(e);return}
+for(const s of EX.src){const r=el('div','ex-item'),c=el('i'),nm=el('div','nm'),b=btn('削除',async()=>{if(!await uiConfirm('拡張機能「'+s.name+'」を削除しますか?\n(この拡張機能のブロックを使っている部分も、すべてのシーンから消えます)'))return;stopRun();exUnload(s,true);touch();say('削除しました');renderList();if(H.refresh)H.refresh()});
+c.style.background=(s.exts[0]&&s.exts[0].color)||'#999';const n1=el('div');n1.textContent=s.name;const sm=el('div');sm.style.cssText='font-size:11px;opacity:.7;overflow:hidden;text-overflow:ellipsis';sm.textContent='ID: '+s.exts.map(e=>e.id+'('+e.ops.length+'個)').join(' / ')+(s.url?'  '+s.url:'');nm.append(n1,sm);b.style.minHeight='36px';r.append(c,nm,b);list.append(r)}}
+const fb=btn('ファイル(.js)を選んで読み込む',()=>file.click(),1);file.onchange=()=>{const f=file.files[0];file.value='';if(!f)return;if(f.size>3e6){say('ファイルが大きすぎます(3MBまで)',1);return}const rd=new FileReader();rd.onerror=()=>say('ファイルを読めませんでした',1);rd.onload=()=>add(String(rd.result),{name:f.name.replace(/\.[^.]*$/,'')});rd.readAsText(f)};
+panels.file.append(fb,file);
+const r1=el('div','ex-row');r1.append(btn('サンプルを入れる',()=>{ta.value=EX_SAMPLE;ta.scrollTop=0}),btn('この内容を読み込む',()=>add(ta.value,{name:'テキスト'}),1));panels.text.append(ta,r1);
+const ub=btn('読み込む',async()=>{const u=ui.value.trim();if(!/^https?:\/\//i.test(u)){say('http:// か https:// で始まるURLを入れてください',1);return}say('ダウンロード中…');let code;
+try{const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);code=await r.text()}catch(e){say('取得できませんでした('+((e&&e.message)||e)+')。公開元がCORSを許可していない可能性があります。ファイルをダウンロードして「ファイル」か「テキスト」から読み込んでください',1);return}
+add(code,{name:u.split('/').pop().replace(/\.[^.]*$/,'')||'URL',url:u})},1);ui.onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing){e.preventDefault();ub.click()}};const r2=el('div','ex-row');r2.append(ui,ub);panels.url.append(r2);
+const lh=el('h4');lh.textContent='読み込み済み';body.append(note,tabs,panels.file,panels.text,panels.url,msg,lh,list);
+const acts=el('div','acts');acts.append(btn('閉じる',close,1));dl.append(h,body,acts);ov.append(dl);document.body.append(ov);show('file');renderList()}
+H.exDialog=exDialog;
 /* ---------- 変数モニター(ステージ表示) ---------- */
 H.drawMon=x=>{if(!RT)return;let i=0;for(const k in RT.mon){const m=RT.mon[k],v=m.T?m.T.vars[m.name]:RT.g[m.name],lab=(m.T?m.T.name+': ':'')+m.name,val=toStr(v===undefined?0:v);x.save();x.font='bold 11px system-ui,sans-serif';x.textBaseline='middle';
 const w1=x.measureText(lab).width+10,w2=Math.max(30,x.measureText(val).width+10),y=5+i*22;x.fillStyle='#e6f0ff';x.strokeStyle='#c9d0d9';x.lineWidth=1;x.beginPath();x.roundRect?x.roundRect(5,y,w1+w2+4,19,4):x.rect(5,y,w1+w2+4,19);x.fill();x.stroke();
 x.fillStyle='#575e75';x.fillText(lab,10,y+10);x.fillStyle='#ff8c1a';x.beginPath();x.roundRect?x.roundRect(5+w1+2,y+2,w2,15,3):x.rect(5+w1+2,y+2,w2,15);x.fill();x.fillStyle='#fff';x.textAlign='center';x.fillText(val,5+w1+2+w2/2,y+10);x.restore();i++}};
 
 /* ---------- 起動 ---------- */
-try{const t=localStorage.getItem('ced_scn');if(t){SCN.unpack(JSON.parse(t))}}catch(e){S.scenes=[]}
+try{const t=localStorage.getItem('ced_scn');if(t){SCN.unpack(JSON.parse(t),{trust:true})}}catch(e){S.scenes=[]}
 (function(){const M=q('#mbar');if(!M)return;const b=el('button','mbtn');b.id='scn_open';b.type='button';b.innerHTML=ic('sc_film',20)+'<span>アニメーション</span>';b.title='コスチュームを組み合わせて動かす(シーンエディタ・ブロック)';b.onclick=open;const v=q('#m_view');const w=v&&v.parentNode;if(w&&w.parentNode===M)w.after(b);else M.append(b)})();
 SCN.test={refreshAll,drawStage,stagePt,fitStage,setPanel,addObj,newObj,importText,exportScenes,vScene,packScene,hitPix,build,bindAll};
 
