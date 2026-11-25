@@ -839,7 +839,7 @@ const ex=sq.ex&&typeof sq.ex=='object'?sq.ex:(sq.st?STD():SPD());if(Array.isArra
 outS.push({n:sq.st?'Stage':String(sq.n||'スプライト'),cs:out,ci:Math.min(Math.max(0,sq.ci|0),out.length-1),ex,snd,stage:!!sq.st})}
 progSet(1,'仕上げ中…');await yieldUI();
 if(TE)teEnd();bcommit();sel=[];selPt=-1;
-PRJ=o.prj&&typeof o.prj=='object'?{monitors:o.prj.monitors||[],extensions:o.prj.extensions||[]}:{monitors:[],extensions:[]};
+PRJ=o.prj&&typeof o.prj=='object'?{monitors:o.prj.monitors||[],extensions:o.prj.extensions||[],extensionURLs:o.prj.extensionURLs||{}}:{monitors:[],extensions:[],extensionURLs:{}};
 SPS=outS;SPI=Math.min(Math.max(0,o.spi|0),SPS.length-1);cs=SPS[SPI].cs;list.force=1;go(Math.min(SPS[SPI].ci,cs.length-1));fit();fonts.forEach(regFont);if(o.cur)applyCur(o.cur);sync();spUI()}
 finally{LOADING=0;progEnd()}}
 function load(t){return loadAsync(t).catch(x=>{alert('読み込みに失敗しました')})}
@@ -1129,16 +1129,32 @@ else{let k=0;for(const c of sp.cs){if(onp)onp(k++,sp.cs.length);await slice();co
 const ex=JSON.parse(JSON.stringify(sp.ex||(sp.stage?STD():SPD()))),snds=(Array.isArray(ex.sounds)?ex.sounds:[]).filter(x=>sp.snd&&sp.snd[x.md5ext]);
 snds.forEach(x=>{if(!seen.has(x.md5ext)){seen.add(x.md5ext);files.push([x.md5ext,sp.snd[x.md5ext]])}});
 return Object.assign({isStage:!!sp.stage,name:sp.stage?'Stage':sp.n},sp.stage?STD():SPD(),ex,{isStage:!!sp.stage,name:sp.stage?'Stage':sp.n,currentCostume:Math.min(Math.max(0,sp.ci|0),costumes.length-1),costumes,sounds:snds,layerOrder:lo})}
+// アニメーションに置いたブロック(プログラム)の書き出し: 同じスプライトを使うオブジェクトが複数あれば「名前2」のように複製して入れる
+async function pePlan(single,only){const H=window.SCN&&SCN.H;if(!H||!H.scratchInfo||!H.scratchPlan)return null;let info;try{info=H.scratchInfo()}catch(e){return null}
+if(!info.withScripts)return null;let mode='cur';
+if(info.scenes>1&&!single){mode=await uiDlg('アニメーションに置いたブロック(プログラム)も書き出しますか?\n同じスプライトを使うオブジェクトが複数あるときは、「名前2」のように複製したスプライトに入れます。',[{t:'キャンセル',v:false},{t:'プログラムは書き出さない',v:'none'},{t:'現在のシーンだけ',v:'cur'},{t:'すべてのシーン',v:'all'}],{esc:false,focus:2});if(mode===false)return false;if(mode=='none')return null}
+try{return H.scratchPlan({mode,only,globalsAsLocal:!!single})}catch(e){console.error(e);await uiAlert('プログラムの変換に失敗したため、プログラムなしで書き出します。\n'+e.message);return null}}
+async function peWarn(plan){if(plan&&plan.warnings&&plan.warnings.length){const w=[...new Set(plan.warnings)];await uiAlert('書き出しました。ただし、次のブロックは完全には書き出せていません:\n'+w.slice(0,8).join('\n')+(w.length>8?'\n…ほか'+(w.length-8)+'件':''))}}
+function peFill(tt,e){tt.blocks=e.blocks;tt.variables=e.variables;tt.lists=e.lists;tt.comments={};tt.broadcasts={};tt.x=e.x;tt.y=e.y;tt.size=e.size;tt.direction=e.direction;tt.visible=e.visible;tt.rotationStyle=e.rotationStyle;if(tt.costumes&&tt.costumes.length)tt.currentCostume=Math.min(Math.max(0,e.ci|0),tt.costumes.length-1)}
+function peApply(targets,ord,plan){if(!plan)return targets;const out=[];
+targets.forEach((t,i)=>{const sp=ord[i];out.push(t);
+if(sp.stage){const gn=new Set(Object.values(plan.globalVars).map(v=>v[0])),gl=new Set(Object.values(plan.globalLists).map(v=>v[0])),vs={},ls={};
+Object.entries(t.variables||{}).forEach(([k,v])=>{if(!gn.has(v[0]))vs[k]=v});Object.entries(t.lists||{}).forEach(([k,v])=>{if(!gl.has(v[0]))ls[k]=v});
+if(plan.stage){t.blocks=plan.stage.blocks;t.comments={};Object.assign(vs,plan.stage.variables);Object.assign(ls,plan.stage.lists)}
+t.variables=Object.assign(vs,plan.globalVars);t.lists=Object.assign(ls,plan.globalLists);t.broadcasts=Object.assign({},t.broadcasts,plan.broadcasts)}
+else{plan.entries.filter(e=>e.spName===sp.n).forEach((e,k)=>{let tt=t;if(k>0){tt=JSON.parse(JSON.stringify(t));tt.name=e.exportName;out.push(tt)}peFill(tt,e)})}});
+out.forEach((t,i)=>{t.layerOrder=i});return out}
 const safeName=n=>String(n).replace(/[\\\/:*?"<>|]/g,'_')||'sprite';
 async function s3out(){try{spSave();const sp=SPS[SPI];if(sp.stage){await uiAlert('ステージは.sprite3では書き出せません。\n全体を.sb3で書き出してください。');return}
-bcommit();spSave();progBegin('.sprite3を書き出し中…');const files=[],seen=new Set(),t=await spTarget(sp,1,files,seen,(i,n)=>progSet(i/n,'コスチュームを書き出し中 '+(i+1)+' / '+n));
-progSet(1,'ZIPを作成中…');await yieldUI();const z=zipMake([['sprite.json',te(JSON.stringify(t))],...files]);progEnd();dl(z,safeName(sp.n)+'.sprite3')}catch(x){progEnd();await uiAlert('.sprite3の書き出しに失敗しました: '+x.message)}}
-async function sb3out(){try{spSave();bcommit();spSave();const all=SPS.slice(),stage=all.find(s=>s.stage)||{stage:true,n:'Stage',blank:1,ci:0,cs:[],ex:STD(),snd:{}},ord=[stage,...all.filter(s=>!s.stage)],tot=ord.reduce((a,s)=>a+(s.blank?1:s.cs.length),0);
+bcommit();spSave();const plan=await pePlan(true,sp.n);if(plan===false)return;progBegin('.sprite3を書き出し中…');const files=[],seen=new Set(),t=await spTarget(sp,1,files,seen,(i,n)=>progSet(i/n,'コスチュームを書き出し中 '+(i+1)+' / '+n));
+const pe=plan&&plan.entries.find(e=>e.spName===sp.n);if(pe){peFill(t,pe);t.broadcasts=Object.assign({},plan.broadcasts);if(plan.extensions.length){t.extensions=plan.extensions;if(Object.keys(plan.extensionURLs).length)t.extensionURLs=plan.extensionURLs}}
+progSet(1,'ZIPを作成中…');await yieldUI();const z=zipMake([['sprite.json',te(JSON.stringify(t))],...files]);progEnd();dl(z,safeName(sp.n)+'.sprite3');await peWarn(plan)}catch(x){progEnd();await uiAlert('.sprite3の書き出しに失敗しました: '+x.message)}}
+async function sb3out(){try{spSave();bcommit();spSave();const plan=await pePlan(false);if(plan===false)return;const all=SPS.slice(),stage=all.find(s=>s.stage)||{stage:true,n:'Stage',blank:1,ci:0,cs:[],ex:STD(),snd:{}},ord=[stage,...all.filter(s=>!s.stage)],tot=ord.reduce((a,s)=>a+(s.blank?1:s.cs.length),0);
 progBegin('.sb3を書き出し中…');const files=[],seen=new Set(),targets=[];let K=0;
 for(let i=0;i<ord.length;i++){targets.push(await spTarget(ord[i],i,files,seen,(k)=>progSet((K+k)/tot,'コスチュームを書き出し中 '+(K+k+1)+' / '+tot)));K+=ord[i].blank?1:ord[i].cs.length}
 progSet(1,'ZIPを作成中…');await yieldUI();
-const j={targets,monitors:PRJ.monitors||[],extensions:PRJ.extensions||[],meta:{semver:'3.0.0',vm:'15.2.0',agent:navigator.userAgent}};
-const z=zipMake([['project.json',te(JSON.stringify(j))],...files]);progEnd();dl(z,'project.sb3')}catch(x){progEnd();await uiAlert('.sb3の書き出しに失敗しました: '+x.message)}}
+const fin=peApply(targets,ord,plan),urls=Object.assign({},PRJ.extensionURLs||{},plan?plan.extensionURLs:{}),CORE=['pen','music','videoSensing','text2speech','translate','makeymakey','microbit','ev3','boost','wedo2','gdxfor'],exs=[...new Set([...(PRJ.extensions||[]).filter(x=>!plan||CORE.includes(x)||urls[x]),...(plan?plan.extensions:[])])],j={targets:fin,monitors:PRJ.monitors||[],extensions:exs,meta:{semver:'3.0.0',vm:'15.2.0',agent:navigator.userAgent}};if(Object.keys(urls).length)j.extensionURLs=urls;if(plan&&plan.warnings.length)console.warn('[書き出し]',plan.warnings);
+const z=zipMake([['project.json',te(JSON.stringify(j))],...files]);progEnd();dl(z,'project.sb3');await peWarn(plan)}catch(x){progEnd();await uiAlert('.sb3の書き出しに失敗しました: '+x.message)}}
 // ===== 読み込み(.sprite3 / .sb3 を中身で自動判別) =====
 // コスチューム定義の一覧を、現在のデータには触れず新しい配列として作る(SVG変換が現在のコスチュームを使うため、処理中だけ cs/ci を差し替える)
 async function decodeCostumes(Z,list,W,I,onp){const k0=cs,k1=ci,out=[];cs=out;
@@ -1169,7 +1185,7 @@ built.push({n:t.isStage?'Stage':String(t.name||'スプライト'),scratchName:St
 if(!built.length)throw Error('読み込めるコスチュームがありませんでした');
 progSet(1,'仕上げ中…');await yieldUI();spLeave();spSave();let msg;
 if(mode=='replace'){built.sort((a,b)=>(b.stage?1:0)-(a.stage?1:0));const seenN=new Set();built.forEach(s=>{if(s.stage)return;let n=s.n,b=n.replace(/\d+$/,'')||n,k=2;while(seenN.has(n)||n=='Stage')n=b+k++;seenN.add(n);s.n=n});
-SPS=built;PRJ={monitors:Array.isArray(j.monitors)?j.monitors:[],extensions:Array.isArray(j.extensions)?j.extensions:[]};SPI=Math.max(0,SPS.findIndex(s=>!s.stage));cs=SPS[SPI].cs;list.force=1;go(Math.min(SPS[SPI].ci,cs.length-1));fit();spUI();
+SPS=built;PRJ={monitors:Array.isArray(j.monitors)?j.monitors:[],extensions:Array.isArray(j.extensions)?j.extensions:[],extensionURLs:j.extensionURLs&&typeof j.extensionURLs=='object'?j.extensionURLs:{}};SPI=Math.max(0,SPS.findIndex(s=>!s.stage));cs=SPS[SPI].cs;list.force=1;go(Math.min(SPS[SPI].ci,cs.length-1));fit();spUI();
 msg='.sb3から'+SPS.filter(s=>!s.stage).length+'個のスプライト'+(SPS.some(s=>s.stage)?'とステージ':'')+'(コスチューム計'+SPS.reduce((a,s)=>a+s.cs.length,0)+'個)を読み込みました。'}
 else if(mode=='new'){const b=built[0];b.stage=false;b.n=spUnique(b.n);SPS.push(b);spSwitch(SPS.length-1);msg='.sprite3から新しいスプライト「'+b.n+'」(コスチューム'+b.cs.length+'個)を追加しました。'}
 else{const n0=cs.length,add=built[0].cs;cs.push(...add);ci=Math.min(ci,cs.length-1);list.force=1;go(n0);spUI();msg='.sprite3から'+add.length+'個のコスチュームを現在のスプライトに追加しました。'}

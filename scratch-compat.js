@@ -378,6 +378,12 @@
   rule("music_changeTempo", "music_changetempo", { T: "TEMPO" });
   rule("music_getTempo", "music_gettempo");
 
+  rule("stretch_setStretchX", "looks_setstretchx", { X: "X" });
+  rule("stretch_setStretchY", "looks_setstretchy", { Y: "Y" });
+  rule("stretch_setStretch", "looks_setstretch", { X: "X", Y: "Y" });
+  rule("stretch_changeStretch", "looks_changestretch", { X: "DX", Y: "DY" });
+  rule("stretch_getX", "looks_stretchx");
+  rule("stretch_getY", "looks_stretchy");
   rule("motion_movesteps", "motion_move", { N: "STEPS" });
   rule("motion_turnright", "motion_turn", { DEG: "DEGREES" });
   rule("motion_turnleft", "motion_turnleft", { DEG: "DEGREES" });
@@ -518,6 +524,7 @@
   }
 
   global.ScratchProgramImport = {
+    rules,
     scope,
     convert(target, options) {
       const registry = options.registry,
@@ -860,6 +867,310 @@
         })
         .filter((s) => s.b.length);
       return { scripts, defs, vars, lists, warnings: [...warnings] };
+    },
+  };
+})(window);
+
+/* -------- 3) PaintEditorのブロック → Scratch 3 のブロックJSON(.sb3 / .sprite3 の書き出し用) --------
+ * 読み込みの変換表(rules)を逆向きに使います。拡張機能のブロックは「拡張機能ID_opcode」で書き出し、
+ * 使った拡張機能は project.json の extensions / extensionURLs に入れます。
+ */
+(function (global) {
+  "use strict";
+  const own = (o, k) => Object.prototype.hasOwnProperty.call(o || {}, k);
+  const M = (menu, field) => ({ menu, field });
+  const SPEC = {
+    motion_movesteps: { STEPS: 4 }, motion_turnright: { DEGREES: 4 }, motion_turnleft: { DEGREES: 4 },
+    motion_gotoxy: { X: 4, Y: 4 }, motion_goto: { TO: M("motion_goto_menu", "TO") },
+    motion_glidesecstoxy: { SECS: 4, X: 4, Y: 4 }, motion_glideto: { SECS: 4, TO: M("motion_glideto_menu", "TO") },
+    motion_pointindirection: { DIRECTION: 8 }, motion_pointtowards: { TOWARDS: M("motion_pointtowards_menu", "TOWARDS") },
+    motion_changexby: { DX: 4 }, motion_setx: { X: 4 }, motion_changeyby: { DY: 4 }, motion_sety: { Y: 4 },
+    looks_say: { MESSAGE: 10 }, looks_sayforsecs: { MESSAGE: 10, SECS: 4 }, looks_think: { MESSAGE: 10 }, looks_thinkforsecs: { MESSAGE: 10, SECS: 4 },
+    looks_switchcostumeto: { COSTUME: M("looks_costume", "COSTUME") }, looks_changesizeby: { CHANGE: 4 }, looks_setsizeto: { SIZE: 4 },
+    looks_changeeffectby: { CHANGE: 4 }, looks_seteffectto: { VALUE: 4 }, looks_goforwardbackwardlayers: { NUM: 7 },
+    looks_switchbackdropto: { BACKDROP: M("looks_backdrops", "BACKDROP") }, looks_switchbackdroptoandwait: { BACKDROP: M("looks_backdrops", "BACKDROP") },
+    sound_play: { SOUND_MENU: M("sound_sounds_menu", "SOUND_MENU") }, sound_playuntildone: { SOUND_MENU: M("sound_sounds_menu", "SOUND_MENU") },
+    sound_setvolumeto: { VOLUME: 4 }, sound_changevolumeby: { VOLUME: 4 }, sound_seteffectto: { VALUE: 4 }, sound_changeeffectby: { VALUE: 4 },
+    event_broadcast: { BROADCAST_INPUT: "B" }, event_broadcastandwait: { BROADCAST_INPUT: "B" }, event_whengreaterthan: { VALUE: 4 },
+    control_wait: { DURATION: 5 }, control_repeat: { TIMES: 6 }, control_if: { CONDITION: "b" }, control_if_else: { CONDITION: "b" },
+    control_wait_until: { CONDITION: "b" }, control_repeat_until: { CONDITION: "b" },
+    control_create_clone_of: { CLONE_OPTION: M("control_create_clone_of_menu", "CLONE_OPTION") },
+    sensing_touchingobject: { TOUCHINGOBJECTMENU: M("sensing_touchingobjectmenu", "TOUCHINGOBJECTMENU") },
+    sensing_touchingcolor: { COLOR: 9 }, sensing_coloristouchingcolor: { COLOR: 9, COLOR2: 9 },
+    sensing_distanceto: { DISTANCETOMENU: M("sensing_distancetomenu", "DISTANCETOMENU") }, sensing_askandwait: { QUESTION: 10 },
+    sensing_keypressed: { KEY_OPTION: M("sensing_keyoptions", "KEY_OPTION") },
+    sensing_of: { OBJECT: M("sensing_of_object_menu", "OBJECT") },
+    operator_add: { NUM1: 4, NUM2: 4 }, operator_subtract: { NUM1: 4, NUM2: 4 }, operator_multiply: { NUM1: 4, NUM2: 4 },
+    operator_divide: { NUM1: 4, NUM2: 4 }, operator_mod: { NUM1: 4, NUM2: 4 },
+    operator_gt: { OPERAND1: 10, OPERAND2: 10 }, operator_lt: { OPERAND1: 10, OPERAND2: 10 }, operator_equals: { OPERAND1: 10, OPERAND2: 10 },
+    operator_and: { OPERAND1: "b", OPERAND2: "b" }, operator_or: { OPERAND1: "b", OPERAND2: "b" }, operator_not: { OPERAND: "b" },
+    operator_random: { FROM: 4, TO: 4 }, operator_join: { STRING1: 10, STRING2: 10 }, operator_letter_of: { LETTER: 6, STRING: 10 },
+    operator_length: { STRING: 10 }, operator_contains: { STRING1: 10, STRING2: 10 }, operator_round: { NUM: 4 }, operator_mathop: { NUM: 4 },
+    data_setvariableto: { VALUE: 10 }, data_changevariableby: { VALUE: 4 }, data_addtolist: { ITEM: 10 }, data_deleteoflist: { INDEX: 7 },
+    data_insertatlist: { INDEX: 7, ITEM: 10 }, data_replaceitemoflist: { INDEX: 7, ITEM: 10 }, data_itemoflist: { INDEX: 7 },
+    data_itemnumoflist: { ITEM: 10 }, data_listcontainsitem: { ITEM: 10 },
+    pen_setPenColorToColor: { COLOR: 9 }, pen_changePenColorParamBy: { COLOR_PARAM: M("pen_menu_colorParam", "colorParam"), VALUE: 4 },
+    pen_setPenColorParamTo: { COLOR_PARAM: M("pen_menu_colorParam", "colorParam"), VALUE: 4 }, pen_changePenSizeBy: { SIZE: 4 }, pen_setPenSizeTo: { SIZE: 4 },
+    music_setTempo: { TEMPO: 4 }, music_changeTempo: { TEMPO: 4 },
+    stretch_setStretchX: { X: 4 }, stretch_setStretchY: { Y: 4 }, stretch_changeStretch: { DX: 4, DY: 4 },
+  };
+  const SUBS = ["SUBSTACK", "SUBSTACK2"];
+  const KEYNAMES = { up: "up arrow", down: "down arrow", left: "left arrow", right: "right arrow" };
+  const PROPS = { x: "x position", y: "y position", dir: "direction", cn: "costume #", cname: "costume name", size: "size" };
+  const PENP = { h: "color", s: "saturation", b: "brightness", a: "transparency" };
+  const CUR = { wday: "DAYOFWEEK", year: "YEAR", month: "MONTH", date: "DATE", hour: "HOUR", min: "MINUTE", sec: "SECOND" };
+  const isBlock = (v) => v && typeof v === "object" && !Array.isArray(v) && typeof v.op === "string";
+  const str = (v) => (v == null ? "" : String(v));
+
+  /* PaintEditorの値 → Scratchの欄の値 (読み込みの normalize の逆) */
+  function denorm(key, value, opcode) {
+    if (typeof value !== "string") return value;
+    if (key === "KEY") return KEYNAMES[value] || value;
+    if (key === "E") return opcode.startsWith("looks_") ? ({ bright: "BRIGHTNESS" }[value] || value.toUpperCase()) : value.toUpperCase();
+    if (key === "D") return value === "f" ? "forward" : value === "b" ? "backward" : value;
+    if (key === "W") return value.toUpperCase();
+    if (key === "ROT") return { lr: "left-right", none: "don't rotate", all: "all around" }[value] || value;
+    if (key === "M" && opcode === "sensing_setdragmode") return value === "1" ? "draggable" : "not draggable";
+    if (key === "U") return CUR[value] || value;
+    if (key === "OP") return { ceil: "ceiling", exp: "e ^", pow10: "10 ^" }[value] || value;
+    if (key === "P" && own(PENP, value)) return PENP[value];
+    return value;
+  }
+
+  global.ScratchProgramExport = {
+    /* spec: {key,isStage,name,scripts,vars,lists}
+       ctx: {registry, defs(Map id→def), defScripts(Map id→script), names(Map), gVar(name)→id, gList(name)→id, bcast(name)→id,
+             globalsAsLocal, gvals, glists, extInfo(ext)→{id,url}} */
+    build(spec, ctx) {
+      const blocks = {}, warn = new Set(), exts = new Set(), variables = {}, lists = {}, calledDefs = new Set(), doneDefs = new Set();
+      let seq = 0;
+      const nid = () => spec.key + "." + (++seq).toString(36);
+      const rules = (global.ScratchProgramImport && global.ScratchProgramImport.rules) || {};
+      const inv = Object.create(null);
+      for (const [input, r] of Object.entries(rules)) if (!inv[r.output]) inv[r.output] = { opcode: input, args: r.args };
+      inv.event_whenclicked = { opcode: spec.isStage ? "event_whenstageclicked" : "event_whenthisspriteclicked", args: {} };
+      const lv = new Map(), ll = new Map();
+      const localVar = (name, value, isList) => {
+        const m = isList ? ll : lv, dst = isList ? lists : variables;
+        if (m.has(name)) return m.get(name);
+        const id = spec.key + (isList ? ".l." : ".v.") + m.size;
+        m.set(name, id); dst[id] = [name, value];
+        return id;
+      };
+      for (const [k, v] of Object.entries(spec.vars || {})) localVar(k, v, false);
+      for (const [k, v] of Object.entries(spec.lists || {})) localVar(k, Array.isArray(v) ? v : [], true);
+      const varId = (name, isList) => {
+        name = str(name);
+        const m = isList ? ll : lv;
+        if (m.has(name)) return m.get(name);
+        if (ctx.globalsAsLocal) return localVar(name, isList ? (ctx.glists && ctx.glists[name]) || [] : ctx.gvals && own(ctx.gvals, name) ? ctx.gvals[name] : 0, isList);
+        return isList ? ctx.gList(name) : ctx.gVar(name);
+      };
+      const tname = (v) => (typeof v === "string" && ctx.names.has(v) ? ctx.names.get(v) : v);
+      const mkBlock = (opcode, parent, extra) => {
+        const id = nid();
+        blocks[id] = Object.assign({ opcode, next: null, parent: parent || null, inputs: {}, fields: {}, shadow: false, topLevel: false }, extra || {});
+        return id;
+      };
+      const menuShadow = (parent, menu, value) => {
+        const id = nid();
+        blocks[id] = { opcode: menu.menu, next: null, parent, inputs: {}, fields: { [menu.field]: [str(value), null] }, shadow: true, topLevel: false };
+        return id;
+      };
+      /* 1つの入力欄 */
+      function input(opcode, name, val, parent, forced) {
+        const t = forced !== undefined ? forced : (SPEC[opcode] && SPEC[opcode][name]) !== undefined ? SPEC[opcode][name] : 10;
+        if (t === "b") return isBlock(val) ? [2, value(val, parent)] : null;
+        if (t === "B") {
+          if (isBlock(val)) return [3, value(val, parent), [11, "message1", ctx.bcast("message1")]];
+          const nm = str(val) || "message1";
+          return [1, [11, nm, ctx.bcast(nm)]];
+        }
+        if (t && typeof t === "object") {
+          if (isBlock(val)) return [3, value(val, parent), menuShadow(parent, t, "")];
+          return [1, menuShadow(parent, t, tname(val))];
+        }
+        if (isBlock(val)) {
+          if (val.op === "var_get") return [3, [12, str(val.in && val.in.VAR), varId(val.in && val.in.VAR, false)], [t, ""]];
+          if (val.op === "list_get") return [3, [13, str(val.in && val.in.L), varId(val.in && val.in.L, true)], [t, ""]];
+          return [3, value(val, parent), [t, ""]];
+        }
+        return [1, [t, str(val)]];
+      }
+      /* 値ブロック(丸・六角) → ブロックID */
+      function value(b, parent) {
+        const ids = lowerBlock(b, parent, false);
+        return ids[0];
+      }
+      function fieldValue(peKey, val, opcode, name) {
+        if (name === "VARIABLE") return [str(val), varId(val, false)];
+        if (name === "LIST") return [str(val), varId(val, true)];
+        if (name === "BROADCAST_OPTION") return [str(val), ctx.bcast(str(val))];
+        return [str(denorm(peKey, isBlock(val) ? "" : val, opcode)), null];
+      }
+      function extBlock(b, d, parent, top) {
+        const X = d.ex, ext = X.ext, info = ext.inst.getInfo(), meta = ctx.extInfo(ext);
+        exts.add(meta.id);
+        const bi = (info.blocks || []).find((x) => x && x.opcode === X.opc) || {};
+        const opcode = meta.id + "_" + X.opc, id = mkBlock(opcode, parent, { topLevel: !!top });
+        const B = blocks[id], menus = info.menus || {};
+        for (const [k, argName, ty] of X.keys) {
+          const a = (bi.arguments || {})[argName] || {}, val = b.in && b.in[k];
+          let menuName = a.menu != null && menus[a.menu] !== undefined ? a.menu : null;
+          if (menuName) {
+            const m = menus[menuName], acc = m && !Array.isArray(m) && m.acceptReporters;
+            if (acc) {
+              const sh = { menu: meta.id + "_menu_" + menuName, field: menuName };
+              B.inputs[argName] = isBlock(val) ? [3, value(val, id), menuShadow(id, sh, "")] : [1, menuShadow(id, sh, str(val))];
+            } else B.fields[argName] = [str(val), null];
+            continue;
+          }
+          if (ty === "Boolean") { if (isBlock(val)) B.inputs[argName] = [2, value(val, id)]; continue }
+          const code = ty === "number" ? 4 : ty === "angle" ? 8 : ty === "color" ? 9 : 10;
+          B.inputs[argName] = input(opcode, argName, val, id, code);
+        }
+        const nsub = X.ext && bi.branchCount != null ? Math.floor(bi.branchCount) : 1;
+        if (b.c) SUBS.forEach((s, i) => { const key = i ? "SUB2" : "SUB"; if (b.c[key] && (b.c[key].length || i < Math.max(1, nsub))) { const f = chain(b.c[key], id); if (f) B.inputs[s] = [2, f] } });
+        return [id];
+      }
+      /* PaintEditorのブロック1つ → Scratchのブロック(複数になることがある)のID配列。先頭が本体 */
+      function lowerBlock(b, parent, top) {
+        const op = b.op, d = ctx.registry[op], inn = b.in || {};
+        if (typeof op === "string" && op.startsWith("pc:")) return [callBlock(b, parent, top)];
+        if (typeof op === "string" && op.startsWith("pd:")) return [mkBlock("procedures_definition", parent, { topLevel: !!top })];
+        if (op === "var_get") { const id = mkBlock("data_variable", parent, { topLevel: !!top }); blocks[id].fields.VARIABLE = [str(inn.VAR), varId(inn.VAR, false)]; return [id] }
+        if (op === "list_get") { const id = mkBlock("data_listcontents", parent, { topLevel: !!top }); blocks[id].fields.LIST = [str(inn.L), varId(inn.L, true)]; return [id] }
+        if (op === "proc_arg" || op === "proc_argb") {
+          const def = ctx.defs.get(inn.D), it = def && def.items.find((x) => x.id === inn.P);
+          const id = mkBlock(op === "proc_argb" ? "argument_reporter_boolean" : "argument_reporter_string_number", parent, { topLevel: !!top });
+          blocks[id].fields.VALUE = [it ? str(it.n) : "入力", null]; return [id];
+        }
+        if (d && d.ex) return extBlock(b, d, parent, top);
+        const simple = (opcode, fields, ins, extra) => {
+          const id = mkBlock(opcode, parent, Object.assign({ topLevel: !!top }, extra || {}));
+          Object.entries(fields || {}).forEach(([k, v]) => (blocks[id].fields[k] = v));
+          Object.entries(ins || {}).forEach(([k, v]) => { const r = input(opcode, k, v, id); if (r) blocks[id].inputs[k] = r });
+          return [id];
+        };
+        switch (op) {
+          case "looks_setghost": return simple("looks_seteffectto", { EFFECT: ["GHOST", null] }, { VALUE: inn.V });
+          case "looks_changeghost": return simple("looks_changeeffectby", { EFFECT: ["GHOST", null] }, { CHANGE: inn.V });
+          case "looks_front": return simple("looks_gotofrontback", { FRONT_BACK: ["front", null] });
+          case "looks_back": return simple("looks_gotofrontback", { FRONT_BACK: ["back", null] });
+          case "looks_costumenum": return simple("looks_costumenumbername", { NUMBER_NAME: ["number", null] });
+          case "looks_costumename": return simple("looks_costumenumbername", { NUMBER_NAME: ["name", null] });
+          case "control_stopall": return simple("control_stop", { STOP_OPTION: ["all", null] }, null, { mutation: { tagName: "mutation", children: [], hasnext: "false" } });
+          case "control_stopthis": return simple("control_stop", { STOP_OPTION: ["this script", null] }, null, { mutation: { tagName: "mutation", children: [], hasnext: "false" } });
+          case "control_stopother": return simple("control_stop", { STOP_OPTION: ["other scripts in sprite", null] }, null, { mutation: { tagName: "mutation", children: [], hasnext: "true" } });
+          case "sense_touchingedge": return simple("sensing_touchingobject", null, { TOUCHINGOBJECTMENU: "_edge_" });
+          case "sense_x": case "sense_y": case "sense_dir": {
+            const id = simple("sensing_of", { PROPERTY: [PROPS[op.slice(6)], null] }, { OBJECT: spec.isStage ? "_stage_" : ctx.names.get(spec.name) || spec.name });
+            return id;
+          }
+          case "sense_of": return simple("sensing_of", { PROPERTY: [PROPS[inn.P] || str(inn.P), null] }, { OBJECT: inn.T === "__stage__" ? "_stage_" : inn.T });
+          case "sense_visible": warn.add("「表示されている」はScratchにないため書き出せません"); return simple("operator_not", null, { OPERAND: null });
+          case "looks_setstretch": return lowerBlock({ op: "looks_setstretchx", in: { X: inn.X } }, parent, top).concat(lowerBlock({ op: "looks_setstretchy", in: { Y: inn.Y } }, parent, false));
+          case "looks_setstretchx": exts.add("stretch"); return simple("stretch_setStretchX", null, { X: inn.X });
+          case "looks_setstretchy": exts.add("stretch"); return simple("stretch_setStretchY", null, { Y: inn.Y });
+          case "looks_changestretch": exts.add("stretch"); return simple("stretch_changeStretch", null, { DX: inn.X, DY: inn.Y });
+          case "looks_stretchx": exts.add("stretch"); return simple("stretch_getX");
+          case "looks_stretchy": exts.add("stretch"); return simple("stretch_getY");
+        }
+        if (/^scratch_unsupported/.test(op)) {
+          warn.add("未対応ブロック " + str(inn.OP) + " は中身なしで書き出しました");
+          const id = mkBlock(str(inn.OP) || "motion_movesteps", parent, { topLevel: !!top });
+          if (b.c) SUBS.forEach((s, i) => { const f = chain(b.c[i ? "SUB2" : "SUB"] || [], id); if (f) blocks[id].inputs[s] = [2, f] });
+          return [id];
+        }
+        const r = inv[op];
+        if (!r) { warn.add("Scratchに対応するブロックがないため省きました: " + op); return [] }
+        const opcode = r.opcode, id = mkBlock(opcode, parent, { topLevel: !!top });
+        if (/^pen_/.test(opcode)) exts.add("pen");
+        if (/^music_/.test(opcode)) exts.add("music");
+        const B = blocks[id];
+        for (const [peKey, source] of Object.entries(r.args || {})) {
+          const val = inn[peKey];
+          if (source[0] === "@") B.fields[source.slice(1)] = fieldValue(peKey, val, opcode, source.slice(1));
+          else {
+            let v = val;
+            if (["T"].includes(peKey) || (peKey === "T" && typeof v === "string")) v = tname(v);
+            if (opcode === "sensing_touchingobject" && v === "_edge_") v = "_edge_";
+            if (peKey === "P" && own(PENP, v)) v = PENP[v];
+            else if (peKey === "KEY") v = denorm("KEY", v, opcode);
+            const rr = input(opcode, source, v, id);
+            if (rr) B.inputs[source] = rr;
+          }
+        }
+        if (d && d.subs && d.subs.length) d.subs.forEach((k, i) => { const f = chain((b.c && b.c[k]) || [], id); if (f) B.inputs[SUBS[i]] = [2, f] });
+        return [id];
+      }
+      function callBlock(b, parent, top) {
+        const did = b.op.slice(3), def = ctx.defs.get(did);
+        if (!def) { warn.add("定義が見つからない呼び出しを省きました"); return mkBlock("motion_movesteps", parent, { topLevel: !!top }) }
+        calledDefs.add(did);
+        const id = mkBlock("procedures_call", parent, { topLevel: !!top });
+        const args = def.items.filter((x) => x.k === "s" || x.k === "b");
+        blocks[id].mutation = { tagName: "mutation", children: [], proccode: proccode(def), argumentids: JSON.stringify(args.map((a) => argId(did, a.id))), warp: String(!!def.warp) };
+        for (const a of args) {
+          const v = b.in && b.in[a.id], aid = argId(did, a.id);
+          if (a.k === "b") { if (isBlock(v)) blocks[id].inputs[aid] = [2, value(v, id)] }
+          else blocks[id].inputs[aid] = input("procedures_call", aid, v, id, 10);
+        }
+        return id;
+      }
+      const argId = (did, key) => "pearg-" + did + "-" + key;
+      const proccode = (def) => def.items.map((x) => (x.k === "l" ? str(x.t) : x.k === "b" ? "%b" : "%s")).join(" ");
+      /* ブロックの列 → 'next' でつなぐ。先頭のIDを返す */
+      function chain(list, parent, top) {
+        let first = null, prev = null;
+        for (const b of list || []) {
+          if (!isBlock(b)) continue;
+          const ids = lowerBlock(b, prev || parent, top && !prev);
+          for (const id of ids) {
+            if (!first) first = id;
+            if (prev) { blocks[prev].next = id; blocks[id].parent = prev }
+            prev = id;
+          }
+        }
+        return first;
+      }
+      function script(s) {
+        const list = (s.b || []).filter(isBlock);
+        if (!list.length) return;
+        const f = list[0];
+        if (typeof f.op === "string" && f.op.startsWith("pd:")) {
+          const did = f.op.slice(3), def = ctx.defs.get(did);
+          if (!def) return;
+          doneDefs.add(did);
+          const hat = mkBlock("procedures_definition", null, { topLevel: true, x: Math.round(s.x || 20), y: Math.round(s.y || 20) });
+          const proto = mkBlock("procedures_prototype", hat, { shadow: true });
+          const args = def.items.filter((x) => x.k === "s" || x.k === "b");
+          blocks[proto].mutation = {
+            tagName: "mutation", children: [], proccode: proccode(def),
+            argumentids: JSON.stringify(args.map((a) => argId(did, a.id))), argumentnames: JSON.stringify(args.map((a) => str(a.n))),
+            argumentdefaults: JSON.stringify(args.map((a) => (a.k === "b" ? "false" : ""))), warp: String(!!def.warp),
+          };
+          for (const a of args) {
+            const aid = nid();
+            blocks[aid] = { opcode: a.k === "b" ? "argument_reporter_boolean" : "argument_reporter_string_number", next: null, parent: proto, inputs: {}, fields: { VALUE: [str(a.n), null] }, shadow: true, topLevel: false };
+            blocks[proto].inputs[argId(did, a.id)] = [1, aid];
+          }
+          blocks[hat].inputs.custom_block = [1, proto];
+          const rest = chain(list.slice(1), hat);
+          if (rest) blocks[hat].next = rest;
+          return;
+        }
+        const first = chain(list, null, true);
+        if (first) { blocks[first].x = Math.round(s.x || 20); blocks[first].y = Math.round(s.y || 20) }
+      }
+      for (const s of spec.scripts || []) script(s);
+      /* 呼び出している定義ブロックで、このスプライトに本体がないものは、本体を複製して入れる */
+      for (let guard = 0; guard < 50; guard++) {
+        const need = [...calledDefs].filter((id) => !doneDefs.has(id) && ctx.defScripts.has(id));
+        if (!need.length) break;
+        need.forEach((id) => script(ctx.defScripts.get(id)));
+      }
+      return { blocks, variables, lists, warnings: [...warn], exts: [...exts] };
     },
   };
 })(window);

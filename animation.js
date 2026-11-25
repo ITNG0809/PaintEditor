@@ -55,9 +55,11 @@ const alive=o=>!!(o.c&&CI.has(o.c));
 function lbox(o){const eb=H.extensionBox&&H.extensionBox(o);if(eb)return eb;if(!alive(o))return[-24,-24,24,24];const c=o.c,r=info(c),a=c.cx/r.R,b=c.cy/r.R;return[r.box[0]-a,r.box[1]-b,r.box[2]-a,r.box[3]-b]}
 /* 回転方法: all=自由に回転 / lr=左右のみ(左向きは左右反転) / none=回転しない。[角度, 左右反転(1か-1)] */
 const rotF=o=>{const r=o.rot;if(r=='none')return[0,1];if(r=='lr')return[0,normDir(o.dir)<0?-1:1];return[(o.dir-90)*Math.PI/180,1]};
-const TR=o=>{const[a,f]=rotF(o);return{c:Math.cos(a),s:Math.sin(a),k:Math.max(o.size,1e-6)/100,f}};
-function toStage(o,lx,ly){const t=TR(o),x=lx*t.k*t.f,y=ly*t.k;return[240+o.x+x*t.c-y*t.s,180-o.y+x*t.s+y*t.c]}
-function toLocal(o,X,Y){const t=TR(o),dx=X-240-o.x,dy=Y-180+o.y;return[(dx*t.c+dy*t.s)/(t.k*t.f),(-dx*t.s+dy*t.c)/t.k]}
+/* 伸縮(TurboWarpの「伸縮」拡張): o.stx / o.sty = 横・縦の伸縮%(未設定は100)。負の値は反転、0に近い値は極小に丸める */
+const stN=v=>{v=v==null?100:v;return(Math.abs(v)<1e-4?(v<0?-1e-4:1e-4):v)/100},stX=o=>stN(o.stx),stY=o=>stN(o.sty);
+const TR=o=>{const[a,f]=rotF(o);return{c:Math.cos(a),s:Math.sin(a),k:Math.max(o.size,1e-6)/100,f,sx:stX(o),sy:stY(o)}};
+function toStage(o,lx,ly){const t=TR(o),x=lx*t.k*t.f*t.sx,y=ly*t.k*t.sy;return[240+o.x+x*t.c-y*t.s,180-o.y+x*t.s+y*t.c]}
+function toLocal(o,X,Y){const t=TR(o),dx=X-240-o.x,dy=Y-180+o.y;return[(dx*t.c+dy*t.s)/(t.k*t.f*t.sx),(-dx*t.s+dy*t.c)/(t.k*t.sy)]}
 function corners(o){const b=lbox(o);return[[b[0],b[1]],[b[2],b[1]],[b[2],b[3]],[b[0],b[3]]].map(p=>toStage(o,p[0],p[1]))}
 function hitPix(o,X,Y){if(!o.vis)return false;const[lx,ly]=toLocal(o,X,Y);const eh=H.extensionHit&&H.extensionHit(o,lx,ly);if(eh!=null)return eh;if(!alive(o))return Math.abs(lx)<=24&&Math.abs(ly)<=24;const c=o.c,r=info(c);return alphaAt(c,lx+c.cx/r.R,ly+c.cy/r.R)>10}
 function hitBox(o,X,Y){if(!o.vis)return false;const[lx,ly]=toLocal(o,X,Y),b=lbox(o),m=8/TR(o).k;return lx>=b[0]-m&&lx<=b[2]+m&&ly>=b[1]-m&&ly<=b[3]+m}
@@ -70,7 +72,7 @@ function paintSrc(c,r){if(c.k=='b'){if(r.empty)return null;const R=r.R,b=r.box,t
 if(t){cv=t.cv;ox=t.ox;oy=t.oy;sx=Math.max(sx,ox);sy=Math.max(sy,oy);ex=Math.min(ex,ox+cv.width);ey=Math.min(ey,oy+cv.height)}else cv=c.bc;
 const sw=ex-sx,sh=ey-sy;if(!(sw>0&&sh>0))return null;return{cv,sx:sx-ox,sy:sy-oy,sw,sh,dx:sx/R,dy:sy/R,dw:sw/R,dh:sh/R}}
 if(r.cv)return{cv:r.cv,sx:0,sy:0,sw:r.cv.width,sh:r.cv.height,dx:r.bx,dy:r.by,dw:r.cv.width/r.S,dh:r.cv.height/r.S};return null}
-function drawObj(x,o,k){if(!o.vis)return;if(H.drawExtension&&H.drawExtension(x,o,k))return;const c=o.c;x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);const s=Math.max(o.size,0)/100;x.scale(s*rotF(o)[1],s);
+function drawObj(x,o,k){if(!o.vis)return;if(H.drawExtension&&H.drawExtension(x,o,k))return;const c=o.c;x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);const s=Math.max(o.size,0)/100;x.scale(s*rotF(o)[1]*stX(o),s*stY(o));
 if(!alive(o)){x.strokeStyle='#e03a5a';x.fillStyle='#e03a5a';x.lineWidth=2;x.setLineDash([5,4]);x.strokeRect(-24,-24,48,48);x.setLineDash([]);x.font='bold 28px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('?',0,2);x.restore();return}
 const r=info(c);x.translate(-c.cx/r.R,-c.cy/r.R);
 if(c.k=='b'){if(r.empty){x.restore();return}x.imageSmoothingEnabled=(k*s/r.R)<1;const P=paintSrc(c,r);if(P)x.drawImage(P.cv,P.sx,P.sy,P.sw,P.sh,P.dx,P.dy,P.dw,P.dh)}
@@ -396,7 +398,7 @@ Object.assign(H,{startScript,broadcast,stopAll,killAll,hatIndex,ev,runList});
 /* ---------- 当たり判定(ピクセル単位) ---------- */
 const CV2=[document.createElement('canvas'),document.createElement('canvas')],CX2=CV2.map(c=>c.getContext('2d',{willReadFrequently:true}));
 const aabb=cn=>[Math.min(...cn.map(p=>p[0])),Math.min(...cn.map(p=>p[1])),Math.max(...cn.map(p=>p[0])),Math.max(...cn.map(p=>p[1]))];
-const mask=(x,o)=>drawObj(x,{x:o.x,y:o.y,size:o.size,dir:o.dir,rot:o.rot,vis:true,ghost:0,c:o.c},1);
+const mask=(x,o)=>drawObj(x,{x:o.x,y:o.y,size:o.size,dir:o.dir,rot:o.rot,stx:o.stx,sty:o.sty,vis:true,ghost:0,c:o.c},1);
 function overlapSlow(a,b){if(!a.vis||!b.vis||!alive(a)||!alive(b))return false;const A=aabb(corners(a)),B=aabb(corners(b));let x0=Math.max(A[0],B[0],-100),y0=Math.max(A[1],B[1],-100),x1=Math.min(A[2],B[2],580),y1=Math.min(A[3],B[3],460);if(x1<=x0||y1<=y0)return false;
 x0=Math.floor(x0);y0=Math.floor(y0);const W=Math.ceil(x1)-x0,Hh=Math.ceil(y1)-y0;if(W<=0||Hh<=0)return false;
 const D=[a,b].map((o,i)=>{const c=CV2[i];c.width=W;c.height=Hh;const x=CX2[i];x.setTransform(1,0,0,1,-x0,-y0);mask(x,o);x.setTransform(1,0,0,1,0,0);return x.getImageData(0,0,W,Hh).data});
@@ -416,7 +418,8 @@ try{const d=cv.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).
 function silPack(o){const c=o.c,r=info(c);let cvs,ku,ox,oy;
 if(c.k=='b'){if(r.empty)return{empty:1};if(c._tp){cvs=c._tp.cv;ox=c.cx-c._tp.ox;oy=c.cy-c._tp.oy}else{cvs=c.bc;ox=c.cx;oy=c.cy}ku=r.R}else{if(!r.cv||r.empty)return{empty:1};cvs=r.cv;ku=r.S;ox=(c.cx/r.R-r.bx)*r.S;oy=(c.cy/r.R-r.by)*r.S}
 const sl=silOf(cvs);if(!sl)return null;const t=TR(o),k=t.k;
-return{w:sl.w,h:sl.h,a:sl.a,ax:t.c/k*ku,bx:t.s/k*ku,cx:(-(240+o.x)*t.c+(o.y-180)*t.s)/k*ku+ox,ay:-t.s/k*ku,by:t.c/k*ku,cy:((240+o.x)*t.s+(o.y-180)*t.c)/k*ku+oy}}
+const kx=k*t.sx,ky=k*t.sy;
+return{w:sl.w,h:sl.h,a:sl.a,ax:t.c/kx*ku,bx:t.s/kx*ku,cx:(-(240+o.x)*t.c+(o.y-180)*t.s)/kx*ku+ox,ay:-t.s/ky*ku,by:t.c/ky*ku,cy:((240+o.x)*t.s+(o.y-180)*t.c)/ky*ku+oy}}
 const silOk=o=>!(H.extensionBox&&H.extensionBox(o));
 function overlapFast(a,b){if(!silOk(a)||!silOk(b))return null;if(a.size<=0||b.size<=0)return false;
 const A=aabb(corners(a)),B=aabb(corners(b));let x0=Math.max(A[0],B[0],-100),y0=Math.max(A[1],B[1],-100),x1=Math.min(A[2],B[2],580),y1=Math.min(A[3],B[3],460);if(x1<=x0||y1<=y0)return false;
@@ -476,6 +479,14 @@ def('looks_front','looks','stack','前面に移動する',{},T=>{if(!RT)return;c
 def('looks_back','looks','stack','背面に移動する',{},T=>{if(!RT)return;const i=RT.list.indexOf(T);if(i>=0){RT.list.splice(i,1);RT.list.unshift(T)}});
 def('looks_costumenum','looks','r','コスチュームの番号',{},T=>costList(T).indexOf(T.c)+1);
 def('looks_costumename','looks','r','コスチュームの名前',{},T=>T.c?T.c.n:'');
+/* ----- TurboWarp「伸縮」拡張と同じブロック(横・縦を別々に拡大縮小。保存はせず、実行のたびに100%から始まる) ----- */
+const stSet=(T,x,y)=>{if(T.stage)return;T.stx=clamp(x,-1e4,1e4);T.sty=clamp(y,-1e4,1e4)};
+def('looks_setstretch','looks','stack','伸縮を 横[X]% 縦[Y]% にする',{X:['n',100],Y:['n',100]},(T,A)=>{stSet(T,toNum(A.X),toNum(A.Y))});
+def('looks_changestretch','looks','stack','伸縮を 横[X] 縦[Y] ずつ変える',{X:['n',10],Y:['n',10]},(T,A)=>{stSet(T,(T.stx==null?100:T.stx)+toNum(A.X),(T.sty==null?100:T.sty)+toNum(A.Y))});
+def('looks_setstretchx','looks','stack','横の伸縮を[X]%にする',{X:['n',100]},(T,A)=>{stSet(T,toNum(A.X),T.sty==null?100:T.sty)});
+def('looks_setstretchy','looks','stack','縦の伸縮を[Y]%にする',{Y:['n',100]},(T,A)=>{stSet(T,T.stx==null?100:T.stx,toNum(A.Y))});
+def('looks_stretchx','looks','r','横の伸縮',{},T=>T.stx==null?100:T.stx);
+def('looks_stretchy','looks','r','縦の伸縮',{},T=>T.sty==null?100:T.sty);
 def('control_wait','control','stack','[SECS]秒待つ',{SECS:['n',1]});
 def('control_repeat','control','c','[TIMES]回繰り返す',{TIMES:['n',10]});
 def('control_forever','control','c','ずっと繰り返す',{},null,{nonext:true});
@@ -685,7 +696,7 @@ const MAXC=300;
 /* ---------- クローン ---------- */
 function createClone(T,target){if(!RT)return null;let S0=T;if(target!=='_myself_'){S0=RT.list.find(t=>!t.isClone&&t.name===target);if(!S0)return null}
 if(RT.clones>=MAXC){if(!RT.warnMax){RT.warnMax=1;toast('クローンの数が上限('+MAXC+'個)に達したため、新しいクローンは作りません')}return null}
-const n={id:uid(),name:S0.name,src:S0.src,isClone:true,volume:S0.volume,x:S0.x,y:S0.y,size:S0.size,dir:S0.dir,rot:S0.rot,vis:S0.vis,ghost:S0.ghost,c:S0.c,vars:JSON.parse(JSON.stringify(S0.vars)),lists:JSON.parse(JSON.stringify(S0.lists||{})),fx:S0.fx?{...S0.fx}:null,pen:S0.pen?{...S0.pen}:null,_px:S0.x,_py:S0.y,sc:S0.sc,hats:S0.hats,dead:false};
+const n={id:uid(),name:S0.name,src:S0.src,isClone:true,volume:S0.volume,x:S0.x,y:S0.y,size:S0.size,dir:S0.dir,rot:S0.rot,vis:S0.vis,ghost:S0.ghost,stx:S0.stx,sty:S0.sty,c:S0.c,vars:JSON.parse(JSON.stringify(S0.vars)),lists:JSON.parse(JSON.stringify(S0.lists||{})),fx:S0.fx?{...S0.fx}:null,pen:S0.pen?{...S0.pen}:null,_px:S0.x,_py:S0.y,sc:S0.sc,hats:S0.hats,dead:false};
 const i=RT.list.indexOf(S0);RT.list.splice(i<0?0:i,0,n);RT.clones++;for(const s of n.hats.clone)startScript(n,s);return n}
 function deleteClone(T,th){if(!RT||!T.isClone||T.dead)return;T.dead=true;th.stop=true;const i=RT.list.indexOf(T);if(i>=0)RT.list.splice(i,1);RT.clones=Math.max(0,RT.clones-1)}
 menuDefs.clone=o=>[['_myself_','自分自身']].concat(SC().objs.map(x=>[x.name,x.name+(x===o?'(自分と同じ名前のオブジェクト)':'')]));
@@ -822,7 +833,7 @@ function fxRecolor(x,o,k,f){const c=o.c;if(!c||!alive(o)||(H.extensionBox&&H.ext
 const hq=Math.round(((((f.color||0)/200)%1)+1)%1*360)%360,bq=Math.round(clamp((f.bright||0)/100*255,-255,255));if(!hq&&!bq)return false;
 const r=info(c),P=paintSrc(c,r);if(!P)return false;const key=(c._fid||(c._fid=++fxSeq))+'|'+hq+'|'+bq;let e=FXR.get(key);
 if(e&&e.inf===r){FXR.delete(key);FXR.set(key,e)}else{if(e){fxRpx-=e.px;FXR.delete(key)}e={cv:fxRecolorMake(P,hq/360,bq),inf:r,px:P.sw*P.sh};FXR.set(key,e);fxRpx+=e.px;for(const[kk,v]of FXR){if(fxRpx<=FXRMAX||kk===key)break;FXR.delete(kk);fxRpx-=v.px}}
-x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);const sz=Math.max(o.size,0)/100;x.scale(sz*rotF(o)[1],sz);x.translate(-c.cx/r.R,-c.cy/r.R);
+x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);const sz=Math.max(o.size,0)/100;x.scale(sz*rotF(o)[1]*stX(o),sz*stY(o));x.translate(-c.cx/r.R,-c.cy/r.R);
 x.imageSmoothingEnabled=c.k=='b'?(k*sz/r.R)<1:true;x.drawImage(e.cv,0,0,P.sw,P.sh,P.dx,P.dy,P.dw,P.dh);x.restore();return true}
 /* ===== 画面解像度で計算する空間エフェクト(魚眼・渦巻き・ピクセル化・モザイク)=====
    TurboWarp / Scratch と同じ考え方: スプライト全体の bbox を「予算内の解像度」で作って後から拡大するのをやめ、
@@ -1317,7 +1328,7 @@ const show=k=>{for(const x in panels){panels[x].hidden=x!=k;tb[x].classList.togg
 const btn=(t,f,pri)=>{const b=el('button','sc-b'+(pri?' pri':''));b.type='button';b.textContent=t;b.onclick=f;return b};
 const file=el('input');file.type='file';file.accept='.js,.mjs,.txt,text/javascript,application/javascript';file.hidden=true;
 const ta=el('textarea');ta.spellcheck=false;ta.placeholder='ここに拡張機能のコードを貼り付け( Scratch.extensions.register(...) を呼ぶJS )';ta.setAttribute('aria-label','拡張機能のコード');
-const ui=el('input');ui.type='text';ui.placeholder='https://example.com/extension.js';ui.setAttribute('aria-label','拡張機能のURL');
+const ui=el('input');ui.type='text';ui.placeholder='https://…/extension.js  または  lab/text(公式ギャラリーの名前)';ui.setAttribute('aria-label','拡張機能のURL');
 const list=el('div','ex-list');
 async function add(code,meta){if(busy)return;if(!code||!code.trim()){say('コードが空です',1);return}if(code.length>3e6){say('コードが大きすぎます(3MBまで)',1);return}
 if(!await uiConfirm('拡張機能のコードをこのページの中で実行します。\n'+(meta.url?'取得元: '+meta.url+'\n':'')+(meta.name?'名前: '+meta.name+'\n':'')+'サイズ: '+Math.ceil(code.length/1024)+'KB\n\n信頼できるコードだけ実行してください。実行しますか?','実行する'))return;
@@ -1333,9 +1344,27 @@ c.style.background=(s.exts[0]&&s.exts[0].color)||'#999';const n1=el('div');n1.te
 const fb=btn('ファイル(.js)を選んで読み込む',()=>file.click(),1);file.onchange=()=>{const f=file.files[0];file.value='';if(!f)return;if(f.size>3e6){say('ファイルが大きすぎます(3MBまで)',1);return}const rd=new FileReader();rd.onerror=()=>say('ファイルを読めませんでした',1);rd.onload=()=>add(String(rd.result),{name:f.name.replace(/\.[^.]*$/,'')});rd.readAsText(f)};
 panels.file.append(fb,file);
 const r1=el('div','ex-row');r1.append(btn('サンプルを入れる',()=>{ta.value=EX_SAMPLE;ta.scrollTop=0}),btn('この内容を読み込む',()=>add(ta.value,{name:'テキスト'}),1));panels.text.append(ta,r1);
-const ub=btn('読み込む',async()=>{const u=ui.value.trim();if(!/^https?:\/\//i.test(u)){say('http:// か https:// で始まるURLを入れてください',1);return}say('ダウンロード中…');let code;
-try{const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);code=await r.text()}catch(e){say('取得できませんでした('+((e&&e.message)||e)+')。公開元がCORSを許可していない可能性があります。ファイルをダウンロードして「ファイル」か「テキスト」から読み込んでください',1);return}
-add(code,{name:u.split('/').pop().replace(/\.[^.]*$/,'')||'URL',url:u})},1);ui.onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing){e.preventDefault();ub.click()}};const r2=el('div','ex-row');r2.append(ui,ub);panels.url.append(r2);
+/* URLの整形: 「stretch」「lab/text」のような名前だけ → 公式ギャラリー / ?extension=URL / GitHubのページURL / http→https */
+const exNorm=raw=>{let u=String(raw||'').trim().replace(/^[<"']+|[>"']+$/g,'');if(!u)return'';let m;
+if((m=/[?&]extension=([^&#]+)/.exec(u))&&/^https?:\/\/[^/]*turbowarp\.org\//i.test(u)){try{u=decodeURIComponent(m[1])}catch(e){u=m[1]}}
+if(!/^[a-z][a-z0-9+.-]*:/i.test(u)){if(/^[\w-]+(\/[\w-]+)*(\.js)?$/i.test(u))u='https://extensions.turbowarp.org/'+u.replace(/\.js$/i,'')+'.js';else if(/^[\w-]+(\.[\w-]+)+(\/|$)/.test(u))u='https://'+u}
+if(/^http:\/\//i.test(u)&&location.protocol=='https:'&&!/^http:\/\/(localhost|127\.|\[::1\])/i.test(u))u=u.replace(/^http:/i,'https:');
+if(m=/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/([^/?#]+)\/([^?#]+)/i.exec(u))u='https://raw.githubusercontent.com/'+m[1]+'/'+m[2]+'/'+m[3]+'/'+m[4];
+if((m=/^https?:\/\/extensions\.turbowarp\.org\/([^?#]*?)\/?(?:[?#].*)?$/i.exec(u))&&m[1]&&!/\.js$/i.test(m[1]))u='https://extensions.turbowarp.org/'+m[1]+'.js';
+return u};
+const exAlt=u=>{const m=/^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/.exec(u);return m?['https://cdn.jsdelivr.net/gh/'+m[1]+'/'+m[2]+'@'+m[3]+'/'+m[4]]:[]};
+/* 1つのURLを取得。ヘッダーは付けない(Cache-Control等を付けるとCORSの事前確認が必要になり、公開元によっては失敗する) */
+async function exFetch1(x){const c=new AbortController(),tm=setTimeout(()=>c.abort(),20000);try{const r=await fetch(x,{signal:c.signal,credentials:'omit',redirect:'follow'});if(!r.ok){const e=Error('HTTP '+r.status);e.http=r.status;throw e}return await r.text()}finally{clearTimeout(tm)}}
+const exIsHtml=s=>/^\s*<(?:!doctype|html|head|body|\?xml)/i.test(s);
+const ub=btn('読み込む',async()=>{if(busy)return;const u=exNorm(ui.value);if(!/^https?:\/\//i.test(u)){say('URL か、公式ギャラリーの名前(例: lab/text)を入れてください',1);return}ui.value=u;say('ダウンロード中…');let code=null,from=u,fail=null;
+for(const x of[u,...exAlt(u)]){try{code=await exFetch1(x);from=x;fail=null;break}catch(e){fail=fail||e}}
+if(code==null&&!(fail&&fail.http)){/* 通信自体が失敗(CORS等): 確認のうえ中継サービス経由で再挑戦 */
+if(await uiConfirm('このURLを直接取得できませんでした(公開元がCORSを許可していない、など)。\n\n中継サービス(corsproxy.io)を経由して取得しますか?\n\n注意: 中継サービスはコードを書き換えられる可能性があります。信頼できる取得元のときだけ許可してください。\n\n取得元: '+u,'経由して取得')){try{code=await exFetch1('https://corsproxy.io/?url='+encodeURIComponent(u));from=u;fail=null}catch(e){fail=e}}}
+if(code==null){const h=fail&&fail.http;say('取得できませんでした: '+(h==404?'HTTP 404(そのURLにファイルがありません。公式ギャラリーなら https://extensions.turbowarp.org/ で拡張機能を開き、名前を確認してください)':h?'HTTP '+h:(fail&&fail.name=='AbortError'?'時間切れ(20秒)':'通信できません(ネットワーク・CORS・http/https の違いなど)')+'。ファイルを保存して「ファイル」から読み込む方法も使えます'),1);return}
+if(exIsHtml(code)){say('取得した内容がウェブページ(HTML)でした。拡張機能の .js ファイルそのもののURLを入れてください(GitHubなら「Raw」のURL)',1);return}
+add(code,{name:u.split(/[?#]/)[0].split('/').pop().replace(/\.[^.]*$/,'')||'URL',url:from})},1);ui.onkeydown=e=>{if(e.key=='Enter'&&!e.isComposing){e.preventDefault();ub.click()}};const r2=el('div','ex-row');r2.append(ui,ub);panels.url.append(r2);
+const gl=el('div');gl.style.cssText='font-size:12px;opacity:.75;margin-top:6px';gl.textContent='公式ギャラリー(extensions.turbowarp.org)の名前だけでも読み込めます。例:';const gr=el('div','ex-row');gr.style.flexWrap='wrap';
+['lab/text','bitwise','fetch','files','local-storage'].forEach(n=>{const b=btn(n,()=>{ui.value=n;ub.click()});b.style.minHeight='34px';gr.append(b)});panels.url.append(gl,gr);
 const lh=el('h4');lh.textContent='読み込み済み';body.append(note,tabs,panels.file,panels.text,panels.url,msg,lh,list);
 const acts=el('div','acts');acts.append(btn('閉じる',close,1));dl.append(h,body,acts);ov.append(dl);document.body.append(ov);show('file');renderList()}
 H.exDialog=exDialog;
@@ -1478,6 +1507,45 @@ for(const sp of SPS)context.targetNames.set(sp.n,sp.n);
 const p=applyScratch(o,owner.s,scene,context);
 if(p.warnings.length)toast('Scratchプログラムを取り込みました。未対応: '+p.warnings.join(' / '));
 };
+/* ---------- Scratch書き出し: シーンのオブジェクトのプログラムを、スプライトごとのScratchブロックにする ----------
+   ・同じスプライトを使うオブジェクトが複数あるとき、2つ目以降は「名前2」「名前3」…の複製スプライトにする
+   ・使った拡張機能(ペン・音楽・伸縮・読み込み済みの拡張)は extensions / extensionURLs に入れる */
+H.scratchInfo=()=>{reindex();const has=sc=>sc.objs.some(o=>o.sc&&o.sc.some(s=>s.b&&s.b.length));return{scenes:S.scenes.length,withScripts:S.scenes.filter(has).length,cur:SC()?has(SC()):false}};
+H.scratchPlan=(opt={})=>{
+reindex();const E=window.ScratchProgramExport;if(!E)return null;
+const scenes=opt.mode=='all'?S.scenes.slice():(SC()?[SC()]:[]);
+const plan={entries:[],stage:null,globalVars:{},globalLists:{},broadcasts:{},extensions:[],extensionURLs:{},warnings:[]};
+const gvIds=new Map(),glIds=new Map(),bcIds=new Map(),extReg=new Map(),used=new Map();
+const gVar=(name,val)=>{name=String(name);if(gvIds.has(name))return gvIds.get(name);const id='pegv'+gvIds.size;gvIds.set(name,id);plan.globalVars[id]=[name,val===undefined?0:val];return id};
+const gList=(name,val)=>{name=String(name);if(glIds.has(name))return glIds.get(name);const id='pegl'+glIds.size;glIds.set(name,id);plan.globalLists[id]=[name,Array.isArray(val)?val:[]];return id};
+const bcast=name=>{name=String(name);if(bcIds.has(name))return bcIds.get(name);const id='pebc'+bcIds.size;bcIds.set(name,id);plan.broadcasts[id]=name;return id};
+const exts=new Set(),b64=s=>btoa(unescape(encodeURIComponent(s)));
+const extInfo=ext=>{const s=ext.src;let url=s.url&&/^https:\/\/extensions\.turbowarp\.org\//.test(s.url)?s.url:'data:application/javascript;base64,'+b64(s.code);plan.extensionURLs[ext.id]=url;return{id:ext.id,url}};
+const spNames=new Set(SPS.map(s=>s.n));let seq=0;
+const uniqName=base=>{const sep=/\d$/.test(base)?' ':'';let n=2,nm=base+sep+n;while(spNames.has(nm)){n++;nm=base+sep+n}spNames.add(nm);return nm};
+const stageScripts=[];let stageEntry=null;
+for(const scene of scenes){
+for(const k of Object.keys(scene.gvars||{}))gVar(k,scene.gvars[k]);for(const k of Object.keys(scene.glists||{}))gList(k,scene.glists[k]);(scene.msgs||[]).forEach(bcast);
+const defs=new Map((scene.defs||[]).map(d=>[d.id,d])),defScripts=new Map();
+scene.objs.forEach(o=>(o.sc||[]).forEach(s=>{const f=s.b&&s.b[0];if(f&&typeof f.op=='string'&&f.op.startsWith('pd:')&&!defScripts.has(f.op.slice(3)))defScripts.set(f.op.slice(3),s)}));
+/* 1) オブジェクト → 書き出す名前 */
+const jobs=[],names=new Map();
+for(const o of scene.objs){const m=o.c&&CI.get(o.c);if(!m){plan.warnings.push('「'+o.name+'」はコスチュームがないため、プログラムを書き出しません');continue}
+const sp=m.s;if(opt.only&&sp.n!==opt.only)continue;
+let name;if(sp.stage)name='Stage';else{const c=used.get(sp.n)||0;used.set(sp.n,c+1);name=c==0?sp.n:uniqName(sp.n)}
+names.set(o.name,name);jobs.push({o,sp,m,name})}
+/* 2) 変換 */
+for(const j of jobs){const o=j.o;
+const ctx={registry:BK,defs,defScripts,names,gVar:n=>gVar(n,scene.gvars&&scene.gvars[n]),gList:n=>gList(n,scene.glists&&scene.glists[n]),bcast,extInfo,globalsAsLocal:!!opt.globalsAsLocal,gvals:scene.gvars||{},glists:scene.glists||{}};
+const res=E.build({key:'pe'+(++seq),isStage:!!j.sp.stage,name:o.name,scripts:JSON.parse(JSON.stringify(o.sc||[])),vars:o.vars||{},lists:o.lists||{}},ctx);
+res.warnings.forEach(w=>plan.warnings.push(o.name+': '+w));res.exts.forEach(x=>exts.add(x));
+(o.sc||[]).forEach(()=>0);
+const e={spName:j.sp.n,stage:!!j.sp.stage,exportName:j.name,blocks:res.blocks,variables:res.variables,lists:res.lists,ci:j.m.i,costume:o.c.n,x:o.x,y:o.y,size:o.size,direction:o.dir,visible:!!o.vis,rotationStyle:o.rot=='lr'?'left-right':o.rot=='none'?"don't rotate":'all around'};
+if(j.sp.stage){if(!stageEntry){stageEntry=e;plan.stage=e}else{Object.assign(stageEntry.blocks,e.blocks);Object.assign(stageEntry.variables,e.variables);Object.assign(stageEntry.lists,e.lists)}}
+else plan.entries.push(e)}}
+for(const x of exts){if(x=='stretch')plan.extensionURLs.stretch='https://extensions.turbowarp.org/stretch.js'}
+plan.extensions=[...exts];
+return plan};
 /* ---------- 変数モニター(ステージ表示) ---------- */
 H.drawMon=x=>{if(!RT)return;let i=0;for(const k in RT.mon){const m=RT.mon[k],v=m.T?m.T.vars[m.name]:RT.g[m.name],lab=(m.T?m.T.name+': ':'')+m.name,val=toStr(v===undefined?0:v);x.save();x.font='bold 11px system-ui,sans-serif';x.textBaseline='middle';
 const w1=x.measureText(lab).width+10,w2=Math.max(30,x.measureText(val).width+10),y=5+i*22;x.fillStyle='#e6f0ff';x.strokeStyle='#c9d0d9';x.lineWidth=1;x.beginPath();x.roundRect?x.roundRect(5,y,w1+w2+4,19,4):x.rect(5,y,w1+w2+4,19);x.fill();x.stroke();
