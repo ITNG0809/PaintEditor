@@ -274,7 +274,7 @@
   }
   async function play(
     pcm,
-    { start = 0, end = length(pcm), group = "editor", volume = 100, guard = () => true } = {},
+    { start = 0, end = length(pcm), group = "editor", volume = 100, guard = () => true, pitch, pan } = {},
   ) {
     const ctx = audioContext(),
       requestEpoch = epoch,
@@ -293,8 +293,17 @@
       gain = ctx.createGain();
     source.buffer = buffer;
     gain.gain.value = Math.max(0, Math.min(1, volume / 100));
+    if (pitch) source.playbackRate.value = Math.pow(2, pitch / 120); // Scratch: 音程10 = 1半音
+    let panner = null;
+    if (pan !== undefined && ctx.createStereoPanner) {
+      panner = ctx.createStereoPanner();
+      panner.pan.value = Math.max(-1, Math.min(1, pan / 100));
+    }
     source.connect(gain);
-    gain.connect(ctx.destination);
+    if (panner) {
+      gain.connect(panner);
+      panner.connect(ctx.destination);
+    } else gain.connect(ctx.destination);
     let finish;
     const ended = new Promise((resolve) => {
       finish = resolve;
@@ -302,6 +311,7 @@
     const voice = {
       source,
       gain,
+      panner,
       group,
       ended,
       context: ctx,
@@ -321,6 +331,7 @@
       done = true;
       source.disconnect();
       gain.disconnect();
+      if (panner) panner.disconnect();
       voices.delete(voice);
       finish();
     }
@@ -356,13 +367,28 @@
     const pcm = await decode(bytes);
     if (!guard()) return;
     for (const old of [...voices]) if (old.group === T.id && old.meta === meta) old.stop();
-    const voice = await play(pcm, { group: T.id, volume: volumeFor(T), guard });
+    const fx = T.sfx || {};
+    const voice = await play(pcm, { group: T.id, volume: volumeFor(T), guard, pitch: fx.pitch || 0, pan: fx.pan || 0 });
     voice.meta = meta;
     await voice.ended;
   }
   function setVolume(T, value) {
     T.volume = Math.min(100, Math.max(0, Number(value) || 0));
     for (const voice of voices) if (voice.group === T.id) voice.gain.gain.value = T.volume / 100;
+  }
+  // 音の効果(Scratch互換): 音程 -360〜360(10で1半音) / 左右 -100〜100。再生中の音にも、あとから鳴らす音にも効く
+  const SFX = { pitch: [-360, 360], pan: [-100, 100] };
+  function setEffect(T, name, value, relative) {
+    const r = SFX[name];
+    if (!r) return;
+    const fx = T.sfx || (T.sfx = { pitch: 0, pan: 0 });
+    const v = Math.min(r[1], Math.max(r[0], (relative ? fx[name] : 0) + (Number(value) || 0)));
+    fx[name] = v;
+    for (const voice of voices) {
+      if (voice.group !== T.id) continue;
+      if (name === "pitch") voice.source.playbackRate.value = Math.pow(2, v / 120);
+      else if (voice.panner) voice.panner.pan.value = v / 100;
+    }
   }
   function installRuntime(SCN) {
     const H = SCN.H;
@@ -404,6 +430,20 @@
       },
     );
     SCN.def("sound_stopall", "sound", "stack", "すべての音を止める", {}, () => stop());
+    H.menuDefs.sfx = () => [
+      ["pitch", "音程"],
+      ["pan", "左右にパン"],
+    ];
+    SCN.def("sound_fxchange", "sound", "stack", "[E]の効果を[V]ずつ変える", { E: ["m", "sfx", "pitch"], V: ["n", 10] }, (T, A) =>
+      setEffect(T, String(A.E), H.toNum(A.V), true),
+    );
+    SCN.def("sound_fxset", "sound", "stack", "[E]の効果を[V]にする", { E: ["m", "sfx", "pitch"], V: ["n", 100] }, (T, A) =>
+      setEffect(T, String(A.E), H.toNum(A.V), false),
+    );
+    SCN.def("sound_fxclear", "sound", "stack", "音の効果をなくす", {}, (T) => {
+      setEffect(T, "pitch", 0, false);
+      setEffect(T, "pan", 0, false);
+    });
     SCN.def("sound_setvolume", "sound", "stack", "音量を[V]%にする", { V: ["n", 100] }, (T, A) =>
       setVolume(T, H.toNum(A.V)),
     );

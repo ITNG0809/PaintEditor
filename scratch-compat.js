@@ -364,6 +364,16 @@
   rule("sound_setvolumeto", "sound_setvolume", { V: "VOLUME" });
   rule("sound_changevolumeby", "sound_changevolume", { V: "VOLUME" });
   rule("sound_volume", "sound_volume");
+  rule("sound_seteffectto", "sound_fxset", { E: "@EFFECT", V: "VALUE" });
+  rule("sound_changeeffectby", "sound_fxchange", { E: "@EFFECT", V: "VALUE" });
+  rule("sound_cleareffects", "sound_fxclear");
+  rule("sensing_loudness", "sense_loudness");
+  rule("event_whenbackdropswitchesto", "event_whenbackdrop", { B: "@BACKDROP" });
+  rule("looks_switchbackdropto", "looks_switchbackdrop", { B: "BACKDROP" });
+  rule("looks_switchbackdroptoandwait", "looks_switchbackdropwait", { B: "BACKDROP" });
+  rule("looks_nextbackdrop", "looks_nextbackdrop");
+  rule("looks_backdropnumbername", "looks_backdropnn", { NN: "@NUMBER_NAME" });
+  rule("motion_setrotationstyle", "motion_setrotstyle", { ROT: "@STYLE" });
   rule("music_setTempo", "music_settempo", { T: "TEMPO" });
   rule("music_changeTempo", "music_changetempo", { T: "TEMPO" });
   rule("music_getTempo", "music_gettempo");
@@ -673,6 +683,7 @@
           return { brightness: "bright" }[value.toLowerCase()] || value.toLowerCase();
         if (key === "D") return value === "forward" ? "f" : value === "backward" ? "b" : value;
         if (key === "W") return value.toLowerCase();
+        if (key === "ROT") return { "left-right": "lr", "don't rotate": "none", "all around": "all" }[value] || value;
         if (key === "M" && ["draggable", "not draggable"].includes(value))
           return value === "draggable" ? "1" : "0";
         if (key === "U")
@@ -767,7 +778,7 @@
           return { op: "sense_touchingedge", in: {} };
         if (
           opcode === "event_whengreaterthan" &&
-          field(node, "WHENGREATERTHANMENU").toLowerCase() !== "timer"
+          !["timer", "loudness"].includes(field(node, "WHENGREATERTHANMENU").toLowerCase())
         )
           return placeholder(node, expected, path, proc);
         if (

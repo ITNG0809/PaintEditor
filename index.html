@@ -6,7 +6,7 @@
 <meta property="og:title" content="コスチュームエディター">
 <meta property="og:description" content="PaintEditorでアニメーションを作成・編集し、描いた作品に動きを加えて表現を広げられるアプリです。">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="icon" href="./favicon.png">
 <link rel="stylesheet" href="./style.css">
 <!-- ↓ 読み込み順は重要。animation.js より前に必要（詳しくは README.md） -->
 <script src="./scratch-compat.js"></script>
@@ -51,7 +51,15 @@
 <button id="lyu" data-i="arrU" data-t="1つ前面へ"></button><button id="lyd" data-i="arrD" data-t="1つ背面へ"></button><button id="lyn" data-i="ren" data-t="レイヤー名を変更"></button>
 <button id="ly_dp" data-i="dup" data-t="複製"></button><button id="ly_dl" data-i="del" data-t="削除"></button>
 <button id="ly_gp" data-i="group" data-t="グループ化"></button><button id="ly_ug" data-i="ungroup" data-t="グループ解除"></button>
-<button id="ly_fr" data-i="front" data-t="最前面へ"></button><button id="ly_bkb" data-i="back" data-t="最背面へ"></button></div><div id="ly"></div></div></div></div>
+<button id="ly_fr" data-i="front" data-t="最前面へ"></button><button id="ly_bkb" data-i="back" data-t="最背面へ"></button></div><div id="ly"></div></div>
+<div id="bly_wrap" hidden><h4>レイヤー(ビットマップ)</h4>
+<div id="bly_off"><small>通常は1枚の画像として編集します。レイヤーを使うと、今の絵を1枚目にして重ね描きできます。</small><button type="button" id="bly_use" class="bly-use">レイヤーを使う</button></div>
+<div id="bly_on" hidden><div id="bly_bar">
+<button type="button" id="bly_add" data-i="spadd" data-t="レイヤーを追加"></button><button type="button" id="bly_dp" data-i="dup" data-t="レイヤーを複製"></button><button type="button" id="bly_dl" data-i="del" data-t="レイヤーを削除"></button>
+<button type="button" id="bly_up" data-i="arrU" data-t="1つ上へ"></button><button type="button" id="bly_dn" data-i="arrD" data-t="1つ下へ"></button><button type="button" id="bly_rn" data-i="ren" data-t="名前を変更(行をダブルクリックでも可)"></button>
+<button type="button" id="bly_mg" data-i="merge" data-t="結合(下と結合・表示中を結合・通常の画像に戻す)"></button><button type="button" id="bly_sp" data-i="cut" data-t="選択範囲を新しいレイヤーに分ける(「範囲」ツールで選んでから)"></button></div>
+<label class="bly-op">不透明度<input type="range" id="bly_op" min="0" max="100" step="1" value="100" aria-label="レイヤーの不透明度"><input type="number" id="bly_opn" min="0" max="100" step="1" value="100" inputmode="numeric" aria-label="不透明度(%)">%</label>
+<div id="bly"></div></div></div></div></div>
 <div id="prop">
 <span class="grp" id="g_col">
 <span id="l_fc"><button id="cf" data-i="fillon" data-t="塗りの色(タップでカラーピッカー)"></button><input type="hidden" id="fc" value="#855cd6"></span>
@@ -105,6 +113,7 @@
 <!-- 外部ライブラリ: Paper.js（結合・マスク・減算・フィルター・切り取り・ベクター消しゴムで使用） -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.17/paper-core.min.js"></script>
 <script src="./costume-editor.js"></script>
+<script src="./bitmap-layers.js"></script>
 <script src="./animation.js"></script>
 <script src="./sound-editor.js"></script>
 </body></html>

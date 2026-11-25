@@ -259,9 +259,9 @@ return out}
 function rasterVec(o,shapes,k,ox,oy){const x=o.getContext('2d');if($('#aa').checked){x.save();x.setTransform(k,0,0,k,-ox*k,-oy*k);shapes.forEach(s=>s.hid||dsh(x,s));x.restore()}
 else{const im=x.createImageData(o.width,o.height);im.data.set(rasterVecOff(o.width,o.height,shapes,k,ox,oy));x.putImageData(im,0,0)}}
 function dcv(x,c){/* 表示専用: プレビュー(PRV)を反映して描く。書き出し・保存・サムネイルは dc() を使う */
-if(c.k=='b'){x.drawImage(PRV.bm||c.bc,0,0);const b=c==C()&&sel[0]&&sel[0].t=='bs'?vs(sel[0]):0;if(b&&b.cvs)stampSel(x,b);return}
+if(c.k=='b'){if(c.ly&&window.BL)return BL.dcv(x,c);x.drawImage(PRV.bm||c.bc,0,0);const b=c==C()&&sel[0]&&sel[0].t=='bs'?vs(sel[0]):0;if(b&&b.cvs)stampSel(x,b);return}
 pvList(c).forEach(s=>s.hid||dsh(x,s))}
-function dc(x,c){if(c.k=='b'){if(c._tp)x.drawImage(c._tp.cv,c._tp.ox,c._tp.oy);else x.drawImage(c.bc,0,0);const f=c==C()&&sel[0]&&sel[0].t=='bs'&&sel[0].cvs?sel[0]:0;if(f)stampSel(x,f);}else c.sh.forEach(s=>s.hid||dsh(x,s))}
+function dc(x,c){if(c.k=='b'&&c.ly&&window.BL)return BL.dc(x,c);if(c.k=='b'){if(c._tp)x.drawImage(c._tp.cv,c._tp.ox,c._tp.oy);else x.drawImage(c.bc,0,0);const f=c==C()&&sel[0]&&sel[0].t=='bs'&&sel[0].cvs?sel[0]:0;if(f)stampSel(x,f);}else c.sh.forEach(s=>s.hid||dsh(x,s))}
 // ===== 描画 =====
 // 表示専用の透明チェッカー: マスは作品座標で8×8、マスの角をキャンバス中心(幅/2,高さ/2)に合わせる。ズーム・移動に連動し、画像データには含めない(エクスポートはdcのみ使用)
 function bgAlt(f=1){const q=parseC(BG.c)||{r:255,g:255,b:255},l=(.299*q.r+.587*q.g+.114*q.b)/255,t=l>.5?0:255,k=(l>.5?.11:.16)*f;return'#'+[q.r,q.g,q.b].map(v=>h2(v+(t-v)*k)).join('')}
@@ -301,10 +301,11 @@ if(band){const p=S(band[0],band[1]),q=S(band[2],band[3]);g.setLineDash([5,4]);g.
 function fit(){const c=C(),W=cv.clientWidth,H=cv.clientHeight;z=Math.min(W/c.w,H/c.h)*.92;ox=(W-c.w*z)/2;oy=(H-c.h*z)/2;draw()}
 function zoomAt(x,y,n){n=Math.min(32,Math.max(.1,n));ox=x-(x-ox)*n/z;oy=y-(y-oy)*n/z;z=n;draw()}
 // ===== 履歴 =====
-function st(c){return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'&&!c._tp?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,tp:c.k=='b'&&c._tp?{cv:c._tp.cv,ox:c._tp.ox,oy:c._tp.oy}:null,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c)}}
-function rs(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;c.res=+t.res>0?+t.res:1;if(c.k=='b'){if(t.tp)cpMake(c,t.tp.cv,t.tp.ox,t.tp.oy);else{c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}}
-function hist(){HC++;const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[];trimHist()}
-function trimHist(){const B=200e6,sz=a=>a.bm?a.bm.data.length:0,cu=C();let tot=0;for(const c of cs){for(const a of c.u)tot+=sz(a);for(const a of c.r)tot+=sz(a)}
+function st(c){if(c.ly&&window.BL)return BL.st(c);return{k:c.k,sh:JSON.stringify(c.sh,rep),bm:c.k=='b'&&!c._tp?c.bc.getContext('2d').getImageData(0,0,c.w,c.h):0,tp:c.k=='b'&&c._tp?{cv:c._tp.cv,ox:c._tp.ox,oy:c._tp.oy}:null,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c)}}
+function rs(c,t){if((t.ly||c.ly)&&window.BL)return BL.rs(c,t,rs0);return rs0(c,t)}
+function rs0(c,t){if(t.k&&t.k!=c.k){c.k=t.k;if(t.k=='b'&&!c.bc)c.bc=document.createElement('canvas')}c.sh=JSON.parse(t.sh);c.sh.forEach(s=>s.src&&ld(s));c.w=t.w;c.h=t.h;c.cx=t.cx;c.cy=t.cy;c.res=+t.res>0?+t.res:1;if(c.k=='b'){if(t.tp)cpMake(c,t.tp.cv,t.tp.ox,t.tp.oy);else{c.bc.width=t.w;c.bc.height=t.h;c.bc.getContext('2d').putImageData(t.bm,0,0)}}}
+function hist(){if(window.BL)BL.guard();HC++;const c=C();c.u.push(st(c));if(c.u.length>40)c.u.shift();c.r=[];trimHist()}
+function trimHist(){const B=200e6,sz=a=>(a.bm?a.bm.data.length:0)+(a.ly&&window.BL?BL.sz(a):0),cu=C();let tot=0;for(const c of cs){for(const a of c.u)tot+=sz(a);for(const a of c.r)tot+=sz(a)}
 while(tot>B){let best=null,bn=0;for(const c of cs){if(c===cu)continue;const n=c.u.length+c.r.length;if(n>bn){bn=n;best=c}}if(!best)break;tot-=sz(best.r.length?best.r.shift():best.u.shift())}}
 function undo(){if(TE)teEnd();pvClear();SPA.a=[];bcommit();const c=C();if(!c.u.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.r.push(st(c));rs(c,c.u.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
 function redo(){if(TE)teEnd();pvClear();SPA.a=[];bcommit();const c=C();if(!c.r.length)return;const ix=c.k=='v'?sel.map(q=>c.sh.indexOf(q)):[];c.u.push(st(c));rs(c,c.r.pop());sel=ix.filter(i=>i>=0&&i<c.sh.length).map(i=>c.sh[i]);selPt=-1;fin()}
@@ -486,7 +487,7 @@ function down(e){const c=C(),p=pt(e);drag={p0:p,p,mv:0,h0:HC,r0:c.r.slice()};pvC
 if(pickMode){const t=pickMode;pickMode=null;cv.style.cursor='';$('#cp').classList.remove('hid');pickState();drag=null;if(p[0]>=0&&p[1]>=0&&p[0]<c.w&&p[1]<c.h){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;const ox_=o.getContext('2d');dc(ox_,c);const d=ox_.getImageData(Math.floor(p[0]),Math.floor(p[1]),1,1).data;CP.t=t;setHSVfrom({r:d[0],g:d[1],b:d[2],a:d[3]/255},false)}return}
 if(tool=='hand'){drag.h=[e.clientX,e.clientY,ox,oy];return}
 if(tool=='ctr'){drag.m='ctr';PRV.ctr=p;draw();return}
-if(c.k=='b')return bdown(c,p);
+if(c.k=='b'){if(window.BL&&BL.blocked(c,p)){drag=null;return}return bdown(c,p)}
 if(tool=='sel'&&!multi&&!e.shiftKey){const now=performance.now();if(DT&&now-DT.t<420&&Math.hypot(e.clientX-DT.x,e.clientY-DT.y)<26){const h0=pick(p);if(h0&&h0.t=='txt'&&!h0.lk)TT={p,x:e.clientX,y:e.clientY,h:h0};DT=null}else DT={t:now,x:e.clientX,y:e.clientY}}
 if(tool=='sel'){const h=hitH(p);if(h){Object.assign(drag,h);return}
 const hit=pick(p),add=multi||e.shiftKey;
@@ -531,7 +532,7 @@ draw()}
 function up(e){const c=C(),d=drag;drag=null;snapG=null;if(!d||d.h){pvClear();return}if(d.m=='pts'&&!d.mv){SPA.s=sel[0];SPA.a=[d.col];selPt=d.col}
 /* 確定: ここで初めて履歴に積み、実データへ反映する(動かしていない・キャンセルした場合はプレビューを捨てるだけ) */
 if(PVTF.includes(d.m)){if(d.mv&&PRV.map)pvApply();else pvClear()}
-else if(d.m=='ctr'){const q=PRV.ctr;pvClear();if(q){hist();c.cx=q[0];c.cy=q[1]}return fin()}
+else if(d.m=='ctr'){const q=PRV.ctr;pvClear();if(q){window.BL?BL.free(hist):hist();c.cx=q[0];c.cy=q[1]}return fin()}
 else if(d.pv)bCommit(c,d);
 else if(d.m=='bfill')bFillCommit(c,d.p);
 else if(d.m=='fill'){const h=pick(d.p);pvClear();if(h){hist();fillTargets(h).forEach(fillTo);fin()}else draw();return}
@@ -658,7 +659,7 @@ function bdown(c,p){if(tool=='bsel'){const b=sel[0]&&sel[0].t=='bs'?sel[0]:null;
 if(tool=='brush'||tool=='eras'){bBegin(c,drag);drag.P=[p];drag.seed=(Math.random()*4e9)|0;bPen(c,drag);draw()}
 else if(tool=='brect'||tool=='bell'||tool=='bline'){bBegin(c,drag)}
 else if(tool=='fill'){drag.m='bfill';bFillPrev(c,p)}
-else if(tool=='pick'){const x=Math.floor(p[0]),y=Math.floor(p[1]);if(x>=0&&y>=0&&x<c.w&&y<c.h){const d=c.bc.getContext('2d').getImageData(x,y,1,1).data;if(d[3])setCol('sc',`rgba(${d[0]},${d[1]},${d[2]},${+(d[3]/255).toFixed(3)})`)}drag=null}}
+else if(tool=='pick'){const x=Math.floor(p[0]),y=Math.floor(p[1]);if(x>=0&&y>=0&&x<c.w&&y<c.h){const d=c.ly&&window.BL?BL.px(c,x,y):c.bc.getContext('2d').getImageData(x,y,1,1).data;if(d[3])setCol('sc',`rgba(${d[0]},${d[1]},${d[2]},${+(d[3]/255).toFixed(3)})`)}drag=null}}
 function bmove(c,p){const d=drag;if(tool=='brush'||tool=='eras'){const l=d.P[d.P.length-1],off=!$('#aa').checked&&(tool=='eras'||penK=='round'||penK=='square');if(off?(p[0]!=l[0]||p[1]!=l[1]):Math.hypot(p[0]-l[0],p[1]-l[1])>=.35){d.P.push(p);bPen(c,d);draw()}}else if(d.pv){bShape(c,d,p);draw()}else if(d.m=='bfill'){pvSoon(()=>bFillPrev(c,p))}}
 function floodCalc(c,px,py,col,all=FA,T=ftolT()){px|=0;py|=0;if(px<0||py<0||px>=c.w||py>=c.h)return null;const x=c.bc.getContext('2d'),im=x.getImageData(0,0,c.w,c.h),D=im.data,W=c.w,H=c.h,o=(py*W+px)*4,t=[D[o],D[o+1],D[o+2],D[o+3]],n=col;
 if(t[0]==n[0]&&t[1]==n[1]&&t[2]==n[2]&&t[3]==n[3])return null;
@@ -672,7 +673,7 @@ if(!n){alert('半透明のピクセルはありません');return}hist();x.putIm
 $('#bclean').onclick=cleanAlpha;
 function flood(c,px,py,col){const im=floodCalc(c,px,py,col);if(im)c.bc.getContext('2d').putImageData(im,0,0)}
 // ===== UI =====
-function fin(){ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(bkRun,1200)}
+function fin(){if(window.BL)BL.fin();ONG++;if(fin.k!=C().k){fin.k=C().k;const v=C().k=='v';if(!(v?TV:TB).includes(tool))tool=v?'sel':'brush';if(!v)sel=sel.filter(s=>s.t=='bs');tools()}thumbs();sync();draw();clearTimeout(fin.t);fin.t=setTimeout(bkRun,1200)}
 function bkRun(){const t0=performance.now();for(const c of AC()){if(c.k=='b'&&c!==C()&&!c._fu){c._fu=flatURL(c);if(performance.now()-t0>14){fin.t=setTimeout(bkRun,40);return}}}let n=0;for(const c of AC())if(c._fu)n+=c._fu.length;if(n>4.2e6)return;try{localStorage.setItem('ced_bk',ser(1))}catch(e){}}
 const TS={sel:'選択',rsh:'点編集',brush:'ブラシ',pen:'ペン',eras:'消しゴム',fill:'塗り',txt:'文字',line:'線',ell:'楕円',rect:'四角',poly:'多角形',shp:'図形',arw:'矢印',cut:'分割',hand:'移動',ctr:'中心',pick:'抽出',brect:'四角',bell:'楕円',bline:'線',bsel:'範囲'},TK={sel:'V',rsh:'A',brush:'B',pen:'P',eras:'E',txt:'T'},TG={rsh:1,txt:1,arw:1,bsel:1,pick:1,bline:1};
 function tools(){const c=C();pvClear();$('#tools').innerHTML='';(c.k=='v'?TV:TB).forEach(k=>{const b=document.createElement('button');setB(b,k,TN[k]+(TK[k]?' ['+TK[k]+']':''),TS[k]);b.setAttribute('aria-pressed',k==tool);b.className=k==tool?'on':'';b.onclick=()=>{if(C().k=='b')bcommit();tool=k;swNorm();selPt=-1;if(k!='sel'&&k!='rsh'&&k!='bsel')sel=[];tools();sync();draw()};$('#tools').append(b);if(TG[k])$('#tools').insertAdjacentHTML('beforeend','<i class="tsep"></i>')})}
@@ -688,7 +689,7 @@ $('#g_bpen').hidden=v||!['brush','eras','brect','bell','bline','bsel'].includes(
 if(v&&s0){if(s0.t!='img')SJ=jn(s0);if(s0.t!='txt'){$('#fo').checked=!!s0.f;$('#so').checked=!!s0.s||s0.sw===0}if(s0.f){if(typeof s0.f=='string'){gm='s';setCol('fc',s0.f)}else{gm=s0.f.g;setCol('fc',s0.f.c1);setCol('fc2',s0.f.c2)}}if(s0.s)setCol('sc',s0.s);$('#sw').value=s0.sw!=null?s0.sw:4;if(s0.t=='rect')$('#rr').value=s0.rr||0;
 if(s0.t=='txt'){const i=FL.findIndex(f=>f.css==s0.fn);if(i>=0)$('#fn').value=i}}
 $('#sjm').className=SJ=='miter'?'on':'';$('#sjr').className=SJ=='miter'?'':'on';$('#sjm').setAttribute('aria-pressed',SJ=='miter');$('#sjr').setAttribute('aria-pressed',SJ!='miter');dis('undo',!c.u.length);dis('redo',!c.r.length);
-['fr','bkb','dp','dl','ug','al'].forEach(i=>dis(i,!sel.length));dis('gp',sel.length<2);['bmg','bmk','bsb','bft'].forEach(i=>dis(i,sel.length<2));dis('te',!(s0&&s0.t=='txt'));dis('t2p',!(s0&&s0.t=='txt'));dis('p2t',!(s0&&(s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot))));dis('delpt',!(s0&&s0.bz&&selPt>=0));dis('ptm',!(s0&&s0.bz&&selPt>=0));const hb=s0&&s0.t=='bs'&&bsPx(s0)>0;['bcp','bct','bdel','bfh','bfv','nl','nu','nd','nr'].forEach(i=>dis(i,!hb));dis('bps',!(clip||vclip));if(v){dis('bcp',!sel.length);dis('bct',!sel.length);dis('bps',!vclip);dis('bfh',!sel.some(s=>!s.lk));dis('bfv',!sel.some(s=>!s.lk))}swSync();lySync();onSync();$('#symb').className=SYM?'on':'';$('#symb').setAttribute('aria-pressed',!!SYM);if(document.activeElement!==$('#sw'))swNorm();{const go=$('#g_ofs');if(go){go.hidden=!v;$('#ofb').disabled=!sel.length}if(OFS.open){if(!v)ofsClose();else ofsSoon()}const gb=$('#g_bool');if(gb)gb.hidden=!v;const f1=$('#g_ftt');if(f1)f1.hidden=$('#g_ft').hidden;const f2=$('#g_ndt');if(f2)f2.hidden=$('#g_nd').hidden}}
+['fr','bkb','dp','dl','ug','al'].forEach(i=>dis(i,!sel.length));dis('gp',sel.length<2);['bmg','bmk','bsb','bft'].forEach(i=>dis(i,sel.length<2));dis('te',!(s0&&s0.t=='txt'));dis('t2p',!(s0&&s0.t=='txt'));dis('p2t',!(s0&&(s0.ot||s0.g&&C().sh.some(q=>q.g==s0.g&&q.ot))));dis('delpt',!(s0&&s0.bz&&selPt>=0));dis('ptm',!(s0&&s0.bz&&selPt>=0));const hb=s0&&s0.t=='bs'&&bsPx(s0)>0;['bcp','bct','bdel','bfh','bfv','nl','nu','nd','nr'].forEach(i=>dis(i,!hb));dis('bps',!(clip||vclip));if(v){dis('bcp',!sel.length);dis('bct',!sel.length);dis('bps',!vclip);dis('bfh',!sel.some(s=>!s.lk));dis('bfv',!sel.some(s=>!s.lk))}swSync();lySync();if(window.BL)BL.sync();onSync();$('#symb').className=SYM?'on':'';$('#symb').setAttribute('aria-pressed',!!SYM);if(document.activeElement!==$('#sw'))swNorm();{const go=$('#g_ofs');if(go){go.hidden=!v;$('#ofb').disabled=!sel.length}if(OFS.open){if(!v)ofsClose();else ofsSoon()}const gb=$('#g_bool');if(gb)gb.hidden=!v;const f1=$('#g_ftt');if(f1)f1.hidden=$('#g_ft').hidden;const f2=$('#g_ndt');if(f2)f2.hidden=$('#g_nd').hidden}}
 function ap(){const c=C();if(c.k!='v'||!sel.length)return;if(!dirty){hist();dirty=1;dis('undo',0);dis('redo',1)}sel.forEach(s=>{const y=sty();if(s.t=='txt'){s.f=fv();s.s=y.s;s.sw=Math.max(1,y.sw/2)}else if(s.t=='img'){}else{s.f=s.t=='line'?null:y.f;s.s=y.s||(s.t=='line'?col('fc'):null);s.sw=s.t=='line'&&!(y.sw>0)?1:y.sw}});draw();thumbs()}
 ['fc','fc2','sc','fo','so'].forEach(i=>{$('#'+i).addEventListener('input',ap);$('#'+i).addEventListener('change',()=>{ap();dirty=0})});
 {const e=$('#sw');e.addEventListener('input',ap);e.addEventListener('change',()=>{swNorm();ap();dirty=0})}
@@ -787,9 +788,9 @@ function drawThumb(t){const c=cs[t._ix];if(!c)return;t._st=0;const x=t.getContex
 function markDup(){const L=document.getElementById('list');if(!L)return;cfLayout();const cnt={};cs.forEach(c=>cnt[c.n]=(cnt[c.n]||0)+1);CIS().forEach((d,i)=>{const c=cs[i],f=!!c&&cnt[c.n]>1;d.classList.toggle('dupn',f);if(f)d.setAttribute('data-dup','同じ名前のコスチュームがあります');else d.removeAttribute('data-dup')})}
 function thumbs(all){markDup();spThumbCur();document.querySelectorAll('#list canvas').forEach((t,i)=>{t._ix=i;if(all||i==ci){t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}})}
 function thumbAt(c){const i=cs.indexOf(c),t=i<0?null:CIS()[i]&&CIS()[i].querySelector('canvas');if(!t)return;t._ix=i;t._st=1;if(!TIO||VIS.has(t))drawThumb(t)}
-function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&CIS().length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;cs[ci]._bb=undefined;{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
+function go(i){if(TE)teEnd();pvClear();ONG++;if(cs[ci]&&cs[ci].k=='b')bcommit();ci=i;sel=[];selPt=-1;tmp=null;const T=C().k=='v'?TV:TB;if(!T.includes(tool))tool=C().k=='v'?'sel':'brush';tools();if(list.n===cs.length&&!list.force&&CIS().length==cs.length)listSel();else{list.force=0;list()}sync();const c=C();cs[ci]._fu=null;cs[ci]._bb=undefined;if(window.BL)BL.enter(cs[ci]);{const nr=RS(c),pr=go.rs||nr;if(go.v&&pr!=nr)z=Math.min(32,Math.max(.1,z*pr/nr));go.rs=nr}if(!go.v||ox+c.w*z<20||oy+c.h*z<20||ox>cv.clientWidth-20||oy>cv.clientHeight-20){go.v=1;fit()}else draw()}
 function add(k){const c=mk(k,'コスチューム'+(cs.length+1));cs.splice(ci+1,0,c);go(ci+1)}
-function grow(c,W,H){if(c.k=='v'||W<=c.w&&H<=c.h)return;W=Math.max(W,c.w);H=Math.max(H,c.h);if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);c.bc.width=W;c.bc.height=H;c.bc.getContext('2d').drawImage(o,0,0)}c.w=W;c.h=H}
+function grow(c,W,H){if(c.k=='v'||W<=c.w&&H<=c.h)return;W=Math.max(W,c.w);H=Math.max(H,c.h);if(c.k=='b'&&c.ly&&window.BL)BL.grow(c,W,H);else if(c.k=='b'){const o=document.createElement('canvas');o.width=c.w;o.height=c.h;o.getContext('2d').drawImage(c.bc,0,0);c.bc.width=W;c.bc.height=H;c.bc.getContext('2d').drawImage(o,0,0)}c.w=W;c.h=H}
 $('#addv').onclick=()=>add('v');$('#addb').onclick=()=>add('b');
 $('#undo').onclick=undo;$('#redo').onclick=redo;
 $('#zi').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,z*1.1);$('#zo').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,z/1.1);$('#zf').onclick=fit;$('#z1').onclick=()=>zoomAt(cv.clientWidth/2,cv.clientHeight/2,1/RS(C()));
@@ -811,7 +812,7 @@ $('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;if(f.type=='image/
 if(c.k=='b')c.bc.getContext('2d').drawImage(im,Math.round((c.w-im.naturalWidth)/2),Math.round((c.h-im.naturalHeight)/2));
 else{const s={t:'img',x:c.w/2,y:c.h/2,r:0,w:im.naturalWidth,h:im.naturalHeight,src:r.result};ld(s);c.sh.push(s);sel=[s]}fin()};im.src=r.result};r.readAsDataURL(f);e.target.value=''};
 // ===== 保存・出力 =====
-const serC=c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,bm:c.k=='b'?(c===C()?flatURL(c):(c._fu||(c._fu=flatURL(c)))):0});
+const serC=c=>({n:c.n,k:c.k,w:c.w,h:c.h,cx:c.cx,cy:c.cy,res:RS(c),sh:c.sh,ly:c.k=='b'&&c.ly&&window.BL?BL.ser(c):undefined,bm:c.k=='b'?(c===C()?flatURL(c):(c._fu||(c._fu=flatURL(c)))):0});
 /* v4: 複数スプライト(sp)。noSnd=1 のときはサウンドファイルを含めない(自動バックアップ用。読み込み時にファイルが無いサウンドは外す) */
 function ser(noSnd){spSave();return JSON.stringify({v:4,ci,fonts,pal,cur:curState(),spi:SPI,prj:PRJ,sp:SPS.map(s=>({n:s.n,st:s.stage?1:0,ci:s.ci,ex:s.ex,snd:noSnd?{}:Object.fromEntries(Object.entries(s.snd||{}).map(([k,v])=>[k,u2b(v)])),cs:s.cs.map(serC)}))},rep)}
 /* ===== 読み込み進捗オーバーレイ / 時間分割 ===== */
@@ -831,7 +832,7 @@ FL=baseFL();fonts=o.fonts||[];fillFonts();if(o.pal){pal=o.pal;savePal()}
 const N=src.reduce((a,s)=>a+s.cs.length,0),outS=[];let K=0;
 for(const sq of src){const out=[];for(const q of sq.cs){progSet(K/N,'コスチュームを読み込み中 '+(K+1)+' / '+N);K++;await slice();
 const c=mk(q.k,q.n);Object.assign(c,{w:q.w,h:q.h,cx:q.cx,cy:q.cy,sh:q.sh||[],res:+q.res>0?+q.res:1});c.sh.forEach(s=>s.src&&ld(s));
-if(q.k=='b'){if(q.bm){await new Promise(r=>{const im=new Image;im.onload=()=>{try{cpFromFull(c,im,q.w,q.h)}catch(e){c.bc.width=q.w;c.bc.height=q.h;try{c.bc.getContext('2d').drawImage(im,0,0)}catch(e2){}}r()};im.onerror=()=>{c.bc.width=q.w;c.bc.height=q.h;r()};im.src=q.bm});c._fu=q.bm}else{c.bc.width=q.w;c.bc.height=q.h}}
+if(q.k=='b'){if(q.ly&&window.BL&&await BL.load(c,q)){c._fu=q.bm}else if(q.bm){await new Promise(r=>{const im=new Image;im.onload=()=>{try{cpFromFull(c,im,q.w,q.h)}catch(e){c.bc.width=q.w;c.bc.height=q.h;try{c.bc.getContext('2d').drawImage(im,0,0)}catch(e2){}}r()};im.onerror=()=>{c.bc.width=q.w;c.bc.height=q.h;r()};im.src=q.bm});c._fu=q.bm}else{c.bc.width=q.w;c.bc.height=q.h}}
 out.push(c)}
 const snd={};if(sq.snd)for(const k in sq.snd){try{snd[k]=b2u(sq.snd[k])}catch(e){}}
 const ex=sq.ex&&typeof sq.ex=='object'?sq.ex:(sq.st?STD():SPD());if(Array.isArray(ex.sounds))ex.sounds=ex.sounds.filter(x=>snd[x.md5ext]);
@@ -1043,7 +1044,7 @@ if(P.br||P.ct){r=(r+br-128)*cf+128;g=(g+br-128)*cf+128;b=(b+br-128)*cf+128}
 if(P.iv){r=255-r;g=255-g;b=255-b}d[i]=r;d[i+1]=g;d[i+2]=b}
 if(P.bl>0)blurData(d,w,h,Math.max(1,Math.round(P.bl*(P.R||1))));
 if(P.sh>0){const c2=new Uint8ClampedArray(d),k=P.sh/50;blurData(c2,w,h,P.R||1);for(let i=0;i<L;i+=4){if(!d[i+3])continue;for(let j=0;j<3;j++)d[i+j]=d[i+j]+k*(d[i+j]-c2[i+j])}}return o}
-function openFlt(){const c=C();if(c.k!='b')return alert('画像フィルターはビットマップのコスチューム専用です。ベクター図形には適用できません。');bcommit();if(c.w*c.h>12e6)return alert('画像が大きすぎます(1200万画素まで)');
+function openFlt(){const c=C();if(c.k!='b')return alert('画像フィルターはビットマップのコスチューム専用です。ベクター図形には適用できません。');bcommit();if(window.BL&&BL.blocked(c,null,1))return;if(c.w*c.h>12e6)return alert('画像が大きすぎます(1200万画素まで)');
 const x=c.bc.getContext('2d'),org=x.getImageData(0,0,c.w,c.h),P={R:RS(c)},D=document.createElement('div');let tm_=0;D.className='dlg';
 D.innerHTML='<div role="dialog" aria-label="画像フィルター"><b>画像フィルター</b>'+FP.map(f=>`<label>${f[1]}<input type="number" data-p="${f[0]}" min="${f[2]}" max="${f[3]}" step="1" value="${f[4]}" inputmode="numeric" data-clamp="1"><output hidden></output></label>`).join('')+FC.map(f=>`<label>${f[1]}<input type="checkbox" data-p="${f[0]}"></label>`).join('')+'<small>プレビューは常に元画像から計算します。「適用」まで確定せず、キャンセルで元に戻ります。透明部分は維持されます。</small><span class="grp"><button data-r>リセット</button><button data-x>キャンセル</button><button data-ok class="on">適用</button></span></div>';
 const get=()=>{D.querySelectorAll('[data-p]').forEach(e=>P[e.dataset.p]=e.type=='checkbox'?e.checked:+e.value);D.querySelectorAll('output').forEach(o=>o.textContent=o.previousSibling.value)},

@@ -53,9 +53,11 @@ if(RT){const sl=silOf(cvs);if(sl&&px<sl.w&&py<sl.h)return sl.a[py*sl.w+px]}
 try{return cvs.getContext('2d').getImageData(px,py,1,1).data[3]}catch(e){return 0}}
 const alive=o=>!!(o.c&&CI.has(o.c));
 function lbox(o){const eb=H.extensionBox&&H.extensionBox(o);if(eb)return eb;if(!alive(o))return[-24,-24,24,24];const c=o.c,r=info(c),a=c.cx/r.R,b=c.cy/r.R;return[r.box[0]-a,r.box[1]-b,r.box[2]-a,r.box[3]-b]}
-const TR=o=>{const a=(o.dir-90)*Math.PI/180;return{c:Math.cos(a),s:Math.sin(a),k:Math.max(o.size,1e-6)/100}};
-function toStage(o,lx,ly){const t=TR(o),x=lx*t.k,y=ly*t.k;return[240+o.x+x*t.c-y*t.s,180-o.y+x*t.s+y*t.c]}
-function toLocal(o,X,Y){const t=TR(o),dx=X-240-o.x,dy=Y-180+o.y;return[(dx*t.c+dy*t.s)/t.k,(-dx*t.s+dy*t.c)/t.k]}
+/* 回転方法: all=自由に回転 / lr=左右のみ(左向きは左右反転) / none=回転しない。[角度, 左右反転(1か-1)] */
+const rotF=o=>{const r=o.rot;if(r=='none')return[0,1];if(r=='lr')return[0,normDir(o.dir)<0?-1:1];return[(o.dir-90)*Math.PI/180,1]};
+const TR=o=>{const[a,f]=rotF(o);return{c:Math.cos(a),s:Math.sin(a),k:Math.max(o.size,1e-6)/100,f}};
+function toStage(o,lx,ly){const t=TR(o),x=lx*t.k*t.f,y=ly*t.k;return[240+o.x+x*t.c-y*t.s,180-o.y+x*t.s+y*t.c]}
+function toLocal(o,X,Y){const t=TR(o),dx=X-240-o.x,dy=Y-180+o.y;return[(dx*t.c+dy*t.s)/(t.k*t.f),(-dx*t.s+dy*t.c)/t.k]}
 function corners(o){const b=lbox(o);return[[b[0],b[1]],[b[2],b[1]],[b[2],b[3]],[b[0],b[3]]].map(p=>toStage(o,p[0],p[1]))}
 function hitPix(o,X,Y){if(!o.vis)return false;const[lx,ly]=toLocal(o,X,Y);const eh=H.extensionHit&&H.extensionHit(o,lx,ly);if(eh!=null)return eh;if(!alive(o))return Math.abs(lx)<=24&&Math.abs(ly)<=24;const c=o.c,r=info(c);return alphaAt(c,lx+c.cx/r.R,ly+c.cy/r.R)>10}
 function hitBox(o,X,Y){if(!o.vis)return false;const[lx,ly]=toLocal(o,X,Y),b=lbox(o),m=8/TR(o).k;return lx>=b[0]-m&&lx<=b[2]+m&&ly>=b[1]-m&&ly<=b[3]+m}
@@ -68,7 +70,7 @@ function paintSrc(c,r){if(c.k=='b'){if(r.empty)return null;const R=r.R,b=r.box,t
 if(t){cv=t.cv;ox=t.ox;oy=t.oy;sx=Math.max(sx,ox);sy=Math.max(sy,oy);ex=Math.min(ex,ox+cv.width);ey=Math.min(ey,oy+cv.height)}else cv=c.bc;
 const sw=ex-sx,sh=ey-sy;if(!(sw>0&&sh>0))return null;return{cv,sx:sx-ox,sy:sy-oy,sw,sh,dx:sx/R,dy:sy/R,dw:sw/R,dh:sh/R}}
 if(r.cv)return{cv:r.cv,sx:0,sy:0,sw:r.cv.width,sh:r.cv.height,dx:r.bx,dy:r.by,dw:r.cv.width/r.S,dh:r.cv.height/r.S};return null}
-function drawObj(x,o,k){if(!o.vis)return;if(H.drawExtension&&H.drawExtension(x,o,k))return;const c=o.c;x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate((o.dir-90)*Math.PI/180);const s=Math.max(o.size,0)/100;x.scale(s,s);
+function drawObj(x,o,k){if(!o.vis)return;if(H.drawExtension&&H.drawExtension(x,o,k))return;const c=o.c;x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);const s=Math.max(o.size,0)/100;x.scale(s*rotF(o)[1],s);
 if(!alive(o)){x.strokeStyle='#e03a5a';x.fillStyle='#e03a5a';x.lineWidth=2;x.setLineDash([5,4]);x.strokeRect(-24,-24,48,48);x.setLineDash([]);x.font='bold 28px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText('?',0,2);x.restore();return}
 const r=info(c);x.translate(-c.cx/r.R,-c.cy/r.R);
 if(c.k=='b'){if(r.empty){x.restore();return}x.imageSmoothingEnabled=(k*s/r.R)<1;const P=paintSrc(c,r);if(P)x.drawImage(P.cv,P.sx,P.sy,P.sw,P.sh,P.dx,P.dy,P.dw,P.dh)}
@@ -91,7 +93,7 @@ x.beginPath();x.arc(g.O[0],g.O[1],4/sc,0,7);x.fillStyle='#855cd6';x.fill();x.res
 let _dr=0;function redraw(){if(_dr)return;_dr=requestAnimationFrame(()=>{_dr=0;drawStage();drawInfo()})}
 SCN.redraw=redraw;SCN.drawNow=()=>{drawStage();drawInfo()};
 /* ---------- 保存(自動保存・プロジェクト連携・JSON) ---------- */
-function packObj(o){if(alive(o))syncRef(o);return{id:o.id,name:o.name,ref:o.ref,stage:!!o.stage,x:rnd(o.x),y:rnd(o.y),size:rnd(o.size),dir:rnd(o.dir),vis:!!o.vis,ghost:rnd(o.ghost),sc:o.sc,vars:o.vars,lists:o.lists||{}}}
+function packObj(o){if(alive(o))syncRef(o);return{id:o.id,name:o.name,ref:o.ref,stage:!!o.stage,x:rnd(o.x),y:rnd(o.y),size:rnd(o.size),dir:rnd(o.dir),rot:o.rot||undefined,vis:!!o.vis,ghost:rnd(o.ghost),sc:o.sc,vars:o.vars,lists:o.lists||{}}}
 const packScene=s=>({id:s.id,n:s.n,bg:s.bg,msgs:s.msgs,gvars:s.gvars,glists:s.glists||{},defs:s.defs||[],objs:s.objs.map(packObj)});
 SCN.pack=()=>{reindex();const o={v:1,cur:S.cur,scenes:S.scenes.map(packScene)},x=H.exPack?H.exPack():[];if(x.length)o.exts=x;return o};
 let _sv=0,_svWarn=0;function touch(){clearTimeout(_sv);_sv=setTimeout(()=>{try{localStorage.setItem('ced_scn',JSON.stringify(SCN.pack()))}catch(e){if(!_svWarn){_svWarn=1;toast('シーンの自動保存に失敗しました(容量不足の可能性)。JSONで書き出してください')}}},500)}
@@ -103,7 +105,7 @@ function vScripts(a,W){if(!Array.isArray(a)||!H.vBlocks)return[];const out=[];fo
 function vScene(r,W){if(!r||typeof r!='object')throw Error('シーンのデータが不正です');if(!Array.isArray(r.objs))throw Error('オブジェクトの一覧がありません');if(r.objs.length>500)throw Error('オブジェクトが多すぎます(上限500)');
 const s={id:uid(),n:String(r.n||'シーン').slice(0,60),bg:/^#[0-9a-f]{3,8}$/i.test(r.bg)?r.bg:'#ffffff',objs:[],gvars:vVars(r.gvars),glists:vLists(r.glists),defs:vDefs(r.defs),msgs:Array.isArray(r.msgs)?r.msgs.filter(m=>typeof m=='string'&&m&&m.length<=40).slice(0,100):[]};if(!s.msgs.length)s.msgs=['メッセージ1'];
 const names=new Set();r.objs.forEach((p,i)=>{if(!p||typeof p!='object'){W.drop++;return}let nm=String(p.name||'オブジェクト'+(i+1)).slice(0,60),b=nm,k=2;while(names.has(nm))nm=b+(k++);names.add(nm);
-s.objs.push({id:uid(),name:nm,ref:vRef(p.ref),stage:!!p.stage,c:null,x:clamp(nz(p.x),-1e5,1e5),y:clamp(nz(p.y),-1e5,1e5),size:clamp(nz(p.size,100),0,1e4),dir:normDir(nz(p.dir,90)),vis:p.vis!==false,ghost:clamp(nz(p.ghost),0,100),sc:vScripts(p.sc,W),vars:vVars(p.vars),lists:vLists(p.lists)})});return s}
+s.objs.push({id:uid(),name:nm,ref:vRef(p.ref),stage:!!p.stage,c:null,x:clamp(nz(p.x),-1e5,1e5),y:clamp(nz(p.y),-1e5,1e5),size:clamp(nz(p.size,100),0,1e4),dir:normDir(nz(p.dir,90)),rot:p.rot=='lr'||p.rot=='none'?p.rot:undefined,vis:p.vis!==false,ghost:clamp(nz(p.ghost),0,100),sc:vScripts(p.sc,W),vars:vVars(p.vars),lists:vLists(p.lists)})});return s}
 SCN.vScene=vScene;
 function bindAll(){reindex();RC=new WeakMap();let miss=0;S.scenes.forEach(s=>s.objs.forEach(o=>{bindObj(o);if(!o.c)miss++}));return miss}
 SCN.bindAll=bindAll;
@@ -124,7 +126,7 @@ SCN.newScene=newScene;
 const stopRun=()=>{if(H.reset)H.reset()};
 function addObj(c,name){stopRun();const s=SC(),o=newObj(c,uniqName(name||c.n||'オブジェクト'));if(H.attachScratch)H.attachScratch(o,c);let n=0;while(s.objs.some(p=>Math.abs(p.x-o.x)<1&&Math.abs(p.y-o.y)<1&&p.c===c)){n++;o.x+=24;o.y-=24;if(n>40)break}s.objs.push(o);S.sel=o.id;touch();refreshAll();return o}
 SCN.addObj=addObj;
-function dupObj(o){stopRun();const s=SC(),p=newObj(o.c,uniqName(o.name));Object.assign(p,{ref:o.ref?{...o.ref}:null,x:o.x+20,y:o.y-20,size:o.size,dir:o.dir,vis:o.vis,ghost:o.ghost,vars:{...o.vars},lists:JSON.parse(JSON.stringify(o.lists||{})),sc:JSON.parse(JSON.stringify(o.sc)).map(z=>({...z,id:uid()}))});
+function dupObj(o){stopRun();const s=SC(),p=newObj(o.c,uniqName(o.name));Object.assign(p,{ref:o.ref?{...o.ref}:null,x:o.x+20,y:o.y-20,size:o.size,dir:o.dir,rot:o.rot,vis:o.vis,ghost:o.ghost,vars:{...o.vars},lists:JSON.parse(JSON.stringify(o.lists||{})),sc:JSON.parse(JSON.stringify(o.sc)).map(z=>({...z,id:uid()}))});
 s.objs.splice(s.objs.indexOf(o)+1,0,p);S.sel=p.id;touch();refreshAll();return p}
 async function delObj(o){if(!o)return;if(!await uiConfirm('オブジェクト「'+o.name+'」を削除しますか?\n(このオブジェクトのブロックも消えます。元のコスチュームは消えません)'))return;stopRun();const s=SC(),i=s.objs.indexOf(o);if(i<0)return;s.objs.splice(i,1);S.sel=s.objs.length?s.objs[Math.min(i,s.objs.length-1)].id:null;touch();refreshAll()}
 function zmove(o,m){stopRun();const L=SC().objs,i=L.indexOf(o);if(i<0)return;L.splice(i,1);const j=m=='front'?L.length:m=='back'?0:m=='up'?Math.min(L.length,i+1):Math.max(0,i-1);L.splice(j,0,o);touch();refreshAll()}
@@ -282,8 +284,8 @@ const RDC={motion:1,looks:1,pen:1};
 const rdMark=(T,d)=>{if(RDC[d.cat]&&(T.vis||d.cat=='pen'||d.op=='looks_hide'||(T.pen&&T.pen.down)))E.rd=1};
 const now=()=>performance.now();
 const costList=T=>{const m=T.c&&ownerOf(T.c);return m?m.s.cs:[]};
-function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[],key:[],gt:[],ex:[],xe:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='event_whenkey')h.key.push(s);else if(f.op=='event_whengt')h.gt.push(s);else if(f.op=='control_startasclone')h.clone.push(s);else if(d.ex)(d.ex.ev?h.xe:h.ex).push(s)});return h}
-function mkTarget(o){const sc=JSON.parse(JSON.stringify(o.sc));return{id:uid(),name:o.name,src:o,stage:!!o.stage,isClone:false,x:o.x,y:o.y,size:o.size,dir:o.dir,vis:o.vis,ghost:o.ghost,c:alive(o)?o.c:null,vars:JSON.parse(JSON.stringify(o.vars)),lists:JSON.parse(JSON.stringify(o.lists||{})),sc,hats:hatIndex(sc),dead:false}}
+function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[],key:[],gt:[],bd:[],ex:[],xe:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='event_whenkey')h.key.push(s);else if(f.op=='event_whengt')h.gt.push(s);else if(f.op=='event_whenbackdrop')h.bd.push(s);else if(f.op=='control_startasclone')h.clone.push(s);else if(d.ex)(d.ex.ev?h.xe:h.ex).push(s)});return h}
+function mkTarget(o){const sc=JSON.parse(JSON.stringify(o.sc));return{id:uid(),name:o.name,src:o,stage:!!o.stage,isClone:false,x:o.x,y:o.y,size:o.size,dir:o.dir,rot:o.rot,vis:o.vis,ghost:o.ghost,c:alive(o)?o.c:null,vars:JSON.parse(JSON.stringify(o.vars)),lists:JSON.parse(JSON.stringify(o.lists||{})),sc,hats:hatIndex(sc),dead:false}}
 function buildRT(){const s=SC();SIL=new WeakMap();RT={list:s.objs.map(mkTarget),threads:[],tmap:new Map(),g:JSON.parse(JSON.stringify(s.gvars)),gl:JSON.parse(JSON.stringify(s.glists||{})),lmon:{},mon:{},clones:0,raf:0,next:0,err:null,t0:now(),ans:''};R.root.classList.add('run');updateRunUI();R.root.classList.add('run');if(H.renderWS)H.renderWS()}
 H.list=()=>RT?RT.list:(SC()?SC().objs:[]);
 /* ---------- スレッド ---------- */
@@ -385,7 +387,7 @@ if(!RT)return;RT.raf=0;if(RT.threads.length||(!RT.halt&&RT.list.some(T=>(T.hats.
 function flag(){if(!S.open)return;if(H.stopSound)H.stopSound();if(!RT)buildRT();else killAll();RT.halt=0;RT.t0=now();RT.list.forEach(T=>{(T.hats.gt||[]).forEach(s=>{s._on=false});T.xon=null});for(const T of RT.list.slice())for(const s of T.hats.flag)startScript(T,s);ensureLoop();SCN.drawNow();updateRunUI()}
 function killAll(){if(!RT)return;RT.threads.forEach(t=>{t.dead=true;t.stop=true});RT.threads=[];RT.tmap.clear();const L=RT.list.filter(t=>!t.isClone);RT.list.forEach(t=>{if(t.isClone)t.dead=true});RT.list=L;RT.clones=0}
 function stopAll(){if(H.stopSound)H.stopSound();if(!RT)return;RT.halt=1;killAll();SCN.drawNow();updateRunUI()}
-function reset(){if(H.stopSound)H.stopSound();if(!RT){updateRunUI();return}killAll();if(RT.raf)cancelAnimationFrame(RT.raf);RT=null;if(R.root){R.root.classList.remove('run');updateRunUI();SCN.drawNow();if(H.renderWS)H.renderWS();refreshProps()}}
+function reset(){micStop();if(H.stopSound)H.stopSound();if(!RT){updateRunUI();return}killAll();if(RT.raf)cancelAnimationFrame(RT.raf);RT=null;if(R.root){R.root.classList.remove('run');updateRunUI();SCN.drawNow();if(H.renderWS)H.renderWS();refreshProps()}}
 H.reset=reset;
 function click(X,Y){if(!RT)return;const T=pickAt(RT.list,X,Y,false);if(!T)return;for(const s of T.hats.click)startScript(T,s)}
 H.click=click;H.stat=()=>RT?'スレッド '+RT.threads.length+(H.cloneStat?' / '+H.cloneStat():''):'';
@@ -394,7 +396,7 @@ Object.assign(H,{startScript,broadcast,stopAll,killAll,hatIndex,ev,runList});
 /* ---------- 当たり判定(ピクセル単位) ---------- */
 const CV2=[document.createElement('canvas'),document.createElement('canvas')],CX2=CV2.map(c=>c.getContext('2d',{willReadFrequently:true}));
 const aabb=cn=>[Math.min(...cn.map(p=>p[0])),Math.min(...cn.map(p=>p[1])),Math.max(...cn.map(p=>p[0])),Math.max(...cn.map(p=>p[1]))];
-const mask=(x,o)=>drawObj(x,{x:o.x,y:o.y,size:o.size,dir:o.dir,vis:true,ghost:0,c:o.c},1);
+const mask=(x,o)=>drawObj(x,{x:o.x,y:o.y,size:o.size,dir:o.dir,rot:o.rot,vis:true,ghost:0,c:o.c},1);
 function overlapSlow(a,b){if(!a.vis||!b.vis||!alive(a)||!alive(b))return false;const A=aabb(corners(a)),B=aabb(corners(b));let x0=Math.max(A[0],B[0],-100),y0=Math.max(A[1],B[1],-100),x1=Math.min(A[2],B[2],580),y1=Math.min(A[3],B[3],460);if(x1<=x0||y1<=y0)return false;
 x0=Math.floor(x0);y0=Math.floor(y0);const W=Math.ceil(x1)-x0,Hh=Math.ceil(y1)-y0;if(W<=0||Hh<=0)return false;
 const D=[a,b].map((o,i)=>{const c=CV2[i];c.width=W;c.height=Hh;const x=CX2[i];x.setTransform(1,0,0,1,-x0,-y0);mask(x,o);x.setTransform(1,0,0,1,0,0);return x.getImageData(0,0,W,Hh).data});
@@ -464,8 +466,8 @@ def('motion_xpos','motion','r','X座標',{},T=>Math.round(T.x*1e6)/1e6);
 def('motion_ypos','motion','r','Y座標',{},T=>Math.round(T.y*1e6)/1e6);
 def('looks_show','looks','stack','表示する',{},T=>{T.vis=true});
 def('looks_hide','looks','stack','隠す',{},T=>{T.vis=false});
-def('looks_switchcostume','looks','stack','コスチュームを[C]にする',{C:['m','costume']},(T,A)=>{const L=costList(T);if(!L.length)return;let c=L.find(x=>x.n===String(A.C));if(!c&&String(A.C).trim()!==''&&isFinite(Number(A.C)))c=L[((Math.round(Number(A.C))-1)%L.length+L.length)%L.length];if(c){T.c=c;if(H.extensionCostume)H.extensionCostume(T)}});
-def('looks_nextcostume','looks','stack','次のコスチュームにする',{},T=>{const L=costList(T);if(!L.length)return;const i=L.indexOf(T.c);T.c=L[(i+1)%L.length];if(H.extensionCostume)H.extensionCostume(T)});
+def('looks_switchcostume','looks','stack','コスチュームを[C]にする',{C:['m','costume']},(T,A)=>{const L=costList(T);if(!L.length)return;let c=L.find(x=>x.n===String(A.C));if(!c&&String(A.C).trim()!==''&&isFinite(Number(A.C)))c=L[((Math.round(Number(A.C))-1)%L.length+L.length)%L.length];if(c){T.c=c;if(H.extensionCostume)H.extensionCostume(T);if(T.stage)bdFire(c.n)}});
+def('looks_nextcostume','looks','stack','次のコスチュームにする',{},T=>{const L=costList(T);if(!L.length)return;const i=L.indexOf(T.c);T.c=L[(i+1)%L.length];if(H.extensionCostume)H.extensionCostume(T);if(T.stage)bdFire(T.c.n)});
 def('looks_setsize','looks','stack','大きさを[S]%にする',{S:['n',100]},(T,A)=>{T.size=clamp(toNum(A.S),0,1e4)});
 def('looks_changesize','looks','stack','大きさを[S]ずつ変える',{S:['n',10]},(T,A)=>{T.size=clamp(T.size+toNum(A.S),0,1e4)});
 def('looks_setghost','looks','stack','透明度を[V]%にする',{V:['n',50]},(T,A)=>{T.ghost=clamp(toNum(A.V),0,100)});
@@ -683,7 +685,7 @@ const MAXC=300;
 /* ---------- クローン ---------- */
 function createClone(T,target){if(!RT)return null;let S0=T;if(target!=='_myself_'){S0=RT.list.find(t=>!t.isClone&&t.name===target);if(!S0)return null}
 if(RT.clones>=MAXC){if(!RT.warnMax){RT.warnMax=1;toast('クローンの数が上限('+MAXC+'個)に達したため、新しいクローンは作りません')}return null}
-const n={id:uid(),name:S0.name,src:S0.src,isClone:true,volume:S0.volume,x:S0.x,y:S0.y,size:S0.size,dir:S0.dir,vis:S0.vis,ghost:S0.ghost,c:S0.c,vars:JSON.parse(JSON.stringify(S0.vars)),lists:JSON.parse(JSON.stringify(S0.lists||{})),fx:S0.fx?{...S0.fx}:null,pen:S0.pen?{...S0.pen}:null,_px:S0.x,_py:S0.y,sc:S0.sc,hats:S0.hats,dead:false};
+const n={id:uid(),name:S0.name,src:S0.src,isClone:true,volume:S0.volume,x:S0.x,y:S0.y,size:S0.size,dir:S0.dir,rot:S0.rot,vis:S0.vis,ghost:S0.ghost,c:S0.c,vars:JSON.parse(JSON.stringify(S0.vars)),lists:JSON.parse(JSON.stringify(S0.lists||{})),fx:S0.fx?{...S0.fx}:null,pen:S0.pen?{...S0.pen}:null,_px:S0.x,_py:S0.y,sc:S0.sc,hats:S0.hats,dead:false};
 const i=RT.list.indexOf(S0);RT.list.splice(i<0?0:i,0,n);RT.clones++;for(const s of n.hats.clone)startScript(n,s);return n}
 function deleteClone(T,th){if(!RT||!T.isClone||T.dead)return;T.dead=true;th.stop=true;const i=RT.list.indexOf(T);if(i>=0)RT.list.splice(i,1);RT.clones=Math.max(0,RT.clones-1)}
 menuDefs.clone=o=>[['_myself_','自分自身']].concat(SC().objs.map(x=>[x.name,x.name+(x===o?'(自分と同じ名前のオブジェクト)':'')]));
@@ -722,7 +724,7 @@ menuDefs.cur=()=>[['year','年'],['month','月'],['date','日'],['wday','曜日'
 menuDefs.fx=()=>[['color','色'],['fisheye','魚眼'],['whirl','渦巻き'],['pixelate','ピクセル化'],['mosaic','モザイク'],['bright','明るさ'],['ghost','幽霊(透明度)']];
 menuDefs.dragm=()=>[['1','ドラッグできる'],['0','ドラッグできない']];
 menuDefs.layer=()=>[['f','手前'],['b','奥']];
-menuDefs.gtw=()=>[['timer','タイマー']];
+menuDefs.gtw=()=>[['timer','タイマー'],['loudness','音量(マイク)']];
 /* 動き */
 def('motion_gotot','motion','stack','[T]へ行く',{T:['m','gt','_random_']},(T,A)=>{const p=tgt(T,A.T);if(p){T.x=cl(p[0]);T.y=cl(p[1])}});
 def('motion_glidet','motion','stack','[SECS]秒で[T]へ行く',{SECS:['n',1],T:['m','gt','_random_']},function*(T,A,th){const p=tgt(T,A.T);if(!p)return;const t0=now(),d=Math.max(0,toNum(A.SECS))*1000,sx=T.x,sy=T.y;for(;;){const k=d?Math.min(1,(now()-t0)/d):1;T.x=cl(sx+(p[0]-sx)*k);T.y=cl(sy+(p[1]-sy)*k);if(k>=1)return;yield;if(th.stop||T.dead)return}});
@@ -820,7 +822,7 @@ function fxRecolor(x,o,k,f){const c=o.c;if(!c||!alive(o)||(H.extensionBox&&H.ext
 const hq=Math.round(((((f.color||0)/200)%1)+1)%1*360)%360,bq=Math.round(clamp((f.bright||0)/100*255,-255,255));if(!hq&&!bq)return false;
 const r=info(c),P=paintSrc(c,r);if(!P)return false;const key=(c._fid||(c._fid=++fxSeq))+'|'+hq+'|'+bq;let e=FXR.get(key);
 if(e&&e.inf===r){FXR.delete(key);FXR.set(key,e)}else{if(e){fxRpx-=e.px;FXR.delete(key)}e={cv:fxRecolorMake(P,hq/360,bq),inf:r,px:P.sw*P.sh};FXR.set(key,e);fxRpx+=e.px;for(const[kk,v]of FXR){if(fxRpx<=FXRMAX||kk===key)break;FXR.delete(kk);fxRpx-=v.px}}
-x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate((o.dir-90)*Math.PI/180);const sz=Math.max(o.size,0)/100;x.scale(sz,sz);x.translate(-c.cx/r.R,-c.cy/r.R);
+x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);const sz=Math.max(o.size,0)/100;x.scale(sz*rotF(o)[1],sz);x.translate(-c.cx/r.R,-c.cy/r.R);
 x.imageSmoothingEnabled=c.k=='b'?(k*sz/r.R)<1:true;x.drawImage(e.cv,0,0,P.sw,P.sh,P.dx,P.dy,P.dw,P.dh);x.restore();return true}
 /* ===== 画面解像度で計算する空間エフェクト(魚眼・渦巻き・ピクセル化・モザイク)=====
    TurboWarp / Scratch と同じ考え方: スプライト全体の bbox を「予算内の解像度」で作って後から拡大するのをやめ、
@@ -954,7 +956,7 @@ const rk=[p.mos,p.bs,p.wh,p.fe,p.hu,p.br,p.fisheye].join();let out;
 if(e.keep&&e.rc&&e.rk===rk)out=e.rc;/* 同じ効果の2回目以降(スタンプの連打・動かない効果)は計算せず使い回す */
 else{out=fxGPU(p,e,W,H2)||fxCPU(p,e,W,H2);
 if(e.keep){if(e.rk===rk){const rc=document.createElement('canvas');rc.width=W;rc.height=H2;rc.getContext('2d').drawImage(out,0,0);e.rc=rc;out=rc}else{e.rk=rk;e.rc=null}}}
-x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate((o.dir-90)*Math.PI/180);x.imageSmoothingEnabled=true;x.drawImage(out,bb[0]-240,bb[1]-180,bw,bh);x.restore();
+x.save();x.globalAlpha=clamp(1-o.ghost/100,0,1);x.translate(240+o.x,180-o.y);x.rotate(rotF(o)[0]);x.imageSmoothingEnabled=true;x.drawImage(out,bb[0]-240,bb[1]-180,bw,bh);x.restore();
 /* 重い端末では空間エフェクトの解像度を自動で下げ、余裕があれば戻す(毎フレーム計算し直す効果のとき効く) */
 if(!(e.keep&&e.rk===rk&&out===e.rc)){const dt=performance.now()-t0;if(dt>8)FXPX=Math.max(FXPX_MIN,FXPX*(dt>25?.5:.8));else if(dt<2.5&&FXPX<FXPX_MAX)FXPX=Math.min(FXPX_MAX,FXPX*1.03)}};
 SCN.drawObjFx=(x,o,k)=>drawObj(x,o,k);SCN.fxMode=()=>(FXG2||(FXG2=fxInit2()))?'gpu':'cpu';SCN.fxForceCPU=v=>{FXGfail=v?3:0;FXG2fail=v?3:0;if(v){FXG=null;FXG2=null}};
@@ -966,7 +968,7 @@ x.fillStyle='#333';x.textBaseline='top';lines.forEach((l,i)=>x.fillText(l,bx+10,
 H.drawBub=drawBubbles;
 /* イベント */
 def('event_whengt','event','hat','[W]が[N]より大きいとき',{W:['m','gtw','timer'],N:['n',10]});
-{const _ta=tickAll;tickAll=function(){if(RT&&!RT.halt){const tm=(now()-RT.t0)/1000;for(const T of RT.list.slice())for(const s of T.hats.gt||[]){const v=tm>toNum(s.b[0].in.N);if(v&&!s._on)startScript(T,s);s._on=v}}_ta()}}
+{const _ta=tickAll;tickAll=function(){if(RT&&!RT.halt){const tm=(now()-RT.t0)/1000;for(const T of RT.list.slice())for(const s of T.hats.gt||[]){const v=(String(s.b[0].in.W)=='loudness'?micLoud():tm)>toNum(s.b[0].in.N);if(v&&!s._on)startScript(T,s);s._on=v}}_ta()}}
 /* 制御 */
 def('control_stopother','control','stack','このオブジェクトの他のスクリプトを止める',{},(T,A,th)=>{for(const t of RT.threads)if(t.T===T&&t!==th){t.dead=true;t.stop=true}});
 /* 調べる */
@@ -1395,6 +1397,43 @@ def('scratch_unsupported','control','ce','未対応のScratchブロック [OP]',
 def('scratch_unsupported_value','op','r','未対応 [OP]',{OP:['s','']},scratchUnsupported,{pal:false});
 def('scratch_unsupported_bool','op','b','未対応 [OP]',{OP:['s','']},scratchUnsupported,{pal:false});
 def('scratch_unsupported_hat','event','hat','未対応のScratchイベント [OP]',{OP:['s','']},null,{pal:false});
+
+/* ---------- 追加ブロック: 回転方法 / 背景 / マイクの音量 (Scratch 3 の拡張機能以外のブロックを揃える) ---------- */
+menuDefs.rotstyle=()=>[['all','自由に回転'],['lr','左右のみ'],['none','回転しない']];
+def('motion_setrotstyle','motion','stack','回転方法を[ROT]にする',{ROT:['m','rotstyle','all']},(T,A)=>{const r=String(A.ROT);T.rot=r=='lr'||r=='none'?r:undefined});
+/* 背景(=ステージのコスチューム) */
+const stageT=()=>RT?RT.list.find(t=>t.stage&&!t.dead)||null:null;
+const stageNames=()=>{const s=SC()&&SC().objs.find(x=>x.stage),m=s&&s.c&&ownerOf(s.c);return m?m.s.cs.map(c=>c.n):[]};
+menuDefs.backdrop0=()=>{const L=stageNames();return L.length?L.map(n=>[n,n]):[['','(背景がありません)']]};
+menuDefs.backdrop=()=>[...menuDefs.backdrop0(),['next backdrop','次の背景'],['previous backdrop','前の背景'],['random backdrop','ランダムな背景']];
+menuDefs.numname=()=>[['number','番号'],['name','名前']];
+function bdFire(name){const out=[];if(!RT)return out;const n=String(name);for(const T of RT.list.slice())for(const s of T.hats.bd||[]){if(String(s.b[0].in.B)===n)out.push(startScript(T,s))}return out}
+function bdSet(req){const s=stageT();if(!s)return[];const L=costList(s);if(!L.length)return[];let c=null;const i0=Math.max(0,L.indexOf(s.c));
+c=L.find(x=>x.n===String(req))||null;
+if(!c){const r=String(req);if(r=='next backdrop')c=L[(i0+1)%L.length];else if(r=='previous backdrop')c=L[(i0-1+L.length)%L.length];
+else if(r=='random backdrop'){if(L.length>1){let k=Math.floor(Math.random()*(L.length-1));if(k>=i0)k++;c=L[k]}else c=L[0]}
+else if(r.trim()!==''&&isFinite(Number(r)))c=L[((Math.round(Number(r))-1)%L.length+L.length)%L.length]}
+if(!c)return[];s.c=c;if(H.extensionCostume)H.extensionCostume(s);return bdFire(c.n)}
+def('looks_switchbackdrop','looks','stack','背景を[B]にする',{B:['m','backdrop']},(T,A)=>{bdSet(A.B)});
+def('looks_switchbackdropwait','looks','stack','背景を[B]にして待つ',{B:['m','backdrop']},function*(T,A,th){const L=bdSet(A.B);while(L.some(t=>!t.dead)){yield;if(th.stop||T.dead)return}});
+def('looks_nextbackdrop','looks','stack','次の背景にする',{},()=>{bdSet('next backdrop')});
+def('looks_backdropnn','looks','r','背景の[NN]',{NN:['m','numname','number']},(T,A)=>{const s=stageT(),L=s?costList(s):[];if(!s||!L.length)return A.NN=='name'?'':0;return A.NN=='name'?(s.c?s.c.n:''):L.indexOf(s.c)+1});
+def('event_whenbackdrop','event','hat','背景が[B]に切り替わったとき',{B:['m','backdrop0']});
+/* マイクの音量(Scratchの「音量」。マイクが使えないときは -1) */
+const MIC={st:0,an:null,buf:null,ctx:null,stream:null,last:0};
+function micStart(){if(MIC.st)return;MIC.st=1;
+if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){MIC.st=3;return}
+navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{if(MIC.st!=1){stream.getTracks().forEach(k=>k.stop());return}const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC(),src=ctx.createMediaStreamSource(stream),an=ctx.createAnalyser();an.fftSize=1024;src.connect(an);Object.assign(MIC,{an,ctx,stream,buf:new Float32Array(an.fftSize),st:2})},e=>{MIC.st=3;try{toast('マイクを使えませんでした')}catch(x){}})}
+function micStop(){if(MIC.stream)MIC.stream.getTracks().forEach(k=>k.stop());if(MIC.ctx){try{MIC.ctx.close()}catch(e){}}Object.assign(MIC,{st:0,an:null,ctx:null,stream:null,buf:null,last:0})}
+function micLoud(){micStart();if(MIC.st!=2)return -1;MIC.an.getFloatTimeDomainData(MIC.buf);let s=0;for(let i=0;i<MIC.buf.length;i++)s+=MIC.buf[i]*MIC.buf[i];const rms=Math.sqrt(s/MIC.buf.length);MIC.last=Math.max(rms,MIC.last*.6);return Math.round(Math.min(100,Math.max(0,Math.sqrt(MIC.last*1.63)*100)))}
+H.micStop=micStop;
+def('sense_loudness','sense','r','音量(マイク)',{},()=>micLoud());
+/* パレットの並び(Scratchと同じ位置に置く) */
+function palAfter(cat,op,after){const L=PAL[cat],i=L.indexOf(op);if(i<0)return;L.splice(i,1);const j=L.indexOf(after);L.splice(j<0?L.length:j+1,0,op)}
+palAfter('motion','motion_setrotstyle','motion_bounce');
+palAfter('looks','looks_switchbackdrop','looks_nextcostume');palAfter('looks','looks_switchbackdropwait','looks_switchbackdrop');palAfter('looks','looks_nextbackdrop','looks_switchbackdropwait');palAfter('looks','looks_backdropnn','looks_costumename');
+palAfter('event','event_whenbackdrop','event_whenclicked');
+palAfter('sense','sense_loudness','sense_mousey');
 function scratchContext(scene,stage){
 const g=scene.gvars||(scene.gvars={}),l=scene.glists||(scene.glists={}),conv=window.ScratchProgramImport;
 return{registry:BK,makeId:uid,globalVars:g,globalLists:l,
@@ -1410,7 +1449,7 @@ o.vars=program.vars;o.lists=program.lists;o.sc=program.scripts;
 scene.defs=scene.defs||[];for(const d of program.defs){scene.defs.push(d);regProc(d)}
 const valid={drop:0};o.sc.forEach(s=>{s.b=H.vBlocks(s.b,valid)});
 if(valid.drop)program.warnings.push('入力形式の不一致 '+valid.drop+'件');
-if(ex.rotationStyle&&ex.rotationStyle!='all around')program.warnings.push('回転方法 '+ex.rotationStyle+' (現在は自由に回転)');
+{const rs={'left-right':'lr',"don't rotate":'none'}[ex.rotationStyle];o.rot=rs;if(ex.rotationStyle&&ex.rotationStyle!='all around'&&!rs)program.warnings.push('回転方法 '+ex.rotationStyle+' (未対応のため自由に回転)')}
 return program;
 }
 H.importScratch=(sprites,opt={})=>{

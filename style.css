@@ -834,3 +834,16 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 
 #scn.big .sc-stbox{flex:1 1 auto;min-height:0}
 @media(max-width:900px){#scn[data-panel=stage] .sc-stbox{flex:1 1 auto;min-height:0}}
+
+/* ===== ビットマップレイヤーパネル(bitmap-layers.js) ===== */
+#bly_wrap small{display:block;margin:2px 0 6px;color:#556;line-height:1.5}
+#bly_wrap .bly-use{width:100%;min-height:40px;border:1px solid #855cd6;border-radius:8px;background:#eadffb;font-weight:600;cursor:pointer}
+#bly_bar{display:flex;flex-wrap:wrap;gap:2px}
+#bly_bar button:disabled{opacity:.35}
+.bly-op{display:flex;align-items:center;gap:4px;margin:6px 0 2px}.bly-op input[type=range]{flex:1;min-width:0;min-height:28px}.bly-op input[type=number]{width:46px;min-height:30px}
+#bly{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.lr.bl canvas{width:28px;height:21px;flex:none;border:1px solid #d5dae3;border-radius:3px;background:repeating-conic-gradient(#e9edf3 0 25%,#fff 0 50%) 0 0/8px 8px}
+.lr.bl.on{box-shadow:inset 3px 0 0 #855cd6}
+@media(pointer:coarse){#side .lr.bl{min-height:42px}#side .lr.bl button{min-height:38px!important;min-width:38px!important}}
+@media(prefers-color-scheme:dark){#bly_wrap small{color:#9aa}}
+@media(max-width:700px){#side:has(#bly_wrap:not([hidden])){max-height:max(45%,230px);min-height:120px}}
