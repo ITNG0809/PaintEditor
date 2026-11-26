@@ -84,7 +84,11 @@ const stList=()=>H.list?H.list():(SC()?SC().objs:[]);
 function selGeo(o){const b=lbox(o),t=TR(o),O=[240+o.x,180-o.y],P=toStage(o,0,-1),ux=P[0]-O[0],uy=P[1]-O[1],ul=Math.hypot(ux,uy)||1,d=Math.max(34,-b[1]*t.k+22);
 const cn=corners(o);let bi=0,bd=-1;cn.forEach((p,i)=>{const dd=Math.hypot(p[0]-O[0],p[1]-O[1]);if(dd>bd){bd=dd;bi=i}});
 return{cn,O,rot:[O[0]+ux/ul*d,O[1]+uy/ul*d],sc:cn[bi]}}
-function drawStage(){const cv=q('#scs');if(!cv||!SC())return;const k=cv.width/480,x=cv.getContext('2d');x.setTransform(k,0,0,k,0,0);x.imageSmoothingEnabled=true;x.fillStyle=SC().bg;x.fillRect(0,0,480,360);
+/* 背景: ステージのコスチューム(コスチュームエディターで選んでいるもの)を貼り付けて表示。背景色の設定はなし(下地は白)。
+   シーンにステージのオブジェクトがあるときは、そのオブジェクトが背景として描かれるので、二重には描きません */
+function backdropCost(){const st=SPS.find(s=>s.stage);return st&&st.cs&&st.cs.length?st.cs[clamp(st.ci|0,0,st.cs.length-1)]:null}
+function drawBackdrop(x,k){x.fillStyle='#fff';x.fillRect(0,0,480,360);if(stList().some(o=>o.stage))return;const c=backdropCost();if(c&&CI.has(c))drawObj(x,{x:0,y:0,size:100,dir:90,rot:'all',vis:true,ghost:0,c,stage:true},k)}
+function drawStage(){const cv=q('#scs');if(!cv||!SC())return;const k=cv.width/480,x=cv.getContext('2d');x.setTransform(k,0,0,k,0,0);x.imageSmoothingEnabled=true;drawBackdrop(x,k);
 const run=!!(H.rt&&H.rt());
 if(!run&&S.guide){x.strokeStyle='#8886';x.lineWidth=1/k;x.setLineDash([4,4]);x.beginPath();x.moveTo(240,0);x.lineTo(240,360);x.moveTo(0,180);x.lineTo(480,180);x.stroke();x.setLineDash([])}
 if(H.drawPen)H.drawPen(x);stList().forEach(o=>drawObj(x,o,k));if(H.drawMon)H.drawMon(x);if(H.drawBub)H.drawBub(x);
@@ -96,16 +100,17 @@ let _dr=0;function redraw(){if(_dr)return;_dr=requestAnimationFrame(()=>{_dr=0;d
 SCN.redraw=redraw;SCN.drawNow=()=>{drawStage();drawInfo()};
 /* ---------- 保存(自動保存・プロジェクト連携・JSON) ---------- */
 function packObj(o){if(alive(o))syncRef(o);return{id:o.id,name:o.name,ref:o.ref,stage:!!o.stage,x:rnd(o.x),y:rnd(o.y),size:rnd(o.size),dir:rnd(o.dir),rot:o.rot||undefined,vis:!!o.vis,ghost:rnd(o.ghost),sc:o.sc,vars:o.vars,lists:o.lists||{}}}
-const packScene=s=>({id:s.id,n:s.n,bg:s.bg,msgs:s.msgs,gvars:s.gvars,glists:s.glists||{},defs:s.defs||[],objs:s.objs.map(packObj)});
+const vFps=v=>{v=Math.round(Number(v));return Number.isFinite(v)&&v>=1&&v<=250?v:30};
+const packScene=s=>({id:s.id,n:s.n,bg:s.bg,fps:vFps(s.fps),msgs:s.msgs,gvars:s.gvars,glists:s.glists||{},defs:s.defs||[],objs:s.objs.map(packObj)});
 SCN.pack=()=>{reindex();const o={v:1,cur:S.cur,scenes:S.scenes.map(packScene)},x=H.exPack?H.exPack():[];if(x.length)o.exts=x;return o};
-let _sv=0,_svWarn=0;function touch(){clearTimeout(_sv);_sv=setTimeout(()=>{try{localStorage.setItem('ced_scn',JSON.stringify(SCN.pack()))}catch(e){if(!_svWarn){_svWarn=1;toast('シーンの自動保存に失敗しました(容量不足の可能性)。JSONで書き出してください')}}},500)}
+let _sv=0,_svWarn=0;function touch(){if(H.liveSync)H.liveSync();clearTimeout(_sv);_sv=setTimeout(()=>{try{localStorage.setItem('ced_scn',JSON.stringify(SCN.pack()))}catch(e){if(!_svWarn){_svWarn=1;toast('シーンの自動保存に失敗しました(容量不足の可能性)。JSONで書き出してください')}}},500)}
 SCN.touch=touch;
 const vRef=r=>r&&typeof r=='object'&&typeof r.sp=='string'?{sp:r.sp.slice(0,80),cn:String(r.cn==null?'':r.cn).slice(0,80),ci:Math.max(0,r.ci|0),st:!!r.st}:null;
 const vLists=v=>{const o={};if(v&&typeof v=='object'&&!Array.isArray(v))Object.keys(v).slice(0,200).forEach(k=>{const a=v[k];if(k&&k.length<=40&&Array.isArray(a))o[k]=a.slice(0,200000).filter(x=>typeof x=='number'&&Number.isFinite(x)||typeof x=='string'||typeof x=='boolean').map(x=>typeof x=='string'?x.slice(0,1000):x)});return o};
 const vVars=v=>{const o={};if(v&&typeof v=='object'&&!Array.isArray(v))Object.keys(v).slice(0,200).forEach(k=>{const x=v[k];if(k&&k.length<=40&&(typeof x=='number'&&Number.isFinite(x)||typeof x=='string'||typeof x=='boolean'))o[k]=typeof x=='string'?x.slice(0,200):x});return o};
 function vScripts(a,W){if(!Array.isArray(a)||!H.vBlocks)return[];const out=[];for(const s of a.slice(0,300)){if(!s||typeof s!='object'||!Array.isArray(s.b)){W.drop++;continue}const b=H.vBlocks(s.b,W);if(b.length)out.push({id:uid(),x:clamp(nz(s.x),-1e5,1e5),y:clamp(nz(s.y),-1e5,1e5),b})}return out}
 function vScene(r,W){if(!r||typeof r!='object')throw Error('シーンのデータが不正です');if(!Array.isArray(r.objs))throw Error('オブジェクトの一覧がありません');if(r.objs.length>500)throw Error('オブジェクトが多すぎます(上限500)');
-const s={id:uid(),n:String(r.n||'シーン').slice(0,60),bg:/^#[0-9a-f]{3,8}$/i.test(r.bg)?r.bg:'#ffffff',objs:[],gvars:vVars(r.gvars),glists:vLists(r.glists),defs:vDefs(r.defs),msgs:Array.isArray(r.msgs)?r.msgs.filter(m=>typeof m=='string'&&m&&m.length<=40).slice(0,100):[]};if(!s.msgs.length)s.msgs=['メッセージ1'];
+const s={id:uid(),n:String(r.n||'シーン').slice(0,60),bg:/^#[0-9a-f]{3,8}$/i.test(r.bg)?r.bg:'#ffffff',objs:[],fps:vFps(r.fps),gvars:vVars(r.gvars),glists:vLists(r.glists),defs:vDefs(r.defs),msgs:Array.isArray(r.msgs)?r.msgs.filter(m=>typeof m=='string'&&m&&m.length<=40).slice(0,100):[]};if(!s.msgs.length)s.msgs=['メッセージ1'];
 const names=new Set();r.objs.forEach((p,i)=>{if(!p||typeof p!='object'){W.drop++;return}let nm=String(p.name||'オブジェクト'+(i+1)).slice(0,60),b=nm,k=2;while(names.has(nm))nm=b+(k++);names.add(nm);
 s.objs.push({id:uid(),name:nm,ref:vRef(p.ref),stage:!!p.stage,c:null,x:clamp(nz(p.x),-1e5,1e5),y:clamp(nz(p.y),-1e5,1e5),size:clamp(nz(p.size,100),0,1e4),dir:normDir(nz(p.dir,90)),rot:p.rot=='lr'||p.rot=='none'?p.rot:undefined,vis:p.vis!==false,ghost:clamp(nz(p.ghost),0,100),sc:vScripts(p.sc,W),vars:vVars(p.vars),lists:vLists(p.lists)})});return s}
 SCN.vScene=vScene;
@@ -122,7 +127,7 @@ const uniqScene=n=>{const used=new Set(S.scenes.map(s=>s.n));if(!used.has(n))ret
 const uniqName=(b,skip)=>{const used=new Set(SC().objs.filter(o=>o!==skip).map(o=>o.name));if(!used.has(b))return b;const m=b.match(/^(.*?)(\d+)$/),s=m?m[1]:b;let k=m?+m[2]+1:2;while(used.has(s+k))k++;return s+k};
 SCN.uniqName=uniqName;
 /* ---------- シーン・オブジェクト操作 ---------- */
-const newScene=n=>({id:uid(),n:n||'シーン1',bg:'#ffffff',objs:[],gvars:{},glists:{},defs:[],msgs:['メッセージ1']});
+const newScene=n=>({id:uid(),n:n||'シーン1',bg:'#ffffff',fps:30,objs:[],gvars:{},glists:{},defs:[],msgs:['メッセージ1']});
 const newObj=(c,name)=>{const o={id:uid(),name:name||'',ref:null,c:c||null,x:0,y:0,size:100,dir:90,vis:true,ghost:0,sc:[],vars:{},lists:{}};if(c)syncRef(o);return o};
 SCN.newScene=newScene;
 const stopRun=()=>{if(H.reset)H.reset()};
@@ -163,8 +168,7 @@ const g1=el('span','sc-grp');g1.append(R.sel,R.sname,R.snew,R.sdup,R.sdel);const
 R.bigb=BTN('sc_big','','ステージを大きく表示(切り替え)');R.exp=BTN('save','書き出し','シーンをJSONで書き出し');R.imp=BTN('load','読み込み','シーンのJSONを読み込み');R.file=el('input');R.file.type='file';R.file.accept='.json,.scene,application/json';R.file.hidden=true;g2.append(R.bigb,R.exp,R.imp,R.file);
 top.append(R.back,ttl,g1,sp,R.run,g2);
 const body=el('div','sc-body');R.code=H.buildCode?H.buildCode():el('div','p-code');if(!H.buildCode){R.code.hidden=true;body.classList.add('nc')}
-const right=el('div','sc-right'),ps=el('div','p-stage'),bar=el('div','sc-stbar');R.bg=el('input');R.bg.type='color';R.bg.title='ステージの背景色';R.bg.setAttribute('aria-label','ステージの背景色');
-R.gd=BTN('sc_grid','ガイド','中心線(座標0,0)の表示切り替え');const lb=el('label');lb.append('背景',R.bg);const s2=el('span','sc-sp');bar.append(lb,R.gd,s2);
+const right=el('div','sc-right'),ps=el('div','p-stage'),bar=el('div','sc-stbar');R.gd=BTN('sc_grid','ガイド','中心線(座標0,0)の表示切り替え');const s2=el('span','sc-sp');bar.append(R.gd,s2);
 const sb=el('div','sc-stbox');R.cv=el('canvas');R.cv.id='scs';R.cv.width=480;R.cv.height=360;R.cv.tabIndex=0;R.cv.setAttribute('aria-label','ステージ(480×360)');sb.append(R.cv);R.info=el('div','sc-info');ps.append(bar,sb,R.info);R.stbox=sb;
 const po=el('div','p-objs'),oh=el('div','sc-oh');R.oadd=BTN('plus','追加','スプライトからオブジェクトを追加');R.odup=BTN('dup','','選択中のオブジェクトを複製');R.odel=BTN('del','','選択中のオブジェクトを削除');
 R.ofr=BTN('sc_front','','最前面へ');R.obk=BTN('sc_back','','最背面へ');R.oup=BTN('arrU','','1つ前面へ');R.odn=BTN('arrD','','1つ背面へ');oh.append(R.oadd,R.odup,R.odel,el('span','sc-sp'),R.ofr,R.oup,R.odn,R.obk);
@@ -195,11 +199,11 @@ if(a!==P.name)P.name.value=o.name;P.vis.checked=!!o.vis;['x','y','size','dir','g
 const x=P.cvs.getContext('2d');x.clearRect(0,0,72,54);if(alive(o))spThumb(P.cvs,o.c);else{x.fillStyle='#e03a5a';x.font='bold 30px sans-serif';x.textAlign='center';x.fillText('?',36,38)}
 P.cname.textContent=alive(o)?(ownerOf(o.c).s.stage?'(背景) ':'')+o.c.n:'(コスチュームが見つかりません)'}
 const thumbCur=(()=>{let t=0;return()=>{clearTimeout(t);t=setTimeout(()=>{const o=OBJ();if(!o)return;const cv=R.ol.querySelector('.sc-oi.on canvas');if(cv&&alive(o))spThumb(cv,o.c)},120)}})();
-function renderList(){const s=SC(),L=R.ol;L.innerHTML='';const th=[];[...s.objs].reverse().forEach(o=>{const b=el('div','sc-oi'+(o.id===S.sel?' on':'')+(o.vis?'':' hid'),'<canvas width="72" height="54"></canvas><span class="nm"></span>');b.setAttribute('role','option');b.setAttribute('aria-selected',o.id===S.sel);b.querySelector('.nm').textContent=o.name;b.title=o.name;b.dataset.id=o.id;
+function renderList(){const s=SC(),L=R.ol;L.innerHTML='';const th=[];[...s.objs].reverse().forEach(o=>{const b=el('div','sc-oi'+(o.id===S.sel?' on':'')+(o.vis?'':' hid'),'<canvas width="72" height="54"></canvas><span class="nm"></span>');b.setAttribute('role','option');b.setAttribute('aria-selected',o.id===S.sel);b.querySelector('.nm').textContent=o.name;b.title=o.name;b.dataset.id=o.id;b.dataset.oid=o.id;
 if(!alive(o)){const bd=el('span','bd','<i>?</i>');bd.title='元のコスチュームが見つかりません';b.append(bd);const x=b.firstChild.getContext('2d');x.fillStyle='#e03a5a';x.font='bold 34px sans-serif';x.textAlign='center';x.fillText('?',36,40)}else th.push([b.firstChild,o.c]);
 b.onclick=()=>{S.sel=o.id;refreshAll()};L.append(b)});lazyThumbs(th);const on=L.querySelector('.on');if(on&&on.scrollIntoView)on.scrollIntoView({block:'nearest'})}
 function drawInfo(){if(!R.info)return;const s=SC();if(!s)return;const miss=s.objs.filter(o=>!alive(o)).length,rt=H.rt&&H.rt();let t=s.objs.length+'個のオブジェクト';if(rt&&H.stat)t+=' / '+H.stat();else{const o=OBJ();if(o)t+=' / 選択: '+o.name+' ('+rnd(o.x)+', '+rnd(o.y)+')'}if(miss)t+=' / ⚠コスチューム未接続 '+miss+'個';R.info.textContent=t}
-function refreshAll(){if(!S.open)return;const s=SC();R.sel.innerHTML='';S.scenes.forEach((x,i)=>{const o=el('option');o.value=i;o.textContent=x.n;R.sel.append(o)});R.sel.value=S.cur;if(document.activeElement!==R.sname)R.sname.value=s.n;R.sdel.disabled=S.scenes.length<2;R.bg.value=/^#[0-9a-f]{6}$/i.test(s.bg)?s.bg:'#ffffff';
+function refreshAll(){if(!S.open)return;const s=SC();R.sel.innerHTML='';S.scenes.forEach((x,i)=>{const o=el('option');o.value=i;o.textContent=x.n;R.sel.append(o)});R.sel.value=S.cur;syncFps();if(document.activeElement!==R.sname)R.sname.value=s.n;R.sdel.disabled=S.scenes.length<2;
 if(S.sel&&!s.objs.some(o=>o.id===S.sel))S.sel=null;if(!S.sel&&s.objs.length)S.sel=s.objs[s.objs.length-1].id;
 const o=OBJ(),has=!!o;[R.odup,R.odel,R.ofr,R.obk,R.oup,R.odn].forEach(b=>b.disabled=!has);R.gd.classList.toggle('on',S.guide);R.bigb.classList.toggle('on',S.big);R.root.classList.toggle('big',S.big);
 renderList();refreshProps();fitStage();redraw();if(H.refresh)H.refresh()}
@@ -221,7 +225,6 @@ else{const d=Math.hypot(X-240-o.x,180-o.y-Y)||1;o.size=clamp(Math.round(DR.s0*d/
 refreshProps();redraw()});
 const end=e=>{if(!DR||DR.id!==e.pointerId)return;DR=null;touch();renderList();refreshProps()};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 R.back.onclick=close;R.bigb.onclick=()=>{S.big=!S.big;refreshAll();setTimeout(()=>{fitStage();redraw()},0)};R.gd.onclick=()=>{S.guide=!S.guide;R.gd.classList.toggle('on',S.guide);redraw()};
-R.bg.oninput=()=>{SC().bg=R.bg.value;touch();redraw()};
 R.oadd.onclick=()=>pickSprite('配置するスプライトを選ぶ(何個でも配置できます)',(s,c)=>addObj(c,s.n),true);
 R.odup.onclick=()=>{const o=OBJ();if(o)dupObj(o)};R.odel.onclick=()=>delObj(OBJ());R.ofr.onclick=()=>zmove(OBJ(),'front');R.obk.onclick=()=>zmove(OBJ(),'back');R.oup.onclick=()=>zmove(OBJ(),'up');R.odn.onclick=()=>zmove(OBJ(),'down');
 R.sel.onchange=()=>switchScene(+R.sel.value);
@@ -288,8 +291,27 @@ const now=()=>performance.now();
 const costList=T=>{const m=T.c&&ownerOf(T.c);return m?m.s.cs:[]};
 function hatIndex(sc){const h={flag:[],click:[],clone:[],msg:[],key:[],gt:[],bd:[],ex:[],xe:[]};sc.forEach(s=>{const f=s.b[0],d=f&&BK[f.op];if(!d||d.kind!='hat')return;if(f.op=='event_whenflag')h.flag.push(s);else if(f.op=='event_whenclicked')h.click.push(s);else if(f.op=='event_whenbroadcast')h.msg.push(s);else if(f.op=='event_whenkey')h.key.push(s);else if(f.op=='event_whengt')h.gt.push(s);else if(f.op=='event_whenbackdrop')h.bd.push(s);else if(f.op=='control_startasclone')h.clone.push(s);else if(d.ex)(d.ex.ev?h.xe:h.ex).push(s)});return h}
 function mkTarget(o){const sc=JSON.parse(JSON.stringify(o.sc));return{id:uid(),name:o.name,src:o,stage:!!o.stage,isClone:false,x:o.x,y:o.y,size:o.size,dir:o.dir,rot:o.rot,vis:o.vis,ghost:o.ghost,c:alive(o)?o.c:null,vars:JSON.parse(JSON.stringify(o.vars)),lists:JSON.parse(JSON.stringify(o.lists||{})),sc,hats:hatIndex(sc),dead:false}}
-function buildRT(){const s=SC();SIL=new WeakMap();RT={list:s.objs.map(mkTarget),threads:[],tmap:new Map(),g:JSON.parse(JSON.stringify(s.gvars)),gl:JSON.parse(JSON.stringify(s.glists||{})),lmon:{},mon:{},clones:0,raf:0,next:0,err:null,t0:now(),ans:''};R.root.classList.add('run');updateRunUI();R.root.classList.add('run');if(H.renderWS)H.renderWS()}
+function buildRT(){const s=SC();ENG.fps=vFps(s.fps);SIL=new WeakMap();RT={list:s.objs.map(mkTarget),threads:[],tmap:new Map(),g:JSON.parse(JSON.stringify(s.gvars)),gl:JSON.parse(JSON.stringify(s.glists||{})),lmon:{},mon:{},clones:0,raf:0,next:0,err:null,t0:now(),ans:''};R.root.classList.add('run');updateRunUI();R.root.classList.add('run');if(H.renderWS)H.renderWS()}
 H.list=()=>RT?RT.list:(SC()?SC().objs:[]);
+/* ---------- 実行中のブロック編集: 編集内容を、動いているオブジェクトとクローンへ反映 ----------
+   ・動作中のスクリプトはそのまま続きます(次に起動するときから新しい内容)。
+   ・消したスクリプトは止まります。足した変数・リスト・定義ブロックはすぐ使えます。 */
+let _ls=0;
+H.liveSync=()=>{if(!RT||_ls)return;_ls=setTimeout(()=>{_ls=0;liveApply()},40)};
+function liveApply(){if(!RT)return;const sc=SC();if(!sc)return;
+for(const k of Object.keys(sc.gvars||{}))if(!Object.prototype.hasOwnProperty.call(RT.g,k))RT.g[k]=JSON.parse(JSON.stringify(sc.gvars[k]));
+for(const k of Object.keys(sc.glists||{}))if(!Object.prototype.hasOwnProperty.call(RT.gl,k))RT.gl[k]=JSON.parse(JSON.stringify(sc.glists[k]));
+let hatLoop=false;
+for(const o of sc.objs){const ts=RT.list.filter(T=>T.src===o);if(!ts.length)continue;
+const nsc=JSON.parse(JSON.stringify(o.sc)),nh=hatIndex(nsc),oh=ts[0].hats||{};
+['gt','ex','xe'].forEach(k=>{const m=new Map((oh[k]||[]).map(s=>[s.id,s._on]));(nh[k]||[]).forEach(s=>{if(m.has(s.id))s._on=m.get(s.id)})});
+const ids=new Set(nsc.map(s=>s.id));
+for(const T of ts){T.sc=nsc;T.hats=nh;for(const k of Object.keys(o.vars||{}))if(!Object.prototype.hasOwnProperty.call(T.vars,k))T.vars[k]=JSON.parse(JSON.stringify(o.vars[k]));for(const k of Object.keys(o.lists||{}))if(!Object.prototype.hasOwnProperty.call(T.lists,k))T.lists[k]=JSON.parse(JSON.stringify(o.lists[k]))}
+/* 消されたスクリプトは止める */
+for(const th of RT.threads)if(!th.dead&&ts.includes(th.T)&&!ids.has(th.s.id)){th.dead=true;th.stop=true}
+if((nh.gt&&nh.gt.length)||(nh.ex&&nh.ex.length))hatLoop=true}
+if(hatLoop&&!RT.halt)ensureLoop();
+if(H.renderWS&&WS.wsc)markRunning()}
 /* ---------- スレッド ---------- */
 function startScript(T,s){const key=T.id+'|'+s.id,old=RT.tmap.get(key);if(old)old.dead=true;const th={T,s,key,dead:false,stop:false};th.gen=scriptGen(s,T,th);RT.threads.push(th);RT.tmap.set(key,th);ensureLoop();return th}
 function* runList(arr,T,th){for(let i=0;i<arr.length;i++){if(th.stop||T.dead)return;yield* execBlock(arr[i],T,th)}}
@@ -560,7 +582,7 @@ s.onchange=async()=>{let val=s.value;const isNew=val.startsWith('__new');if(val=
 if(sp[0]=='c'){const ci=el('input');ci.type='color';ci.value=/^#[0-9a-f]{6}$/i.test(v)?v:'#ff0000';ci.setAttribute('aria-label',name);ci.oninput=()=>{b.in[name]=ci.value;touch()};w.append(ci);return w}
 const i=el('input');i.type='text';i.value=v==null?'':String(v);i.autocomplete='off';i.spellcheck=false;i.inputMode=sp[0]=='n'?'decimal':'text';i.setAttribute('aria-label',name);i.style.width=Math.max(2.2,Math.min(14,String(i.value).length*.95+1.4))+'em';
 i.oninput=()=>{b.in[name]=i.value;i.style.width=Math.max(2.2,Math.min(14,i.value.length*.95+1.4))+'em';touch()};i.onkeydown=e=>{e.stopPropagation();if(e.key=='Enter'){e.preventDefault();i.blur()}};i.onfocus=()=>i.select();w.append(i);return w}
-function renderBlock(b,pal){const d=BK[b.op],e=el('div','sb cat-'+d.cat);e._b=b;
+function renderBlock(b,pal){const d=BK[b.op],e=el('div','sb cat-'+d.cat);e._b=b;if(!pal&&b===WS.selB)e.classList.add('sel');
 if(b.op=='proc_arg'||b.op=='proc_argb'){e.classList.add(b.op=='proc_arg'?'sb-r':'sb-b');const dd=(SC().defs||[]).find(z=>z.id===b.in.D),it=dd&&dd.items.find(z=>z.id===b.in.P),t=el('span');t.textContent=it?it.n:'?';e.append(t);return e}
 if(b.op.startsWith('pd:')){e.classList.add('sb-hat');const dd=d.pdef,row=el('div','sb-row'),lb=el('span');lb.textContent='定義';row.append(lb);
 (dd?dd.items:[]).forEach(it=>{if(it.k=='l'){const s=el('span');s.textContent=it.t;row.append(s)}else{const ch=renderBlock({op:it.k=='b'?'proc_argb':'proc_arg',in:{D:dd.id,P:it.id}},pal);ch._tpl=true;row.append(ch)}});e.append(row);return e}
@@ -572,7 +594,7 @@ if(d.subs.length){d.subs.forEach((k,n)=>{if(n){const r2=el('div','sb-row');r2.te
 return e}
 function fillStack(host,arr,pal){arr.forEach((b,i)=>{const e=renderBlock(b,pal);e._arr=arr;e._i=i;host.append(e)})}
 function renderScript(s,pal){const e=el('div','sb-script');e._s=s;fillStack(e,s.b,pal);return e}
-function renderWS(){if(!WS.wsc)return;const o=OBJ(),wsc=WS.wsc;wsc.innerHTML='';if(RT){const l=el('div','sb-lock','実行中は編集できません(リセットで編集に戻ります)');wsc.append(l)}
+function renderWS(){if(!WS.wsc)return;const o=OBJ(),wsc=WS.wsc;wsc.innerHTML='';
 if(!o){const t=el('div',null,'オブジェクトを選ぶと、ここにブロックを組み立てられます。');t.style.cssText='padding:20px;opacity:.7';wsc.append(t);return}
 let mx=0,my=0;o.sc.forEach(s=>{const e=renderScript(s,false);e.style.left=s.x+'px';e.style.top=s.y+'px';wsc.append(e)});
 wsc.querySelectorAll(':scope > .sb-script').forEach(e=>{mx=Math.max(mx,e._s.x+e.offsetWidth);my=Math.max(my,e._s.y+e.offsetHeight)});WS.cw=DG?Math.max(WS.cw,mx+300):mx+300;WS.ch=DG?Math.max(WS.ch,my+300):my+300;applyZoom();markRunning()}
@@ -580,9 +602,10 @@ function renderPal(){const p=WS.pal;if(!p)return;const o=OBJ(),cat=WS.cat;p.inne
 const PALX={};H.PALX=PALX;
 PALX.msg=(p)=>{const b=el('button','sc-b','新しいメッセージ');b.type='button';b.onclick=async()=>{const t=await askText('新しいメッセージの名前','');if(!t)return;const v=t.slice(0,40);if(!SC().msgs.includes(v)){SC().msgs.push(v);touch()}renderPal()};p.append(b)};
 function renderCats(){const c=WS.cats;c.innerHTML='';CATS.forEach(k=>{if(!(PAL[k.id]&&PAL[k.id].length)&&!PALX[k.id])return;const b=el('button',k.id==WS.cat?'on':'','<i></i><span></span>');b.type='button';b.style.setProperty('--c',k.c);b.lastChild.textContent=k.n;b.onclick=()=>{WS.cat=k.id;renderCats();renderPal()};c.append(b)});
-const sp=el('span');sp.style.flex='1';const t=el('button','sc-b','整理');t.type='button';t.title='スクリプトを縦に整列';t.style.minHeight='34px';t.onclick=()=>{const o=OBJ();if(!o||RT)return;let y=14;o.sc.forEach(s=>{s.x=14;s.y=y;const e=[...WS.wsc.querySelectorAll(':scope > .sb-script')].find(q=>q._s===s);y+=(e?e.offsetHeight:40)+22});touch();renderWS()};c.append(sp,t)}
-H.buildCode=()=>{const p=el('div','p-code');WS.cats=el('div','sb-cats');const m=el('div','sb-main');WS.pal=el('div','sb-pal');WS.wsw=el('div','sb-wsw');WS.ws=el('div','sb-ws');WS.zs=el('div','sb-zs');WS.wsc=el('div','sb-wsc');WS.zs.append(WS.wsc);WS.ws.append(WS.zs);WS.wsw.append(WS.ws,zoomUI());m.append(WS.pal,WS.wsw);p.append(WS.cats,m);bindDrag(WS.pal,true);bindDrag(WS.ws,false);bindGesture(WS.ws);applyZoom();
-WS.ws.addEventListener('contextmenu',e=>{const be=e.target.closest('.sb');if(!be||!be._b||RT||e.target.closest('input,select'))return;e.preventDefault();blockMenu(be,e.clientX,e.clientY)});return p};
+const sp=el('span');sp.style.flex='1';const t=el('button','sc-b','整理');t.type='button';t.title='スクリプトを縦に整列';t.style.minHeight='34px';t.onclick=()=>{const o=OBJ();if(!o)return;let y=14;o.sc.forEach(s=>{s.x=14;s.y=y;const e=[...WS.wsc.querySelectorAll(':scope > .sb-script')].find(q=>q._s===s);y+=(e?e.offsetHeight:40)+22});touch();renderWS()};c.append(sp,t)}
+H.buildCode=()=>{const p=el('div','p-code');WS.cats=el('div','sb-cats');const m=el('div','sb-main');WS.pal=el('div','sb-pal');WS.wsw=el('div','sb-wsw');WS.ws=el('div','sb-ws');WS.zs=el('div','sb-zs');WS.wsc=el('div','sb-wsc');WS.zs.append(WS.wsc);WS.ws.append(WS.zs);WS.wsw.append(WS.ws,zoomUI());m.append(WS.pal,WS.wsw);p.append(WS.cats,m,bpBuild());bindDrag(WS.pal,true);bindDrag(WS.ws,false);bindGesture(WS.ws);applyZoom();
+WS.ws.addEventListener('contextmenu',e=>{const be=e.target.closest('.sb');if(!be||!be._b){if(!CLIP||e.target.closest('input,select'))return;e.preventDefault();const[px,py]=wsPoint(e.clientX,e.clientY);menuAt(e.clientX,e.clientY,[['ここに貼り付け',()=>pasteClip(px,py)]]);return}if(e.target.closest('input,select'))return;e.preventDefault();blockMenu(be,e.clientX,e.clientY)});
+WS.ws.addEventListener('pointerdown',e=>{if(!e.target.closest('.sb')&&WS.selB){WS.selB=null;WS.wsc.querySelectorAll('.sb.sel').forEach(x=>x.classList.remove('sel'))}});return p};
 H.refresh=()=>{if(!WS.wsc)return;renderCats();renderPal();renderWS()};H.renderWS=()=>{renderWS();renderPal()};H.onOpen=()=>{};
 /* ---------- ドラッグ&ドロップ ---------- */
 let PD=null,DG=null;
@@ -617,7 +640,7 @@ if(pan&&pan.id==e.pointerId){if(pan.go&&e.type=='pointerup'&&performance.now()-p
 ws.addEventListener('pointerup',end);ws.addEventListener('pointercancel',end);
 ws.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();setZoom(WS.z*Math.exp(-e.deltaY*.002),e.clientX,e.clientY)},{passive:false})}
 /* ドラッグ中、作業エリアの端で自動スクロール */
-function autoScroll(){const D=DG;if(!D||!WS.ws)return;const ws=WS.ws,r=ws.getBoundingClientRect(),M=48,x=D.lx,y=D.ly;
+function autoScroll(){const D=DG;if(!D||!WS.ws)return;if(D.hit){D.zt=0;return}const ws=WS.ws,r=ws.getBoundingClientRect(),M=48,x=D.lx,y=D.ly;
 if(x<r.left||x>r.right||y<r.top||y>r.bottom){D.zt=0;return}
 const ax=x-r.left,bx=r.right-x,ay=y-r.top,by=r.bottom-y;let dx=0,dy=0;
 if(ax<M)dx=-(M-ax)/M;else if(bx<M)dx=(M-bx)/M;if(ay<M)dy=-(M-ay)/M;else if(by<M)dy=(M-by)/M;
@@ -629,15 +652,15 @@ if(ws.scrollLeft!==sl||ws.scrollTop!==st){D.C=collect();updateDrag({clientX:x,cl
 /* ---------- ドラッグ開始の判定 ---------- */
 function startPick(P){/* 長押しで持ち上げ(パレット・タッチ) */P.go=true;P.mode='drag';if(P.inp){try{P.root.setPointerCapture(P.id)}catch(x){}}beginDrag({clientX:P.lx,clientY:P.ly})}
 function bindDrag(root,pal){
-root.addEventListener('pointerdown',e=>{if(RT||e.button>0||PD||DG)return;const touch=e.pointerType!='mouse';if(e.target.closest('button'))return;const inp=!!e.target.closest('input,select');if(inp&&!touch)return;
+root.addEventListener('pointerdown',e=>{if(e.button>0||PD||DG)return;const touch=e.pointerType!='mouse';if(e.target.closest('button'))return;const inp=!!e.target.closest('input,select');if(inp&&!touch)return;
 const be=e.target.closest('.sb');if(!be||!be._b)return;cancelAnimationFrame(root._kin);
-PD={pal:pal||!!be._tpl,be,id:e.pointerId,x0:e.clientX,y0:e.clientY,lx:e.clientX,ly:e.clientY,lt:performance.now(),vx:0,vy:0,sl:root.scrollLeft,st:root.scrollTop,rect:be.getBoundingClientRect(),go:false,root,touch,inp,mode:0};
+PD={pal:pal||!!be._tpl,be,id:e.pointerId,x0:e.clientX,y0:e.clientY,lx:e.clientX,ly:e.clientY,lt:performance.now(),vx:0,vy:0,sl:root.scrollLeft,st:root.scrollTop,rect:be.getBoundingClientRect(),go:false,root,touch,inp,mode:0,bp:!!root._bp};if(!pal&&!be._tpl&&!root._bp&&WS.wsc)selBlock(be);
 if(touch){if(pal)PD.lp=setTimeout(()=>{if(PD&&!PD.go&&!PD.mode)startPick(PD)},260);else PD.lp=setTimeout(()=>{if(PD&&!PD.go){const p=PD;PD=null;blockMenu(p.be,p.x0,p.y0)}},650)}
 if(!inp){try{root.setPointerCapture(e.pointerId)}catch(x){}}});
 root.addEventListener('pointermove',e=>{const P=PD;if(!P||P.id!==e.pointerId)return;
 if(!P.go){const dx=e.clientX-P.x0,dy=e.clientY-P.y0,dist=Math.hypot(dx,dy);
 if(P.mode!='scroll'){if(dist<(P.touch?5:6))return;
-if(P.touch&&P.pal&&Math.abs(dy)>Math.abs(dx)*1.2){P.mode='scroll';clearTimeout(P.lp)}/* パレットでは縦にこすったらスクロール */
+if(P.touch&&P.pal&&(P.bp?Math.abs(dx)>Math.abs(dy)*1.2:Math.abs(dy)>Math.abs(dx)*1.2)){P.mode='scroll';clearTimeout(P.lp)}/* パレットでは縦にこすったらスクロール */
 else{clearTimeout(P.lp);P.go=true;P.mode='drag';if(P.inp){try{root.setPointerCapture(P.id)}catch(x){}}beginDrag(e)}}
 if(P.mode=='scroll'){root.scrollTop=P.st-dy;root.scrollLeft=P.sl-dx;const now=performance.now(),dt=now-P.lt;if(dt>0){P.vx=.6*P.vx+.4*(e.clientX-P.lx)/dt;P.vy=.6*P.vy+.4*(e.clientY-P.ly)/dt}P.lx=e.clientX;P.ly=e.clientY;P.lt=now;return}}
 P.lx=e.clientX;P.ly=e.clientY;if(DG)updateDrag(e)});
@@ -647,11 +670,11 @@ root.addEventListener('pointerup',up);root.addEventListener('pointercancel',up)}
 const kindOf=b=>BK[b.op].kind;
 function pruneScripts(o){o.sc=o.sc.filter(s=>s.b.length)}
 function beginDrag(e){const o=OBJ();if(!o)return;const be=PD.be;let held;
-if(PD.pal){const m=JSON.parse(JSON.stringify(be._b));held={arr:[m]}}
-else{const b=be._b,par=be.parentNode;if(isRep(BK[b.op])&&par&&par._o){const ow=par._o;ow.b.in[ow.name]=dflIn(ow.b,ow.name);held={arr:[b]}}
-else if(be._arr){held={arr:be._arr.splice(be._i)};pruneScripts(o)}else return}
+if(PD.pal){if(PD.bp){const se=be.closest('.sb-script'),it=se&&se._bp;if(!it||!bpUsable(it,1))return;held={arr:JSON.parse(JSON.stringify(it.blocks)),bp:it}}else{const m=JSON.parse(JSON.stringify(be._b));held={arr:[m]}}}
+else{const b=be._b,par=be.parentNode;if(isRep(BK[b.op])&&par&&par._o){const ow=par._o;ow.b.in[ow.name]=dflIn(ow.b,ow.name);held={arr:[b],origin:{rep:1,ow}}}
+else if(be._arr){const se=be.closest('.sb-script');held={arr:be._arr.splice(be._i),origin:{arr:be._arr,i:be._i,s:se&&se._s}};pruneScripts(o)}else return}
 held.rep=isRep(BK[held.arr[0].op]);const g=el('div','sb-ghost');g.append(renderScript({b:held.arr},true));const gp=q('#scn')||document.body;/* #scn の中に作る(外だと入力欄などのスタイルが外れて大きくなる) */gp.append(g);const gs=PD.pal?1:WS.z;g.style.transformOrigin='0 0';if(gs!==1)g.style.transform='scale('+gs+')';
-DG={held,g,ox:PD.x0-PD.rect.left,oy:PD.y0-PD.rect.top+(PD.touch?LIFT:0),hint:el('div','sb-hint'),C:null,best:null,fromPal:PD.pal,touch:PD.touch,lx:e.clientX,ly:e.clientY,zt:0,iv:0,m:PD.touch?1.7:1,R:PD.touch?58:38};gp.append(DG.hint);DG.hint.style.display='none';
+DG={held,g,ox:PD.x0-PD.rect.left,oy:PD.y0-PD.rect.top+(PD.touch?LIFT:0),hint:el('div','sb-hint'),C:null,best:null,fromPal:PD.pal,touch:PD.touch,lx:e.clientX,ly:e.clientY,zt:0,iv:0,m:PD.touch?1.7:1,R:PD.touch?58:38};gp.append(DG.hint);DG.hint.style.display='none';dropStrip(DG);
 if(!PD.pal){renderWS();DG.C=collect()}else DG.C=collect();DG.gh=g.getBoundingClientRect().height;if(PD.touch&&navigator.vibrate){try{navigator.vibrate(8)}catch(x){}}DG.iv=setInterval(autoScroll,16);updateDrag(e)}
 function collect(){const C={stack:[],tops:[],slots:[]},wsc=WS.wsc;wsc.querySelectorAll('.sb').forEach(be=>{const d=BK[be._b.op];if(isRep(d)||!be._arr)return;if(!isEnd(d)){const r=be.getBoundingClientRect();C.stack.push({x:r.left,y:r.bottom,arr:be._arr,i:be._i+1})}});
 wsc.querySelectorAll('.sb-sub').forEach(s=>{const r=s.getBoundingClientRect();C.stack.push({x:r.left,y:r.top,arr:s._arr,i:0})});
@@ -662,19 +685,99 @@ if(!h.rep){const first=BK[h.arr[0].op],lastEnd=isEnd(BK[h.arr[h.arr.length-1].op
 if(first.kind!='hat')for(const c of C.stack){if(lastEnd&&c.i!==c.arr.length)continue;const dd=Math.hypot(gx-c.x,gy-c.y);if(dd<D.R&&dd<bd){best={t:'stack',c};bd=dd}}
 if(!lastEnd)for(const c of C.tops){const dd=Math.hypot(gx-c.x,gy+D.gh-c.y);if(dd<D.R&&dd<bd){best={t:'top',c};bd=dd}}}
 else{const k=kindOf(h.arr[0]),px=gx+10,py=gy+D.gh/2;for(const c of C.slots){const ok=k=='b'?(c.sp[0]=='b'||c.sp[0]=='n'||c.sp[0]=='s'||c.sp[0]=='c'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat')):(c.sp[0]=='n'||c.sp[0]=='s'||c.sp[0]=='c'||(c.sp[0]=='m'&&BK[c.o.b.op].kind!='hat'));if(!ok)continue;const r=c.r;if(px>=r.left-10*D.m&&px<=r.right+10*D.m&&py>=r.top-12*D.m&&py<=r.bottom+12*D.m){const dd=Math.hypot(px-(r.left+4),py-(r.top+r.height/2));if(dd<bd){best={t:'slot',c};bd=dd}}}}
-D.best=best;const hi=D.hint;if(!best)hi.style.display='none';else{hi.style.display='block';if(best.t=='slot'){const r=best.c.r;hi.style.cssText='display:block;background:transparent;left:'+(r.left-2)+'px;top:'+(r.top-2)+'px;width:'+(r.width+4)+'px;height:'+(r.height+4)+'px'}
+const hit=dropUI(D,e);if(hit)best=null;D.best=best;const hi=D.hint;if(!best)hi.style.display='none';else{hi.style.display='block';if(best.t=='slot'){const r=best.c.r;hi.style.cssText='display:block;background:transparent;left:'+(r.left-2)+'px;top:'+(r.top-2)+'px;width:'+(r.width+4)+'px;height:'+(r.height+4)+'px'}
 else{const c=best.c;hi.style.cssText='display:block;background:#fff;left:'+c.x+'px;top:'+(c.y-3)+'px;width:64px;height:6px'}}}
-function endDrag(e,cancel){const D=DG;DG=null;clearInterval(D.iv);D.g.remove();D.hint.remove();const o=OBJ();if(!o||cancel){renderWS();return}
+function endDrag(e,cancel){const D=DG;DG=null;clearInterval(D.iv);const hit=cancel?null:dropHit(e.clientX,e.clientY);D.g.remove();D.hint.remove();dropClear(D);const o=OBJ();if(!o||cancel){if(o)restoreOrigin(D.held,o);renderWS();return}
+if(hit){const h0=D.held;if(hit.t=='bp'){if(!h0.bp)bpAdd(h0.arr)}else if(hit.o!==o)copyToObject(hit.o,h0.arr,o,h0.bp);restoreOrigin(h0,o);touch();renderWS();return}
 const wr=WS.ws.getBoundingClientRect(),inWs=e.clientX>=wr.left&&e.clientX<=wr.right&&e.clientY>=wr.top&&e.clientY<=wr.bottom;const h=D.held,b=D.best;
 if(!inWs){touch();renderWS();return}/* パレットや外側に落としたら削除 */
+if(h.bp){const r=prepBlocks(h.bp,o,h.arr);h.arr=r.blocks;r.extra.forEach(s=>o.sc.push(s));if(!h.arr.length){renderWS();return}}
 if(b&&b.t=='stack'){b.c.arr.splice(b.c.i,0,...h.arr)}
 else if(b&&b.t=='top'){const s=b.c.s;s.b.unshift(...h.arr);const gx=(e.clientX-D.ox-wr.left+WS.ws.scrollLeft)/WS.z,gy=(e.clientY-D.oy-wr.top+WS.ws.scrollTop)/WS.z;s.x=Math.max(0,Math.round(gx));s.y=Math.max(0,Math.round(gy))}
 else if(b&&b.t=='slot'){const ow=b.c.o,old=ow.b.in[ow.name];ow.b.in[ow.name]=h.arr[0];if(old&&typeof old=='object'){const r=b.c.r;o.sc.push({id:uid(),x:Math.max(0,Math.round((r.left-wr.left+WS.ws.scrollLeft)/WS.z+30)),y:Math.max(0,Math.round((r.top-wr.top+WS.ws.scrollTop)/WS.z+30)),b:[old]})}}
 else{const gx=(e.clientX-D.ox-wr.left+WS.ws.scrollLeft)/WS.z,gy=(e.clientY-D.oy-wr.top+WS.ws.scrollTop)/WS.z;o.sc.push({id:uid(),x:Math.max(0,Math.round(gx)),y:Math.max(0,Math.round(gy)),b:h.arr})}
 touch();renderWS();thumbCurSafe()}
 const thumbCurSafe=()=>{};
-function blockMenu(be,x,y){const o=OBJ();if(!o||RT)return;const b=be._b,d=BK[b.op];const items=[];
+/* ---------- ブロックのコピー&ペースト / バックパック / スプライトへ複製 ---------- */
+const CLK='ced_bclip',BPK='ced_bp',BPO='ced_bp_open';
+const bclone=x=>JSON.parse(JSON.stringify(x));
+const hasOwn=(o,k)=>Object.prototype.hasOwnProperty.call(o||{},k);
+const BADN=new Set(['__proto__','constructor','prototype']);
+function bwalk(arr,f){for(const b of arr||[]){if(!b||typeof b!='object'||typeof b.op!='string')continue;f(b);if(b.in&&typeof b.in=='object')for(const k in b.in){const v=b.in[k];if(v&&typeof v=='object')bwalk([v],f)}if(b.c&&typeof b.c=='object')for(const k in b.c)bwalk(b.c[k],f)}}
+let CLIP=null;try{const t=localStorage.getItem(CLK);if(t){const c=JSON.parse(t);if(c&&Array.isArray(c.blocks))CLIP=c}}catch(e){}
+/* 取り出したブロック + 使っている定義(と本体) + 変数名 をまとめる */
+function packBlocks(blocks,o){const sc=SC(),pk={blocks:bclone(blocks),defs:[],scripts:[],vars:[],lists:[],lv:[],ll:[]};
+const defs=sc.defs||[],bodyOf=id=>{for(const ob of sc.objs)for(const s of ob.sc||[])if(s.b[0]&&s.b[0].op==='pd:'+id)return s;return null};
+const q=[],seen=new Set(),take=b=>{if(b.op.startsWith('pc:')||b.op.startsWith('pd:'))q.push(b.op.slice(3))};bwalk(pk.blocks,take);
+while(q.length){const id=q.pop();if(seen.has(id))continue;seen.add(id);const d=defs.find(x=>x.id===id);if(!d)continue;pk.defs.push(bclone(d));const body=bodyOf(id);if(body){pk.scripts.push({id,b:bclone(body.b)});bwalk(body.b,take)}}
+const all=pk.blocks.concat(...pk.scripts.map(s=>s.b));
+bwalk(all,b=>{const i=b.in||{};if(b.op.startsWith('var_')&&typeof i.VAR=='string')pk.vars.push(i.VAR);if(b.op.startsWith('list_')&&typeof i.L=='string')pk.lists.push(i.L)});
+pk.vars=[...new Set(pk.vars)];pk.lists=[...new Set(pk.lists)];pk.lv=o?pk.vars.filter(n=>hasOwn(o.vars,n)):[];pk.ll=o?pk.lists.filter(n=>hasOwn(o.lists,n)):[];return pk}
+/* 貼り付け先(オブジェクト)に合わせて整える: 定義ブロックの複製・足りない定義/変数の補充・使えないブロックの除去 */
+function prepBlocks(pk,o,blocks){const sc=SC();sc.defs=sc.defs||[];const extra=[],remap=new Map();let blk=bclone(blocks||pk.blocks);
+const hasDef=id=>sc.defs.some(d=>d.id===id),hasBody=id=>sc.objs.some(ob=>(ob.sc||[]).some(s=>s.b[0]&&s.b[0].op==='pd:'+id))||extra.some(s=>s.b[0]&&s.b[0].op==='pd:'+id);
+const findDef=id=>(pk.defs||[]).find(d=>d.id===id)||sc.defs.find(d=>d.id===id);
+/* 定義ハット(pd:)そのものを貼るときは、同じIDの定義が2つできないよう新しい定義として複製 */
+bwalk(blk,b=>{if(b.op.startsWith('pd:')){const id=b.op.slice(3);if(!remap.has(id)){const d0=findDef(id);if(d0){const nd=bclone(d0);nd.id=uid();sc.defs.push(nd);regProc(nd);remap.set(id,nd.id)}}}});
+if(remap.size)bwalk(blk,b=>{if(b.op.startsWith('pd:')||b.op.startsWith('pc:')){const id=b.op.slice(3);if(remap.has(id))b.op=b.op.slice(0,3)+remap.get(id)}if((b.op=='proc_arg'||b.op=='proc_argb')&&b.in&&remap.has(b.in.D))b.in.D=remap.get(b.in.D)});
+/* 呼び出している定義がこのシーンになければ、定義と本体を補う */
+const ensure=(id,depth)=>{if(hasDef(id)||depth>50)return;const d0=(pk.defs||[]).find(d=>d.id===id);if(!d0)return;const nd=bclone(d0);sc.defs.push(nd);regProc(nd);const body=(pk.scripts||[]).find(s=>s.id===id);if(body&&!hasBody(id)){const s={id:uid(),x:20,y:20+extra.length*160,b:bclone(body.b)};extra.push(s);bwalk(s.b,b=>{if(b.op.startsWith('pc:'))ensure(b.op.slice(3),depth+1)})}};
+bwalk(blk,b=>{if(b.op.startsWith('pc:'))ensure(b.op.slice(3),0)});
+/* 変数・リスト: なければ、元がこのオブジェクトだけの変数ならローカル、それ以外は全体で作る */
+(pk.vars||[]).forEach(n=>{if(BADN.has(n)||hasOwn(o.vars,n)||hasOwn(sc.gvars,n))return;if((pk.lv||[]).includes(n))o.vars[n]=0;else sc.gvars[n]=0});
+(pk.lists||[]).forEach(n=>{if(BADN.has(n)||hasOwn(o.lists,n)||hasOwn(sc.glists,n))return;if((pk.ll||[]).includes(n)){o.lists=o.lists||{};o.lists[n]=[]}else{sc.glists=sc.glists||{};sc.glists[n]=[]}});
+const W={drop:0};blk=H.vBlocks(blk,W);extra.forEach(s=>{s.b=H.vBlocks(s.b,W)});
+if(W.drop)toast(W.drop+'個のブロックは、このプロジェクトでは使えないため省きました(拡張機能が未読込など)');
+return{blocks:blk,extra:extra.filter(s=>s.b.length)}}
+/* 作業エリアの見えている位置(ズーム込み) */
+function wsPoint(cx,cy){const ws=WS.ws,r=ws.getBoundingClientRect();return[Math.max(0,Math.round((cx-r.left+ws.scrollLeft)/WS.z)),Math.max(0,Math.round((cy-r.top+ws.scrollTop)/WS.z))]}
+function pasteInto(o,pk,x,y){const r=prepBlocks(pk,o);if(!r.blocks.length)return null;if(x==null){const ws=WS.ws,rr=ws.getBoundingClientRect(),n=(WS.pasteN=((WS.pasteN||0)+1)%8);[x,y]=wsPoint(rr.left+30+n*26,rr.top+30+n*26)}
+const s={id:uid(),x,y,b:r.blocks};o.sc.push(s);r.extra.forEach(e=>{e.x=x;e.y=y+180+e.y;o.sc.push(e)});return s}
+function clipSave(){try{localStorage.setItem(CLK,JSON.stringify(CLIP))}catch(e){}}
+function copyBlocks(blocks,msg){const o=OBJ();if(!o||!blocks.length)return;CLIP=packBlocks(blocks,o);clipSave();bpRefreshBtns();toast(msg||'ブロックをコピーしました(貼り付けで出せます)')}
+function pasteClip(x,y){const o=OBJ();if(!o)return;if(!CLIP){toast('コピーしたブロックがありません');return}const s=pasteInto(o,CLIP,x,y);if(!s)return;touch();renderWS();renderPal();toast('貼り付けました')}
+/* 別のオブジェクトへ複製 */
+function copyToObject(t,blocks,src,item){const pk=item||packBlocks(blocks,src),sc=t.sc||(t.sc=[]);let y=20;sc.forEach(s=>{y=Math.max(y,(s.y||0)+60+(s.b?s.b.length:1)*34)});const s=pasteInto(t,pk,20,Math.round(y));if(s){touch();toast('「'+t.name+'」にコピーしました')}}
+function restoreOrigin(h,o){const g=h&&h.origin;if(!g)return;if(g.rep){g.ow.b.in[g.ow.name]=h.arr[0];return}if(g.s&&!o.sc.includes(g.s))o.sc.push(g.s);g.arr.splice(g.i,0,...h.arr)}
+/* ----- バックパック(端末に保存。再読み込みしても残る) ----- */
+const BP={items:[],open:false,el:null,strip:null,cnt:null,paste:null};
+try{const t=localStorage.getItem(BPK);const a=t&&JSON.parse(t);if(Array.isArray(a))BP.items=a.filter(it=>it&&typeof it.id=='string'&&Array.isArray(it.blocks)&&it.blocks.every(b=>b&&typeof b.op=='string')).slice(0,100);BP.open=localStorage.getItem(BPO)=='1'}catch(e){}
+function bpSave(){try{localStorage.setItem(BPK,JSON.stringify(BP.items))}catch(e){toast('バックパックを保存できませんでした(端末の保存容量がいっぱいかもしれません)')}try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}
+function bpAdd(blocks){const o=OBJ();if(!o||!blocks.length)return;if(BP.items.length>=100){toast('バックパックがいっぱいです(100個まで)。いらないものを削除してください');return}const pk=packBlocks(blocks,o);BP.items.push({id:uid(),blocks:pk.blocks,defs:pk.defs,scripts:pk.scripts,vars:pk.vars,lists:pk.lists,lv:pk.lv,ll:pk.ll});bpSave();bpRender();toast('バックパックに入れました')}
+function bpReg(it){(it.defs||[]).forEach(d=>{if(d&&typeof d.id=='string'&&Array.isArray(d.items)&&!BK['pc:'+d.id]){try{regProc(d)}catch(e){}}})}
+function bpUsable(it,say){bpReg(it);let ok=true;bwalk(it.blocks,b=>{if(!BK[b.op])ok=false});if(!ok&&say)toast('このブロックは、必要な拡張機能が読み込まれていないため使えません');return ok}
+function bpRefreshBtns(){if(BP.paste)BP.paste.disabled=!CLIP}
+function bpRender(){const st=BP.strip;if(!st)return;st.innerHTML='';if(BP.cnt)BP.cnt.textContent=BP.items.length?'('+BP.items.length+')':'';
+if(!BP.items.length){const m=el('div','sb-bp-empty','ブロックをここ(バックパックの帯)にドラッグすると保存されます。他のスプライトでも、次に開いたときも使えます。');st.append(m);return}
+BP.items.forEach(it=>{const c=el('div','sb-bp-item');let ok=true;try{ok=bpUsable(it)}catch(e){ok=false}
+if(ok){try{const se=renderScript({b:bclone(it.blocks)},true);se._bp=it;c.append(se)}catch(e){ok=false}}
+if(!ok){c.classList.add('bad');c.append(el('div','sb-bp-na','使えないブロック(拡張機能が必要)'))}
+const x=el('button','sb-bp-x','×');x.type='button';x.title='バックパックから削除';x.setAttribute('aria-label','バックパックから削除');x.onclick=ev=>{ev.stopPropagation();BP.items=BP.items.filter(z=>z!==it);bpSave();bpRender()};c.append(x);
+c.addEventListener('contextmenu',ev=>{ev.preventDefault();menuAt(ev.clientX,ev.clientY,[['バックパックから削除',()=>{BP.items=BP.items.filter(z=>z!==it);bpSave();bpRender()},'danger']])});st.append(c)})}
+function bpBuild(){const bar=el('div','sb-bp'+(BP.open?' open':''));const hd=el('div','sb-bp-hd');const tg=el('button','sb-bp-tg');tg.type='button';tg.setAttribute('aria-expanded',BP.open);
+tg.innerHTML='<span class="ar"></span><b>バックパック</b> <span class="cnt"></span>';BP.cnt=tg.querySelector('.cnt');
+tg.onclick=()=>{BP.open=!BP.open;bar.classList.toggle('open',BP.open);tg.setAttribute('aria-expanded',BP.open);try{localStorage.setItem(BPO,BP.open?'1':'0')}catch(e){}};
+const ps=el('button','sc-b','貼り付け');ps.type='button';ps.title='コピーしたブロックを作業エリアに貼り付け(Ctrl+V)';ps.onclick=()=>pasteClip();BP.paste=ps;
+const hint=el('span','sb-bp-hint','ブロックをここにドラッグして保存');hd.append(tg,hint,ps);
+const st=el('div','sb-bp-strip');st._bp=true;BP.strip=st;bar.append(hd,st);BP.el=bar;bindDrag(st,true);bpRender();bpRefreshBtns();return bar}
+/* ----- ドロップ先(バックパック / スプライト)の判定 ----- */
+function dropHit(x,y){const els=document.elementsFromPoint?document.elementsFromPoint(x,y):[];for(const n of els){const bp=n.closest&&n.closest('.sb-bp');if(bp)return{t:'bp',el:bp};const oi=n.closest&&n.closest('[data-oid]');if(oi){const ob=SC().objs.find(z=>z.id===oi.dataset.oid);if(ob)return{t:'obj',o:ob,el:oi}}}return null}
+function dropUI(D,e){const hit=dropHit(e.clientX,e.clientY),cur=OBJ(),ok=hit&&!(hit.t=='obj'&&hit.o===cur)&&!(hit.t=='bp'&&D.held.bp);
+if(D.hit&&(!hit||D.hit.el!==hit.el))D.hit.el.classList.remove('drop','dropok');D.hit=hit?{...hit,ok}:null;if(ok)hit.el.classList.add(hit.t=='bp'?'drop':'dropok');return hit}
+function dropClear(D){if(D.hit)D.hit.el.classList.remove('drop','dropok');if(D.strip)D.strip.remove()}
+/* 画面が狭くてスプライト一覧が見えないとき、ドラッグ中だけ「入れるスプライト」の帯を出す */
+function dropStrip(D){if(!window.matchMedia||!matchMedia('(max-width:900px)').matches)return;const cur=OBJ(),objs=SC().objs.filter(x=>x!==cur);if(!objs.length)return;const gp=q('#scn')||document.body,r=WS.ws.getBoundingClientRect(),s=el('div','sb-dstrip');s.style.cssText='left:'+r.left+'px;top:'+r.top+'px;width:'+r.width+'px';
+objs.forEach(o=>{const c=el('div','sb-dstrip-i','<canvas width="72" height="54"></canvas><span class="nm"></span>');c.dataset.oid=o.id;c.querySelector('.nm').textContent=o.name;if(alive(o)){try{spThumb(c.firstChild,o.c)}catch(e){}}s.append(c)});gp.append(s);D.strip=s}
+function selBlock(be){WS.selB=be._b;WS.wsc.querySelectorAll('.sb.sel').forEach(x=>x.classList.remove('sel'));be.classList.add('sel')}
+function selFind(){if(!WS.selB||!WS.wsc)return null;return[...WS.wsc.querySelectorAll('.sb')].find(x=>x._b===WS.selB)||null}
+/* キー: Ctrl+C(選んだブロックをコピー) / Ctrl+V(貼り付け) */
+document.addEventListener('keydown',e=>{if(!S.open)return;if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey)return;const k=e.key.toLowerCase();if(k!='c'&&k!='v')return;const t=e.target;if(/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)||t.isContentEditable||document.querySelector('.sc-ov,#uidlg'))return;if(!WS.ws||!WS.ws.offsetParent)return;
+if(k=='c'){const be=selFind();if(!be)return;e.preventDefault();const d=BK[be._b.op];copyBlocks(be._arr&&!isRep(d)?be._arr.slice(be._i):[be._b])}else{e.preventDefault();pasteClip()}});
+function blockMenu(be,x,y){const o=OBJ();if(!o)return;const b=be._b,d=BK[b.op];const items=[];
 items.push(['複製'+(be._arr&&!isRep(d)?'(このブロックと下のブロック)':''),()=>{const src=be._arr&&!isRep(d)?be._arr.slice(be._i):[b],cp=JSON.parse(JSON.stringify(src)),r=be.getBoundingClientRect(),wr=WS.ws.getBoundingClientRect();o.sc.push({id:uid(),x:Math.max(0,Math.round((r.left-wr.left+WS.ws.scrollLeft)/WS.z+24)),y:Math.max(0,Math.round((r.top-wr.top+WS.ws.scrollTop)/WS.z+24)),b:cp});touch();renderWS()}]);
+const cs=be._arr&&!isRep(d)?be._arr.slice(be._i):[b],many=cs.length>1;
+items.push(['コピー'+(many?'(このブロックと下のブロック)':''),()=>copyBlocks(cs)]);if(many)items.push(['コピー(このブロックだけ)',()=>copyBlocks([b])]);
+items.push(['バックパックに入れる'+(many?'(このブロックと下のブロック)':''),()=>bpAdd(cs)]);if(CLIP)items.push(['貼り付け',()=>pasteClip()]);
 items.push([isRep(d)?'このブロックを削除':'このブロックだけ削除',()=>{const par=be.parentNode;if(isRep(d)&&par&&par._o){const ow=par._o;ow.b.in[ow.name]=dflIn(ow.b,ow.name)}else if(be._arr){be._arr.splice(be._i,1);pruneScripts(o)}touch();renderWS()},'danger']);
 items.push(['このスクリプト全体を削除',()=>{let t=be;while(t&&!(t.classList&&t.classList.contains('sb-script')&&t._s&&t.parentNode===WS.wsc))t=t.parentNode;if(t&&t._s){o.sc=o.sc.filter(s=>s!==t._s);touch();renderWS()}},'danger']);menuAt(x,y,items)}
 function markRunning(){if(!WS.wsc)return;const o=OBJ();WS.wsc.querySelectorAll(':scope > .sb-script').forEach(e=>{const on=!!(RT&&o&&RT.threads.some(t=>!t.dead&&t.s.id===e._s.id&&t.T.src===o));e.classList.toggle('running',on)})}
@@ -682,7 +785,13 @@ setInterval(()=>{if(S.open&&RT)markRunning()},200);
 /* ---------- 実行ボタン ---------- */
 let RB={};
 H.buildRunUI=c=>{RB.flag=BTN('sc_flag','','緑の旗(実行を開始。全オブジェクトの「緑の旗が押されたとき」を動かす)','flag');RB.stop=BTN('sc_stop','','停止(すべてのスクリプトとクローンを止める。見た目はそのまま)','stop');RB.reset=BTN('sc_reset','リセット','リセット(編集時の状態に戻し、クローンと変数も初期化)');
-RB.flag.onclick=flag;RB.stop.onclick=stopAll;RB.reset.onclick=reset;c.append(RB.flag,RB.stop,RB.reset)};
+RB.flag.onclick=flag;RB.stop.onclick=stopAll;RB.reset.onclick=reset;
+/* FPS(1秒あたりの実行回数)。数値で変更。シーンごとに保存され、実行中でもすぐ反映 */
+const fl=el('label','sc-fps'),fs=el('span',null,'FPS'),fi=el('input');fi.type='number';fi.min=1;fi.max=250;fi.step=1;fi.inputMode='numeric';fi.title='1秒あたりの実行回数(1〜250)。実行中でも変えられます。Scratchは30、TurboWarpは30〜60が一般的';fi.setAttribute('aria-label','FPS');RB.fpsIn=fi;fl.append(fs,fi);
+const setF=(commit)=>{const s=SC();if(!s)return;const n=Math.round(Number(fi.value));if(!Number.isFinite(n)||n<1||n>250){if(commit)fi.value=vFps(s.fps);return}if(s.fps!==n){s.fps=n;if(RT)ENG.fps=n;touch()}if(commit)fi.value=n};
+fi.addEventListener('input',()=>setF(false));fi.addEventListener('change',()=>setF(true));fi.addEventListener('blur',()=>setF(true));fi.addEventListener('keydown',e=>{e.stopPropagation();if(e.key=='Enter')fi.blur()});
+c.append(RB.flag,RB.stop,RB.reset,fl);syncFps()};
+function syncFps(){const s=SC();if(RB.fpsIn&&s&&document.activeElement!==RB.fpsIn)RB.fpsIn.value=vFps(s.fps)}
 function updateRunUI(){if(!RB.flag)return;RB.stop.disabled=!RT;RB.reset.disabled=!RT;RB.flag.classList.toggle('on',!!(RT&&RT.threads.length))}
 Object.assign(SCN,{BK,def,flag,stopAll,reset,click,mkBlock,startScript,broadcast,overlap,touchEdge,renderWS,renderPal,markRunning,WS});
 
@@ -985,7 +1094,7 @@ def('control_stopother','control','stack','このオブジェクトの他のス�
 /* 調べる */
 function colorHit(T,c1,c2){const rgb=h=>{h=String(h).trim().replace('#','');if(h.length==3)h=[...h].map(c=>c+c).join('');const n=parseInt(h,16);return h.length==6&&!isNaN(n)?[n>>16&255,n>>8&255,n&255]:null},a=rgb(c1),b=c2==null?null:rgb(c2);if(!a||(c2!=null&&!b)||!T.vis)return false;
 const bb=aabb(corners(T)),x0=Math.max(0,Math.floor(bb[0])),y0=Math.max(0,Math.floor(bb[1])),W=Math.min(480,Math.ceil(bb[2]))-x0,Hh=Math.min(360,Math.ceil(bb[3]))-y0;if(W<=0||Hh<=0)return false;
-CX2.forEach((x,i)=>{CV2[i].width=W;CV2[i].height=Hh;x.setTransform(1,0,0,1,-x0,-y0)});const x=CX2[0];x.fillStyle=SC().bg;x.fillRect(x0,y0,W,Hh);if(RT.pc)x.drawImage(RT.pc,0,0,480,360);RT.list.forEach(o=>{if(o!==T)drawObj(x,o,1)});mask(CX2[1],T);CX2.forEach(x=>x.setTransform(1,0,0,1,0,0));
+CX2.forEach((x,i)=>{CV2[i].width=W;CV2[i].height=Hh;x.setTransform(1,0,0,1,-x0,-y0)});const x=CX2[0];drawBackdrop(x,1);if(RT.pc)x.drawImage(RT.pc,0,0,480,360);RT.list.forEach(o=>{if(o!==T)drawObj(x,o,1)});mask(CX2[1],T);CX2.forEach(x=>x.setTransform(1,0,0,1,0,0));
 const D=CX2.map(x=>x.getImageData(0,0,W,Hh).data),m=(d,i,c)=>(d[i]&248)==(c[0]&248)&&(d[i+1]&248)==(c[1]&248)&&(d[i+2]&248)==(c[2]&248);
 for(let i=0;i<D[0].length;i+=4)if(D[1][i+3]>0&&m(D[0],i,a)&&(!b||m(D[1],i,b)))return true;return false}
 def('sense_touchcolor','sense','b','色[C]に触れた',{C:['s','#ff0000']},(T,A)=>RT?colorHit(T,A.C):false);
@@ -1024,7 +1133,7 @@ inp.onkeydown=e=>{e.stopPropagation();if(e.isComposing||e.keyCode==229)return;if
 function addVar(name,scope,o){const s=SC();o=o||OBJ();
 if(scope=='l'){if(!o){toast('オブジェクトを選んでください');return null}if(name in s.gvars||name in o.vars){toast('同じ名前の変数がすでにあります');return null}o.vars[name]=0}
 else{if(name in s.gvars||s.objs.some(x=>name in x.vars)){toast('同じ名前の変数がすでにあります');return null}s.gvars[name]=0}touch();return name}
-H.newVar=async()=>{stopRun();const r=await askVar();return r?addVar(r.name,r.scope):null};
+H.newVar=async()=>{const r=await askVar();return r?addVar(r.name,r.scope):null};
 function walk(arr,f){for(const b of arr){f(b);if(b.in)for(const k in b.in)if(b.in[k]&&typeof b.in[k]=='object')walk([b.in[k]],f);if(b.c)for(const k in b.c)walk(b.c[k],f)}}
 const VAROPS=['var_get','var_set','var_change','var_show','var_hide'];
 function renameVar(name,local,o){return askText('「'+name+'」の新しい名前',name,'変更').then(n=>{if(!n||n===name)return;const s=SC();if(n in s.gvars||s.objs.some(x=>n in x.vars)){toast('同じ名前の変数がすでにあります');return}stopRun();
@@ -1050,7 +1159,7 @@ def('list_hide','var','stack','リスト[L]を隠す',{L:['m','list']},(T,A)=>{i
 function addList(name,scope,o){const s=SC();o=o||OBJ();const g=s.glists||(s.glists={});
 if(scope=='l'){if(!o){toast('オブジェクトを選んでください');return null}o.lists=o.lists||{};if(name in g||name in o.lists){toast('同じ名前のリストがすでにあります');return null}o.lists[name]=[]}
 else{if(name in g||s.objs.some(x=>x.lists&&name in x.lists)){toast('同じ名前のリストがすでにあります');return null}g[name]=[]}touch();return name}
-H.newList=async()=>{stopRun();const r=await askVar('リスト');return r?addList(r.name,r.scope):null};
+H.newList=async()=>{const r=await askVar('リスト');return r?addList(r.name,r.scope):null};
 function renameList(name,local,o){return askText('「'+name+'」の新しい名前',name,'変更').then(n=>{if(!n||n===name)return;const s=SC();if((s.glists&&n in s.glists)||s.objs.some(x=>x.lists&&n in x.lists)){toast('同じ名前のリストがすでにあります');return}stopRun();
 const re=m=>{const v={};Object.keys(m).forEach(k=>v[k==name?n:k]=m[k]);return v};if(local)o.lists=re(o.lists);else s.glists=re(s.glists);
 (local?[o]:s.objs).forEach(x=>x.sc.forEach(sc=>walk(sc.b,b=>{if(LISTOPS.includes(b.op)&&b.in.L===name)b.in.L=n})));touch();renderPal();renderWS()})}
@@ -1106,11 +1215,11 @@ function purgeDef(id){const isC=b=>b&&(b.op=='pc:'+id||b.op=='pd:'+id),isA=v=>v&
 const fix=b=>{if(b.in)for(const k in b.in){const v=b.in[k];if(v&&typeof v=='object'){if(isA(v)||isC(v))b.in[k]=0;else fix(v)}}},rm=arr=>{for(let i=arr.length-1;i>=0;i--){const b=arr[i];if(isC(b)||isA(b)){arr.splice(i,1);continue}fix(b);if(b.c)for(const k in b.c)rm(b.c[k])}};
 SC().objs.forEach(x=>{x.sc=x.sc.filter(z=>!(z.b[0]&&z.b[0].op=='pd:'+id));x.sc.forEach(z=>rm(z.b));x.sc=x.sc.filter(z=>z.b.length)});delete BK['pc:'+id];delete BK['pd:'+id]}
 H.purgeDef=purgeDef;
-PALX.proc=(p,o)=>{regAll();const b=el('button','sc-b','ブロックを作る');b.type='button';b.onclick=async()=>{const r=await askDef();if(!r)return;const ob=OBJ();if(!ob){toast('オブジェクトを選んでください');return}stopRun();const s=SC(),d={id:uid(),items:r.items,warp:r.warp,np:r.np};(s.defs||(s.defs=[])).push(d);regProc(d);
+PALX.proc=(p,o)=>{regAll();const b=el('button','sc-b','ブロックを作る');b.type='button';b.onclick=async()=>{const r=await askDef();if(!r)return;const ob=OBJ();if(!ob){toast('オブジェクトを選んでください');return}const s=SC(),d={id:uid(),items:r.items,warp:r.warp,np:r.np};(s.defs||(s.defs=[])).push(d);regProc(d);
 ob.sc.push({id:uid(),x:20,y:ob.sc.reduce((m,z)=>Math.max(m,z.y+120),20),b:[mkBlock('pd:'+d.id)]});touch();renderPal();renderWS()};p.append(b);
 const L=SC().defs||[];if(!L.length){const e=el('div',null,'まだ定義ブロックがありません');e.style.cssText='font-size:12px;opacity:.7;margin:6px 0';p.append(e)}
 L.forEach(d=>{const row=el('div','vrow'),e=renderScript({b:[mkBlock('pc:'+d.id)]},true),m=el('button','sc-b','⋯');m.type='button';m.title='編集・削除';m.style.minWidth='34px';
-m.onclick=()=>{const r=m.getBoundingClientRect();menuAt(r.left,r.bottom,[['編集',async()=>{const x=await askDef(d);if(!x)return;stopRun();d.items=x.items;d.warp=x.warp;d.np=x.np;regProc(d);touch();renderPal();renderWS()}],['削除',async()=>{if(!await uiConfirm('ブロック「'+(d.items.find(i=>i.k=='l')||{t:'?'}).t+'」を削除しますか?\n(定義と、これを使うブロックも消えます)'))return;stopRun();purgeDef(d.id);SC().defs=SC().defs.filter(z=>z!==d);touch();renderPal();renderWS()},'danger']])};row.append(e,m);p.append(row)});
+m.onclick=()=>{const r=m.getBoundingClientRect();menuAt(r.left,r.bottom,[['編集',async()=>{const x=await askDef(d);if(!x)return;d.items=x.items;d.warp=x.warp;d.np=x.np;regProc(d);touch();renderPal();renderWS()}],['削除',async()=>{if(!await uiConfirm('ブロック「'+(d.items.find(i=>i.k=='l')||{t:'?'}).t+'」を削除しますか?\n(定義と、これを使うブロックも消えます)'))return;stopRun();purgeDef(d.id);SC().defs=SC().defs.filter(z=>z!==d);touch();renderPal();renderWS()},'danger']])};row.append(e,m);p.append(row)});
 const h=el('div',null,'※「ブロックを作る」を押すと、定義ブロックが作業エリアに置かれます。定義の下に、このブロックの中身を組み立ててください。定義ブロック内の入力(丸い部品)はドラッグしてコピーして使えます');h.style.cssText='font-size:11px;opacity:.65;margin:6px 0 8px';p.append(h)};
 {const _bt=buildRT;buildRT=function(){regAll();_bt()};const _rw=renderWS;renderWS=function(){regAll();_rw()};H.renderWS=renderWS;SCN.renderWS=renderWS}
 /* ----- 拡張機能: ペン(専用のレイヤーに描く。ステージの背景とオブジェクトの間に表示) ----- */
@@ -1514,7 +1623,7 @@ H.scratchInfo=()=>{reindex();const has=sc=>sc.objs.some(o=>o.sc&&o.sc.some(s=>s.
 H.scratchPlan=(opt={})=>{
 reindex();const E=window.ScratchProgramExport;if(!E)return null;
 const scenes=opt.mode=='all'?S.scenes.slice():(SC()?[SC()]:[]);
-const plan={entries:[],stage:null,globalVars:{},globalLists:{},broadcasts:{},extensions:[],extensionURLs:{},warnings:[]};
+const plan={fps:scenes[0]?vFps(scenes[0].fps):30,entries:[],stage:null,globalVars:{},globalLists:{},broadcasts:{},extensions:[],extensionURLs:{},warnings:[]};
 const gvIds=new Map(),glIds=new Map(),bcIds=new Map(),extReg=new Map(),used=new Map();
 const gVar=(name,val)=>{name=String(name);if(gvIds.has(name))return gvIds.get(name);const id='pegv'+gvIds.size;gvIds.set(name,id);plan.globalVars[id]=[name,val===undefined?0:val];return id};
 const gList=(name,val)=>{name=String(name);if(glIds.has(name))return glIds.get(name);const id='pegl'+glIds.size;glIds.set(name,id);plan.globalLists[id]=[name,Array.isArray(val)?val:[]];return id};

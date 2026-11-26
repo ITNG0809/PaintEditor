@@ -1143,6 +1143,7 @@ Object.entries(t.variables||{}).forEach(([k,v])=>{if(!gn.has(v[0]))vs[k]=v});Obj
 if(plan.stage){t.blocks=plan.stage.blocks;t.comments={};Object.assign(vs,plan.stage.variables);Object.assign(ls,plan.stage.lists)}
 t.variables=Object.assign(vs,plan.globalVars);t.lists=Object.assign(ls,plan.globalLists);t.broadcasts=Object.assign({},t.broadcasts,plan.broadcasts)}
 else{plan.entries.filter(e=>e.spName===sp.n).forEach((e,k)=>{let tt=t;if(k>0){tt=JSON.parse(JSON.stringify(t));tt.name=e.exportName;out.push(tt)}peFill(tt,e)})}});
+if(plan.fps&&plan.fps!=30){const st=out.find(t=>t.isStage);if(st){st.comments=Object.fromEntries(Object.entries(st.comments||{}).filter(([k,c])=>!(c&&/_twconfig_\s*$/.test(c.text||''))));st.comments['pefps']={blockId:null,x:0,y:0,width:350,height:170,minimized:true,text:'Configuration for https://turbowarp.org/\nYou can move, resize, and minimize this comment, but don\'t edit it by hand. This comment can be deleted to remove the stored settings.\n'+JSON.stringify({framerate:plan.fps})+' // _twconfig_'}}}
 out.forEach((t,i)=>{t.layerOrder=i});return out}
 const safeName=n=>String(n).replace(/[\\\/:*?"<>|]/g,'_')||'sprite';
 async function s3out(){try{spSave();const sp=SPS[SPI];if(sp.stage){await uiAlert('ステージは.sprite3では書き出せません。\n全体を.sb3で書き出してください。');return}

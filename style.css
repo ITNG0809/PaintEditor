@@ -795,7 +795,6 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 .sb-zs{position:relative}
 .sb-wsc{position:relative;transform-origin:0 0}
 .sb-lock{position:absolute;left:8px;top:8px;z-index:5;background:#ec5959;color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;pointer-events:none}
-#scn.run .sb-ws .sb,#scn.run .sb-pal .sb{pointer-events:none}
 .sb-script{position:absolute;display:flex;flex-direction:column;align-items:flex-start;touch-action:none;width:max-content}
 .sb-script.running{filter:drop-shadow(0 0 5px #ffe14d) drop-shadow(0 0 2px #ffe14d)}
 .sb{--c:#4c97ff;position:relative;color:#fff;font-size:13px;font-weight:600;line-height:1.2;width:max-content;max-width:none}
@@ -847,3 +846,31 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 @media(pointer:coarse){#side .lr.bl{min-height:42px}#side .lr.bl button{min-height:38px!important;min-width:38px!important}}
 @media(prefers-color-scheme:dark){#bly_wrap small{color:#9aa}}
 @media(max-width:700px){#side:has(#bly_wrap:not([hidden])){max-height:max(45%,230px);min-height:120px}}
+/* ブロックのバックパック・選択・スプライトへのドロップ */
+.sb.sel{outline:2px solid #fff;outline-offset:1px;box-shadow:0 0 0 4px #4c97ff}
+.sb-bp{flex:0 0 auto;border-top:1px solid var(--bd);background:var(--pn2);display:flex;flex-direction:column}
+.sb-bp-hd{display:flex;align-items:center;gap:8px;padding:2px 6px;min-height:38px}
+.sb-bp-tg{display:inline-flex;align-items:center;gap:6px;min-height:34px;border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:0 6px}
+.sb-bp-tg .ar{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:7px solid currentColor;transition:transform .15s}
+.sb-bp.open .sb-bp-tg .ar{transform:rotate(180deg)}
+.sb-bp-hint{flex:1;min-width:0;font-size:11px;opacity:.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-bp .sc-b{min-height:32px;font-size:12px}
+.sb-bp-strip{display:none;overflow-x:auto;overflow-y:hidden;gap:8px;padding:6px 8px 8px;align-items:flex-start;max-height:150px;border-top:1px solid var(--bd);touch-action:pan-x}
+.sb-bp.open .sb-bp-strip{display:flex}
+.sb-bp.drop{background:#4c97ff33;box-shadow:inset 0 0 0 3px #4c97ff}
+.sb-bp-item{position:relative;flex:0 0 auto;max-width:280px;max-height:130px;overflow:hidden;background:var(--in);border:1px solid var(--bd);border-radius:8px;padding:6px 24px 6px 6px;cursor:grab;touch-action:none}
+.sb-bp-item .sb-script{position:static;zoom:.72;margin:0}
+.sb-bp-item input,.sb-bp-item select{pointer-events:none}
+.sb-bp-item.bad{opacity:.6;cursor:default}.sb-bp-na{font-size:11px;padding:4px;max-width:150px}
+.sb-bp-x{position:absolute;right:2px;top:2px;width:22px;height:22px;border:0;border-radius:50%;background:#0003;color:inherit;cursor:pointer;line-height:1;padding:0;font-size:14px}
+.sb-bp-empty{font-size:12px;opacity:.7;padding:6px 4px;white-space:normal}
+.sc-oi.dropok{outline:3px solid #4c97ff;background:#4c97ff33}
+.sb-dstrip{position:fixed;z-index:180;display:flex;gap:6px;padding:6px;overflow-x:auto;background:#000a;border-radius:0 0 10px 10px}
+.sb-dstrip-i{flex:0 0 auto;width:72px;text-align:center;font-size:10px;color:#fff;border:2px solid transparent;border-radius:8px;background:#fff2;padding:2px}
+.sb-dstrip-i canvas{width:100%;height:38px;background:#fff;border-radius:4px;display:block}.sb-dstrip-i .nm{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sb-dstrip-i.dropok{border-color:#4c97ff;background:#4c97ff66}
+.sc-fps{display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-left:4px}
+.sc-fps{color:#fff;font-weight:600}
+.sc-top .sc-fps input{width:62px;min-height:40px;box-sizing:border-box;text-align:center;border-radius:8px;border:1px solid #ffffff55;background:#ffffff26;color:#fff;font:inherit;padding:0 4px;-moz-appearance:textfield}
+.sc-top .sc-fps input::-webkit-outer-spin-button,.sc-top .sc-fps input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sc-top .sc-fps input:focus{outline:2px solid #fff;background:#ffffff40}
