@@ -69,8 +69,6 @@
     root.setAttribute("aria-label", "音エディター");
     root.innerHTML = `
       <header class="se-header">
-        ${button("close", "戻る", "close")}
-        ${icon("snd_wave")}<h1>音エディター</h1>
         <label>編集するスプライト<select id="se_owner" aria-label="編集するスプライト"></select></label>
       </header>
       <div class="se-body">
@@ -178,6 +176,7 @@
           </footer>
         </main>
       </div>`;
+    if (global.PaintNav) root.querySelector(".se-header").prepend(global.PaintNav.make("sound", ""));
     document.body.append(root);
     root.addEventListener("click", (event) => {
       const action = event.target.closest("[data-action]")?.dataset.action;
@@ -870,7 +869,7 @@
     root.hidden = false;
     entry.classList.add("on");
     await selectOwner(SPS[SPI]);
-    q('[data-action="close"]').focus();
+    q('.se-header .pe-nav-b.on')?.focus();
   }
   function close() {
     cancel();

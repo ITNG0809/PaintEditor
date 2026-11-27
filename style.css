@@ -817,7 +817,7 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 .sb-hint{position:fixed;z-index:200;pointer-events:none;background:#fff;box-shadow:0 0 0 2px #4c97ff,0 0 8px #4c97ff;border-radius:3px}
 .sb-ghost{position:fixed;z-index:190;pointer-events:none;opacity:.92;filter:drop-shadow(2px 4px 4px #0006);transform-origin:0 0}
 .sb-ghost .sb-script{position:static}
-.cat-event{--c:#ffbf00}.cat-motion{--c:#4c97ff}.cat-looks{--c:#9966ff}.cat-control{--c:#ffab19}.cat-sense{--c:#5cb1d6}.cat-op{--c:#59c059}.cat-var{--c:#ff8c1a}.cat-msg{--c:#e0a000}.cat-pen{--c:#0fbd8c}.cat-proc{--c:#ff6680}
+.cat-event{--c:#ffbf00}.cat-motion{--c:#4c97ff}.cat-looks{--c:#9966ff}.cat-control{--c:#ffab19}.cat-sense{--c:#5cb1d6}.cat-op{--c:#59c059}.cat-var{--c:#ff8c1a}.cat-msg{--c:#e0a000}.cat-pen{--c:#0fbd8c}.cat-proc{--c:#ff6680}.cat-sound{--c:#cf63cf}
 #scn .sb-slot input[type=color]{width:2.6em;height:1.7em;padding:0;border:0;background:none;cursor:pointer;vertical-align:middle}
 .sb-ev,.sb-ev .sb-row{color:#fff}
 .sb-wsc .sb.sel{outline:2px solid #fff}
@@ -874,3 +874,25 @@ position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;background:
 .sc-top .sc-fps input{width:62px;min-height:40px;box-sizing:border-box;text-align:center;border-radius:8px;border:1px solid #ffffff55;background:#ffffff26;color:#fff;font:inherit;padding:0 4px;-moz-appearance:textfield}
 .sc-top .sc-fps input::-webkit-outer-spin-button,.sc-top .sc-fps input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sc-top .sc-fps input:focus{outline:2px solid #fff;background:#ffffff40}
+
+
+/* ===== 全画面(ステージを画面いっぱいに拡大) ===== */
+#scn .p-stage.fs{position:fixed;inset:0;z-index:200;width:100vw;height:100vh;height:100dvh;background:#000;border:0;display:flex;flex-direction:column}
+#scn .p-stage.fs .sc-stbar,#scn .p-stage.fs .sc-info{display:none}
+#scn .p-stage.fs .sc-stbox{flex:1 1 auto;min-height:0;padding:0;width:100%;height:100%}
+#scn .p-stage.fs #scs{border:0;background:#fff;max-width:100%;max-height:100%}
+.sc-fsbar{display:none}
+#scn .p-stage.fs .sc-fsbar{display:flex;gap:6px;position:absolute;top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));z-index:3;transition:opacity .25s}
+#scn .sc-fsbar.idle{opacity:0;pointer-events:none}
+#scn .sc-fsbar .sc-b{box-shadow:0 2px 8px #0006}
+#scn .sc-fsbar .sc-b.flag{background:#4cbf56;border-color:#3d9f46;color:#fff}#scn .sc-fsbar .sc-b.stop{background:#ec5959;border-color:#c94444;color:#fff}
+#scn.fs .sc-top,#scn.fs .sc-tabs{visibility:hidden}
+@media(max-width:900px){#scn[data-panel=stage] .p-stage.fs{display:flex}}
+
+/* ===== エディター切り替え(コスチューム / アニメーション / 音) ===== */
+.pe-nav{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#sound-editor .se-header .pe-nav-b{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 12px;border:1px solid #ffffff40;border-radius:8px;background:#ffffff20;color:#fff;font:600 13px system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#sound-editor .se-header .pe-nav-b:hover{background:#ffffff38}
+#sound-editor .se-header .pe-nav-b.on,#scn .sc-top .pe-nav-b.on{background:#fff;color:#855cd6;border-color:#fff;cursor:default}
+.pe-nav-b svg{flex:none}
+@media(max-width:700px){.pe-nav-b{padding:0 8px!important;font-size:12px!important}.pe-nav-b svg{display:none}}
