@@ -25,6 +25,7 @@
   const sounds = (owner) => owner?.ex?.sounds || [];
   Object.assign(IC, {
     snd_wave: '<path d="M3 10v4M7 6v12M12 3v18M17 7v10M21 10v4"/>',
+    snd_video: '<rect x="3" y="5" width="12" height="14" rx="2"/><path d="m15 10 6-3v10l-6-3"/>',
     snd_play: '<path d="m8 5 11 7-11 7z"/>',
     snd_stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
     snd_speed: '<path d="m3 5 8 7-8 7zm10 0 8 7-8 7z"/>',
@@ -76,6 +77,7 @@
           <div class="se-library-title"><strong>音のライブラリ</strong><span class="se-count">0</span></div>
           <div class="se-list" role="listbox" aria-label="音の一覧"></div>
           ${button("import", "音を読み込む", "plus", "primary se-import")}
+          ${button("video-extract", "動画から音声を抽出", "snd_video", "se-import se-video")}
           <input id="se_file" type="file" hidden multiple accept="audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.aif,.aiff,.webm,.mp4,.sprite3,.sb3,.zip">
           <p class="se-import-note">MP3 / WAV / OGG / M4A / FLAC など<br>sprite3・sb3内の音にも対応<br>1ファイル64 MB・音の長さ10分まで</p>
         </aside>
@@ -83,7 +85,7 @@
           <div class="se-empty">
             ${icon("snd_wave")}<h2>音を、思いどおりに。</h2>
             <p>音を読み込むか、左のライブラリから選んでください。<br>波形の編集から、音程とスピードの調整まで。</p>
-            ${button("import", "最初の音を読み込む", "plus", "primary")}
+            ${button("import", "最初の音を読み込む", "plus", "primary")}${button("video-extract", "動画から音声を抽出", "snd_video")}
           </div>
           <div class="se-workspace" hidden>
             <div class="se-heading">
@@ -853,8 +855,33 @@
       }
     }
   }
+  // 動画音声抽出など、外部で作ったPCMを新しい音としてライブラリへ追加する（保存はWAV化して既存の仕組みへ）
+  async function addPcm(pcm, name = "動画の音声") {
+    if (!state.open) await open();
+    if (state.busy) throw Error("音エディターが処理中です。終わってからもう一度お試しください。");
+    audio.validate(pcm);
+    stopPreview();
+    const target = state.owner,
+      list = ((target.ex ||= {}).sounds ||= []);
+    const base = String(name).trim().slice(0, 70) || "音";
+    let unique = base,
+      n = 2;
+    while (list.some((s) => s.name === unique)) unique = base + " " + n++;
+    const meta = { name: unique };
+    list.push(meta);
+    const r = { owner: target, meta, pcm, start: 0, end: frames(pcm), undo: [], redo: [] };
+    if (!records.has(target)) records.set(target, new Map());
+    records.get(target).set(meta, r);
+    store(r, pcm);
+    state.record = r;
+    ownerOptions();
+    renderList();
+    update();
+    status(`動画から抽出した音「${unique}」を追加しました。Scratch互換WAVとして保存されます。`);
+    return r;
+  }
   function keyboard(event) {
-    if (!state.open || document.querySelector("#uidlg")) return;
+    if (!state.open || document.querySelector("#uidlg, #video-extract:not([hidden])")) return;
     const typing = event.target.matches("input,select,textarea") || event.target.isContentEditable;
     if (event.key === "Tab") {
       const nodes = [
@@ -922,6 +949,10 @@
     open,
     close,
     import: () => q("#se_file").click(),
+    "video-extract": () => {
+      if (!global.PaintVideoExtract) throw Error("動画音声抽出を読み込めませんでした");
+      return global.PaintVideoExtract.open();
+    },
     copy: copySelection,
     cut: () => removeSelection(true),
     remove: () => removeSelection(false),
@@ -997,6 +1028,7 @@
     open,
     close,
     importFiles,
+    addPcm,
     selectOwner,
     selectSound,
     select,

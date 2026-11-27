@@ -18,6 +18,8 @@ costume-editor.js        コスチュームエディター本体（描画・図�
 bitmap-layers.js         ビットマップのレイヤー
 animation.js             アニメーション機能（シーン・ブロックエディタ・実行エンジン・拡張機能）
 sound-editor.js          音エディターの画面
+mp4-audio.js             MP4/MOVの音声トラックだけを必要な範囲だけ読み出す部品（動画音声抽出用）
+video-audio-extract.js   動画音声抽出の画面と処理（音エディターの「動画から音声を抽出」から開く）
 sound-dsp-worker.js      音の速度・音程変更（Web Worker。index.htmlからは読み込まず、sound-core.jsが起動する）
 sound-dsp-engines.js     速度・音程変更の処理本体（WSOLA／位相ボコーダー／SoundTouch。Workerが読み込む）
 soundtouch.js            外部ライブラリ SoundTouchJS（LGPL。LICENSE-soundtouch・NOTICE-soundtouch.md付き。消さないでください）
@@ -34,6 +36,7 @@ docs-*.md / SOUND-QUALITY.md   機能ごとの仕様メモ・音質の調査結�
 | アニメーション・ブロック・拡張機能 | `animation.js` |
 | スクリプトの実行速度・フレームの進め方・当たり判定 | `animation.js` 第2部（`docs-engine.md`） |
 | 音エディター | `sound-core.js`（処理）／`sound-editor.js`（画面） |
+| 動画から音声を抽出 | `video-audio-extract.js`（画面・抽出）／`mp4-audio.js`（MP4読み出し）／`docs-video-extract.md` |
 | 音の加工（エコーなど）を足す・直す | `sound-effects.js`（加工の計算）＋`sound-editor.js`（ボタン・入力欄） |
 | Scratchファイルの取り込み | `scratch-compat.js` |
 | ボタンなどのHTML | `index.html` |
@@ -70,6 +73,7 @@ docs-*.md / SOUND-QUALITY.md   機能ごとの仕様メモ・音質の調査結�
 3. `costume-editor.js` … 本体
 4. `animation.js` … 読み込んだ瞬間に `createPaintRenderer`（1）と `PaintAudio`（1）を使う
 5. `sound-editor.js` … 本体の `SCN` `SPS` などに接続するので最後
+6. `mp4-audio.js` → `video-audio-extract.js` … 音エディターの後（`PaintAudio` と `PaintSoundEditor.addPcm` を使う）
 
 `sound-core.js` と `sound-editor.js` を1ファイルにしないのはこのためです（4を挟んで前後に分かれるため）。
 
