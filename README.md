@@ -5,40 +5,42 @@
 
 ## フォルダ構成
 
+ZIPを展開すると、中身がそのまま直下に並びます（親フォルダなし）。`index.html` を開けばすぐ動き、そのままGitHub Pagesなどに置けます。
+
 ```
-index.html              画面のHTML（骨組み）。下のCSS/JSを読み込む
-favicon.png             タブのアイコン
-css/
-  style.css             すべてのスタイル（音エディター部分 → 本体部分の順）
-js/
-  scratch-compat.js     Scratch/TurboWarp互換（Canvas版レンダラー ＋ sb3/sprite3のプログラム変換）
-  sound-core.js         音の処理の核（WAV/ADPCM読込・再生・音ブロック）
-  sound-effects.js      音の加工（フェード・エコー・リバーブ・フィルターなど14種。PaintAudio.fx）
-  costume-editor.js     コスチュームエディター本体（描画・図形・保存/読込・ブール演算・オフセット など）
-  animation.js          アニメーション機能（シーン・ブロックエディタ・実行エンジン・拡張機能）
-  sound-editor.js       音エディターの画面
-  sound-dsp-worker.js   音の速度・音程変更（Web Worker。index.htmlからは読み込まず、sound-core.jsが起動する）
-  vendor/soundtouch/    外部ライブラリ SoundTouchJS（LGPL。LICENSE・NOTICE付き。消さないでください）
-docs/                   機能ごとの仕様メモ（音エディター／Scratch取り込み／TurboWarp互換／実行エンジン）
-tests/                  動作確認テスト（Playwright。公開には不要）
+index.html               画面のHTML（骨組み）。下のCSS/JSを読み込む
+icon.svg                 タブのアイコン
+style.css                すべてのスタイル（音エディター部分 → 本体部分の順）
+scratch-compat.js        Scratch/TurboWarp互換（Canvas版レンダラー ＋ sb3/sprite3のプログラム変換）
+sound-core.js            音の処理の核（WAV/ADPCM読込・再生・音ブロック・Workerの起動）
+sound-effects.js         音の加工（フェード・エコー・リバーブ・フィルターなど。PaintAudio.fx）
+costume-editor.js        コスチュームエディター本体（描画・図形・保存/読込・ブール演算・オフセット など）
+bitmap-layers.js         ビットマップのレイヤー
+animation.js             アニメーション機能（シーン・ブロックエディタ・実行エンジン・拡張機能）
+sound-editor.js          音エディターの画面
+sound-dsp-worker.js      音の速度・音程変更（Web Worker。index.htmlからは読み込まず、sound-core.jsが起動する）
+sound-dsp-engines.js     速度・音程変更の処理本体（WSOLA／位相ボコーダー／SoundTouch。Workerが読み込む）
+soundtouch.js            外部ライブラリ SoundTouchJS（LGPL。LICENSE-soundtouch・NOTICE-soundtouch.md付き。消さないでください）
+docs-*.md / SOUND-QUALITY.md   機能ごとの仕様メモ・音質の調査結果
 ```
+すべてのファイルは同じ階層にあり、`import "./..."` や `new URL("./...", document.baseURI)` の相対パスで読み込みます。移動するときは全部を同じフォルダに置いてください。
 
 ## どこを直せばいい？
 
 | やりたいこと | 触るファイル |
 |---|---|
-| 見た目・色・レイアウト | `css/style.css` |
-| 描画ツール・図形・保存/読込・メニュー | `js/costume-editor.js` |
-| アニメーション・ブロック・拡張機能 | `js/animation.js` |
-| スクリプトの実行速度・フレームの進め方・当たり判定 | `js/animation.js` 第2部（`docs/engine.md`） |
-| 音エディター | `js/sound-core.js`（処理）／`js/sound-editor.js`（画面） |
-| 音の加工（エコーなど）を足す・直す | `js/sound-effects.js`（加工の計算）＋`js/sound-editor.js`（ボタン・入力欄） |
-| Scratchファイルの取り込み | `js/scratch-compat.js` |
+| 見た目・色・レイアウト | `style.css` |
+| 描画ツール・図形・保存/読込・メニュー | `costume-editor.js` |
+| アニメーション・ブロック・拡張機能 | `animation.js` |
+| スクリプトの実行速度・フレームの進め方・当たり判定 | `animation.js` 第2部（`docs-engine.md`） |
+| 音エディター | `sound-core.js`（処理）／`sound-editor.js`（画面） |
+| 音の加工（エコーなど）を足す・直す | `sound-effects.js`（加工の計算）＋`sound-editor.js`（ボタン・入力欄） |
+| Scratchファイルの取り込み | `scratch-compat.js` |
 | ボタンなどのHTML | `index.html` |
 
 ## 画像効果（渦巻き・魚眼など）の仕組み
 
-`js/animation.js` の「画像効果」部分は、TurboWarp/Scratchと同じく **GPU（WebGLのシェーダー）** で計算します。
+`animation.js` の「画像効果」部分は、TurboWarp/Scratchと同じく **GPU（WebGLのシェーダー）** で計算します。
 
 - 色・魚眼・渦巻き・ピクセル化・モザイク・明るさを、1ピクセルずつ並列にGPUで計算（計算式はScratchと同じ）
 - 効果をかける前の絵はオブジェクトごとに使い回し、コスチューム・大きさ・解像度が変わった時だけ作り直す（実行中のみ）
@@ -46,12 +48,12 @@ tests/                  動作確認テスト（Playwright。公開には不要�
 - 同じ効果の2回目以降（スタンプの連打・動かない効果）は計算結果も使い回す
 - 大きいスプライト（大きさ400など）は、1回に計算するピクセル数に上限を設け、解像度を少し下げて軽くする
 - WebGLが使えない／途中で失敗した時は、従来のCPU計算へ自動で切り替わる（見た目は同じ）
-- 確認: `tests/image-effects.mjs`（GPUとCPUの出力が一致するか・大きさ/コスチューム変更で絵が更新されるか）
-- 確認: `tests/screen-effects.mjs`（巨大拡大でも滲まないか・8000%・回転/画面端/画面外・GPUとCPUの一致）
+- 確認: `tests/（このZIPには含まれません）image-effects.mjs`（GPUとCPUの出力が一致するか・大きさ/コスチューム変更で絵が更新されるか）
+- 確認: `tests/（このZIPには含まれません）screen-effects.mjs`（巨大拡大でも滲まないか・8000%・回転/画面端/画面外・GPUとCPUの一致）
 
 ## 実行エンジン（速さの仕組み）
 
-`js/animation.js` の実行エンジンは、TurboWarp/Scratchと同じ考え方で動きます（詳しくは `docs/engine.md`）。
+`animation.js` の実行エンジンは、TurboWarp/Scratchと同じ考え方で動きます（詳しくは `docs-engine.md`）。
 
 - **フレームの進め方**: 画面を動かさないループ（計算・リスト・変数など）は、1フレームの中で何千回でも回る。
   見えているオブジェクトを動かす・ペン・「待つ」などは、1周ごとに画面を更新する（Scratchと同じ）
@@ -97,7 +99,7 @@ python3 -m http.server 8000
 
 GitHub Pages（https）ならどれも問題なく使えます。
 Paper.jsを**オフラインでも使えるようにしたい**場合：`paper-core.min.js`（0.12.17）をダウンロードして
-`js/vendor/paper/` に置き、`index.html` の `<script src="https://cdnjs.cloudflare.com/...">` をそのパスに書き換えてください。
+ルート直下（例: `paper-core.min.js`）に置き、`index.html` の `<script src="https://cdnjs.cloudflare.com/...">` を `./paper-core.min.js` に書き換えてください。
 
 ## 知っておくこと
 
@@ -109,7 +111,7 @@ Paper.jsを**オフラインでも使えるようにしたい**場合：`paper-c
 
 ## テスト
 
-実ブラウザ（Chromium）で動かす回帰テストです。公開には不要です。詳しくは `docs/` を参照。
+実ブラウザ（Chromium）で動かす回帰テストです。公開には不要です。詳しくは `docs-*.md` を参照。
 
 ```sh
 python3 -m http.server 3000        # 別ターミナルで配信しておく
@@ -126,14 +128,12 @@ PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node tests/sound-effects.mj
 
 
 ## 重いプロジェクト
-数百枚のコスチューム・エフェクト多用のプロジェクトを軽く動かす仕組みは [docs/performance.md](docs/performance.md) を参照。
+数百枚のコスチューム・エフェクト多用のプロジェクトを軽く動かす仕組みは [docs-performance.md](docs-performance.md) を参照。
 
 ---
 ## フラット構成について(GitHubにアップしやすい版)
 フォルダを使わず、すべてのファイルを1か所に並べた版です。`index.html` と同じ階層に全ファイルを置けば動きます。
-- `css/style.css` → `style.css` / `js/*.js` → 直下 / `js/vendor/soundtouch/` → `soundtouch.js`・`LICENSE-soundtouch`・`NOTICE-soundtouch.md`(ライセンス類は消さないでください)
-- `docs/*.md` → `docs-*.md`(上の表の `docs/` はこの名前に読み替えてください)
-- `tests/` は含めていません(フォルダ構成版にあります)。
+- `tests/（このZIPには含まれません）` は含めていません(フォルダ構成版にあります)。
 
 
 ## ビットマップレイヤー(bitmap-layers.js)

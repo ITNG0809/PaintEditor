@@ -1,9 +1,10 @@
-import { SoundTouch } from "./soundtouch.js";
+import { renderWithInfo } from "./sound-dsp-engines.js";
 
-// Render real time-stretch/pitch-shifted PCM, not a playbackRate preview.
+// スピード/音程を実際のPCMとして書き出す（再生速度の変更ではない）。
+// 処理本体は sound-dsp-engines.js。新エンジンが失敗したときは従来のSoundTouchへ自動で戻る。
 self.onmessage = ({ data }) => {
   try {
-    const { channels, sampleRate, tempo = 1, semitones = 0 } = data;
+    const { channels, sampleRate, tempo = 1, semitones = 0, engine = "auto", quality = "standard", material = "auto" } = data;
     const length = channels[0]?.length || 0;
     const outputLength = Math.max(1, Math.round(length / tempo));
     if (
@@ -20,46 +21,17 @@ self.onmessage = ({ data }) => {
       outputLength / sampleRate > 600
     )
       throw Error("音声処理の範囲外です");
-    const output = channels.map(() => new Float32Array(outputLength));
-    const engine = new SoundTouch();
-    engine.stretch.setParameters(sampleRate, 0, 0, 8);
-    engine.tempo = tempo;
-    engine.pitchSemitones = semitones;
-    const block = new Float32Array(8192 * 2);
-    const extracted = new Float32Array(8192 * 2);
-    let position = 0,
-      written = 0,
-      reported = -1;
-    while (written < outputLength) {
-      block.fill(0);
-      const available = Math.min(8192, Math.max(0, length - position));
-      for (let i = 0; i < available; i++) {
-        block[i * 2] = channels[0][position + i];
-        block[i * 2 + 1] = (channels[1] || channels[0])[position + i];
-      }
-      engine.inputBuffer.putSamples(block, 0, 8192);
-      engine.process();
-      position += 8192;
-      while (engine.outputBuffer.frameCount && written < outputLength) {
-        const n = Math.min(8192, engine.outputBuffer.frameCount, outputLength - written);
-        engine.outputBuffer.receiveSamples(extracted, n);
-        for (let i = 0; i < n; i++) {
-          output[0][written + i] = extracted[i * 2];
-          if (output[1]) output[1][written + i] = extracted[i * 2 + 1];
-        }
-        written += n;
-      }
-      const percent = Math.floor((written / outputLength) * 100);
+    let reported = -1;
+    const progress = (f) => {
+      const percent = Math.min(99, Math.floor(f * 100));
       if (percent !== reported) {
         self.postMessage({ progress: percent });
         reported = percent;
       }
-      // SoundTouch needs a real flush tail even for selections shorter than its window.
-      if (position > length + sampleRate * 4 && written < outputLength)
-        throw Error("音声の処理を完了できませんでした");
-    }
+    };
+    const { channels: output, info } = renderWithInfo(channels, sampleRate, { tempo, semitones, engine, quality, material }, progress);
     self.postMessage(
-      { channels: output, sampleRate },
+      { channels: output, sampleRate, info },
       output.map((c) => c.buffer),
     );
   } catch (error) {

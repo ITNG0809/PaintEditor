@@ -118,6 +118,23 @@
               <span class="se-divider"></span>${button("remove", "選択範囲を削除", "del")}${button("trim", "選択範囲だけ残す", "")}
             </div>
             <div class="se-effects" style="margin-top:24px">
+              <section class="se-effect se-engine" style="grid-column:1/-1">
+                <h2>${icon("snd_wave")}スピード・音程の処理方法</h2>
+                <p>下の「スピード」「音程」に共通の設定です。音の種類に合う処理を選ぶと、音質がよくなります（おまかせなら自動で選びます）。</p>
+                <div class="se-engine-row">
+                  <label>音の種類<select id="se_material" aria-label="音の種類">
+                    <option value="auto" selected>おまかせ（自動判定）</option><option value="voice">声・ナレーション</option>
+                    <option value="instrument">楽器・単音</option><option value="bgm">BGM・曲</option><option value="sfx">効果音</option>
+                  </select></label>
+                  <label>品質<select id="se_quality" aria-label="処理の品質">
+                    <option value="fast">高速（軽い・確認用）</option><option value="standard" selected>標準</option><option value="high">高品質（時間がかかる）</option>
+                  </select></label>
+                  <label>エンジン<select id="se_engine" aria-label="処理エンジン">
+                    <option value="auto" selected>高品質エンジン（おすすめ）</option><option value="wsola">時間領域（WSOLA）</option>
+                    <option value="pv">周波数領域（位相ボコーダー）</option><option value="soundtouch2">SoundTouch（調整版）</option><option value="soundtouch">従来（これまでと同じ SoundTouch）</option>
+                  </select></label>
+                </div>
+              </section>
               <section class="se-effect">
                 <h2>${icon("snd_speed")}スピード</h2>
                 <p>音程はそのまま、速く・ゆっくりに。<br>選択範囲がないときは音全体に適用します。</p>
@@ -184,6 +201,7 @@
         Promise.resolve(actions[action]?.()).catch((error) => status(error.message, true));
     });
     q("#se_owner").onchange = () => selectOwner(SPS[Number(q("#se_owner").value)]);
+    loadEnginePrefs();
     q("#se_file").onchange = (event) => {
       const files = [...event.target.files];
       event.target.value = "";
@@ -592,15 +610,33 @@
     store(r, r.pcm, name);
     status("音の名前を変更しました");
   }
+  const PREF_KEY = "pe.sound.engine";
+  function saveEnginePrefs() {
+    try {
+      localStorage.setItem(PREF_KEY, JSON.stringify({ material: q("#se_material").value, quality: q("#se_quality").value, engine: q("#se_engine").value }));
+    } catch (e) {}
+  }
+  function loadEnginePrefs() {
+    try {
+      const v = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+      for (const k of ["material", "quality", "engine"]) {
+        const el = q("#se_" + k);
+        if (el && [...el.options].some((o) => o.value === v[k])) el.value = v[k];
+      }
+    } catch (e) {}
+  }
   async function effect(mode) {
     if (!state.record || state.busy) return;
     stopPreview();
     const r = state.record,
       [a, b] = range();
-    const params =
-      mode === "tempo"
-        ? { tempo: Number(q("#se_tempo").value) }
-        : { semitones: Number(q("#se_pitch").value) };
+    const params = {
+      ...(mode === "tempo" ? { tempo: Number(q("#se_tempo").value) } : { semitones: Number(q("#se_pitch").value) }),
+      material: q("#se_material").value,
+      quality: q("#se_quality").value,
+      engine: q("#se_engine").value,
+    };
+    saveEnginePrefs();
     const resultLength = frames(r.pcm) - (b - a) + Math.round((b - a) / (params.tempo || 1));
     if (resultLength / r.pcm.sampleRate > audio.MAX_SECONDS)
       throw Error("処理後の音が10分を超えます。範囲を短くしてください。");
@@ -614,14 +650,16 @@
       );
       const pcm = await state.worker.promise;
       if (generation !== state.generation || !state.open || state.record !== r) return;
+      const used = pcm.info || {};
       const result = audio.replace(r.pcm, a, b, pcm);
       remember(r);
       store(r, result);
       select(a, a + frames(pcm));
+      const how = used.label ? `（${used.label}）` : "";
       status(
-        mode === "tempo"
-          ? "音程を保ってスピードを変更しました。変更済みの音を再生できます。"
-          : "スピードと長さを保って音程を変更しました。変更済みの音を再生できます。",
+        (mode === "tempo"
+          ? "音程を保ってスピードを変更しました。"
+          : "スピードと長さを保って音程を変更しました。") + how + "変更済みの音を再生できます。",
       );
     } catch (error) {
       if (generation === state.generation) status(error.message, error.name !== "AbortError");

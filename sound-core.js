@@ -213,7 +213,8 @@
     );
     return validate({ sampleRate: pcm.sampleRate, channels });
   }
-  function transform(pcm, { tempo = 1, semitones = 0 } = {}, progress = () => {}) {
+  const ENGINES = ["auto", "wsola", "pv", "soundtouch2", "soundtouch"], QUALITIES = ["fast", "standard", "high"], MATERIALS = ["auto", "voice", "instrument", "bgm", "sfx"];
+  function transform(pcm, { tempo = 1, semitones = 0, engine = "auto", quality = "standard", material = "auto" } = {}, progress = () => {}) {
     validate(pcm);
     if (
       !Number.isFinite(tempo) ||
@@ -221,7 +222,10 @@
       tempo > 4 ||
       !Number.isFinite(semitones) ||
       Math.abs(semitones) > 24 ||
-      length(pcm) / pcm.sampleRate / tempo > MAX_SECONDS
+      length(pcm) / pcm.sampleRate / tempo > MAX_SECONDS ||
+      !ENGINES.includes(engine) ||
+      !QUALITIES.includes(quality) ||
+      !MATERIALS.includes(material)
     ) {
       throw Error("速度は0.25〜4倍、音程は±24半音、処理後の長さは10分以内にしてください");
     }
@@ -241,7 +245,7 @@
         settled = true;
         worker.terminate();
         if (data.error) reject(Error(data.error));
-        else resolve(validate({ channels: data.channels, sampleRate: data.sampleRate }));
+        else resolve(Object.assign(validate({ channels: data.channels, sampleRate: data.sampleRate }), { info: data.info }));
       };
       worker.onerror = (e) => {
         settled = true;
@@ -251,7 +255,7 @@
       // Transfer disposable copies, never detach the editable PCM or undo history.
       const channels = pcm.channels.map((c) => c.slice());
       worker.postMessage(
-        { channels, sampleRate: pcm.sampleRate, tempo, semitones },
+        { channels, sampleRate: pcm.sampleRate, tempo, semitones, engine, quality, material },
         channels.map((c) => c.buffer),
       );
     });
