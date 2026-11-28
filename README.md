@@ -20,6 +20,9 @@ animation.js             アニメーション機能（シーン・ブロック�
 sound-editor.js          音エディターの画面
 mp4-audio.js             MP4/MOVの音声トラックだけを必要な範囲だけ読み出す部品（動画音声抽出用）
 video-audio-extract.js   動画音声抽出の画面と処理（音エディターの「動画から音声を抽出」から開く）
+composer-editor.js       作曲エディターの起動・切り替え（メニューバーの「作曲」／エディター切り替えボタン）
+composer.html            作曲エディター本体（BGM-notpc。composer-*.js / composer-style.css を読み込む）
+composer-*.js/css        BGM-notpc本体の移植（script / song-editor / piano-keys / instrument / sf2-extract(-ui) / shell / style）
 sound-dsp-worker.js      音の速度・音程変更（Web Worker。index.htmlからは読み込まず、sound-core.jsが起動する）
 sound-dsp-engines.js     速度・音程変更の処理本体（WSOLA／位相ボコーダー／SoundTouch。Workerが読み込む）
 soundtouch.js            外部ライブラリ SoundTouchJS（LGPL。LICENSE-soundtouch・NOTICE-soundtouch.md付き。消さないでください）
@@ -36,6 +39,7 @@ docs-*.md / SOUND-QUALITY.md   機能ごとの仕様メモ・音質の調査結�
 | アニメーション・ブロック・拡張機能 | `animation.js` |
 | スクリプトの実行速度・フレームの進め方・当たり判定 | `animation.js` 第2部（`docs-engine.md`） |
 | 音エディター | `sound-core.js`（処理）／`sound-editor.js`（画面） |
+| 作曲エディター | `composer-editor.js`（起動）／`composer.html` + `composer-*.js` + `composer-style.css`（BGM-notpc本体）／`docs-composer.md` |
 | 動画から音声を抽出 | `video-audio-extract.js`（画面・抽出）／`mp4-audio.js`（MP4読み出し）／`docs-video-extract.md` |
 | 音の加工（エコーなど）を足す・直す | `sound-effects.js`（加工の計算）＋`sound-editor.js`（ボタン・入力欄） |
 | Scratchファイルの取り込み | `scratch-compat.js` |
@@ -216,3 +220,6 @@ PLAYWRIGHT_MODULE=/path/to/playwright-core/index.mjs node tests/sound-effects.mj
 - シーンにステージのオブジェクトがあるときは、そのオブジェクトが背景として描かれます(二重には描きません)。
 - 「色に触れた」の判定にも背景が含まれます。
 - 過去のプロジェクトに保存されている背景色の値は、読み込めますが使いません。
+
+## コスチュームエディターの見た目（Scratchに合わせた部分）
+ツール・上部のアイコンボタン・下のオプションボタンは、Scratch本家と同じく縁なし（ホバーで薄い紫、選択中は紫の面）。縁を残すのは、本家でも縁がある元に戻す/やり直す・拡大縮小のグループ（つなげて表示）、色の見本、入力欄、パネル切り替えなど。`style.css` 末尾の「コスチュームエディター: Scratch本家のように…」ブロックで調整できます。

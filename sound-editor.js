@@ -881,7 +881,7 @@
     return r;
   }
   function keyboard(event) {
-    if (!state.open || document.querySelector("#uidlg, #video-extract:not([hidden])")) return;
+    if (!state.open || document.querySelector("#uidlg, #video-extract:not([hidden]), #composer:not([hidden])")) return;
     const typing = event.target.matches("input,select,textarea") || event.target.isContentEditable;
     if (event.key === "Tab") {
       const nodes = [

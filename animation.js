@@ -158,10 +158,12 @@ function menuAt(x,y,items){const m=el('div','sc-menu');items.forEach(([t,f,cls])
 const cl=()=>{m.remove();removeEventListener('pointerdown',out,true)},out=e=>{if(!m.contains(e.target))cl()};setTimeout(()=>addEventListener('pointerdown',out,true),0)}
 SCN.menuAt=menuAt;
 /* ---------- エディター切り替え(コスチューム / アニメーション / 音)。どの画面からでも、ほかのエディターへ直接移れる ---------- */
-Object.assign(IC,{nv_cos:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/>',nv_snd:'<path d="M3 10v4M7 6v12M12 3v18M17 7v10M21 10v4"/>'});
-const EDNAV={list:[['costume','nv_cos','コスチュームエディター','コスチュームを描く・編集する画面へ'],['anim','sc_film','アニメーションエディター','コスチュームを組み合わせて動かす画面へ'],['sound','nv_snd','音エディター','音の読み込み・波形編集の画面へ']],
-go(t){const SE=window.PaintSoundEditor,seOpen=()=>!!(SE&&SE.state&&SE.state.open);
-if(t=='costume'){if(S.open)close();if(seOpen())SE.close()}
+Object.assign(IC,{nv_cos:'<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/>',nv_snd:'<path d="M3 10v4M7 6v12M12 3v18M17 7v10M21 10v4"/>',nv_cmp:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'});
+const EDNAV={list:[['costume','nv_cos','コスチュームエディター','コスチュームを描く・編集する画面へ'],['anim','sc_film','アニメーションエディター','コスチュームを組み合わせて動かす画面へ'],['sound','nv_snd','音エディター','音の読み込み・波形編集の画面へ'],['composer','nv_cmp','作曲エディター','ピアノロール・ソングで曲を作る画面へ']],
+go(t){const SE=window.PaintSoundEditor,seOpen=()=>!!(SE&&SE.state&&SE.state.open),CP=window.PaintComposer;
+if(CP&&CP.state.open&&t!='composer')CP.close();
+if(t=='composer'){if(S.open){stopRun();touch()}if(CP)CP.open().catch(e=>toast('作曲エディターを開けませんでした: '+e.message))}
+else if(t=='costume'){if(S.open)close();if(seOpen())SE.close()}
 else if(t=='anim'){if(seOpen())SE.close();if(!S.open)open()}
 else if(t=='sound'){if(S.open){stopRun();touch()}if(SE&&!seOpen())SE.open().catch(e=>toast('音エディターを開けませんでした: '+e.message))}},
 make(cur,bc){const w=el('span','pe-nav');w.setAttribute('role','navigation');w.setAttribute('aria-label','エディターの切り替え');
